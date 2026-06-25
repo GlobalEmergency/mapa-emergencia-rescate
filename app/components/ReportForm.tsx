@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import { REPORT_TYPES, REPORT_TYPE_KEYS, type ReportType } from "@/lib/types";
+import { trackEvent } from "./openpanel";
 
 interface ReportFormProps {
   coords: { lat: number; lng: number };
@@ -109,6 +110,7 @@ export default function ReportForm({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const useMyLocation = useCallback(() => {
+    trackEvent("report_use_geolocation");
     if (!("geolocation" in navigator)) {
       setGeoError("Tu navegador no soporta geolocalización.");
       return;
@@ -174,6 +176,12 @@ export default function ReportForm({
         needs: needs.trim(),
         photo,
       });
+      trackEvent("report_created", {
+        reportType: type,
+        affected: copy.showAffected ? Number(affected) || 0 : 0,
+        hasPhoto: Boolean(photo),
+        hasNeeds: Boolean(needs.trim()),
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al publicar.");
       setSubmitting(false);
@@ -195,6 +203,7 @@ export default function ReportForm({
           <button
             type="button"
             onClick={onCancel}
+            data-track="report_modal_close"
             aria-label="Cerrar"
             className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700"
           >
@@ -210,6 +219,7 @@ export default function ReportForm({
             <button
               type="button"
               onClick={useMyLocation}
+              data-track="report_use_geolocation_click"
               disabled={locating}
               className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
             >
@@ -235,6 +245,8 @@ export default function ReportForm({
                 return (
                   <label
                     key={key}
+                    data-track="report_type_selected"
+                    data-report-type={key}
                     className={`relative flex cursor-pointer flex-col items-center gap-1 rounded-xl border-2 p-3 text-center text-xs transition ${
                       active
                         ? "border-slate-900 bg-slate-50 shadow-sm"

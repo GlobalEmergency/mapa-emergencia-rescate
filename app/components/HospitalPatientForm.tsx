@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { trackEvent } from "./openpanel";
 import {
   PATIENT_CONDITION_META,
   PATIENT_STATUS_META,
@@ -57,6 +58,13 @@ export default function HospitalPatientForm({
         status,
         notes: notes.trim(),
         contact: contact.trim(),
+      });
+      trackEvent("hospital_patient_created", {
+        condition,
+        status,
+        hasAge: Boolean(age.trim()),
+        hasNotes: Boolean(notes.trim()),
+        hasContact: Boolean(contact.trim()),
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al guardar.");

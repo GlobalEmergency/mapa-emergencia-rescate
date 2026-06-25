@@ -11,9 +11,12 @@ export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
   const q = params.get("q") ?? "";
   const limit = Number(params.get("limit") ?? "50");
-  const results = await searchPatients(q, limit);
+  const safeLimit = Math.min(Math.max(Number.isFinite(limit) ? limit : 50, 1), 200);
+  const rows = await searchPatients(q, safeLimit + 1);
+  const hasMore = rows.length > safeLimit;
+  const results = rows.slice(0, safeLimit);
   return NextResponse.json(
-    { results, query: q },
+    { results, query: q, hasMore },
     { headers: CACHE_HEADERS },
   );
 }

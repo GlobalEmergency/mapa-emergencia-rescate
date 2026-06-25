@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import { trackEvent } from "./openpanel";
 
 export interface MissingFoundPayload {
   note: string;
@@ -82,6 +83,9 @@ export default function MissingFoundForm({
       setSubmitting(true);
       try {
         await onSubmit({ note: note.trim(), photo });
+        trackEvent("missing_person_marked_found", {
+          hasPhoto: Boolean(photo),
+        });
       } catch (err) {
         setError(err instanceof Error ? err.message : "No se pudo guardar.");
         setSubmitting(false);
@@ -109,6 +113,7 @@ export default function MissingFoundForm({
           <button
             type="button"
             onClick={onCancel}
+            data-track="missing_found_close"
             aria-label="Cerrar"
             className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700"
           >

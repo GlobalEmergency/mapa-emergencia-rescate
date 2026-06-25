@@ -29,7 +29,21 @@ body.has-mobile-nav {
 
 body.mobile-sheet-open {
   overflow: hidden;
-  touch-action: none;
+}
+
+/* El menú móvil debe quedar por encima del botón flotante de apoyo psicológico. */
+body.mobile-sheet-open [data-sticky-help-root] {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+#mobile-section-sheet {
+  touch-action: pan-y;
+}
+
+#mobile-section-sheet a,
+#mobile-section-sheet button {
+  touch-action: manipulation;
 }
 
 @media (min-width: 768px) {
@@ -40,6 +54,18 @@ body.mobile-sheet-open {
 
 .leaflet-container {
   font: inherit;
+}
+
+/* Oculta la barra superior que inyecta Google Translate para mantener el diseño limpio. */
+.goog-te-banner-frame,
+.goog-te-balloon-frame,
+body > .skiptranslate:not(#google-translate-container),
+.goog-te-gadget {
+  display: none !important;
+}
+
+body {
+  top: 0 !important;
 }
 
 /* Ocultar el triángulo nativo de <summary> en navegadores WebKit/Firefox para
@@ -122,4 +148,27 @@ summary {
 
 .animate-pulse-soft {
   animation: pulse-soft 2.4s ease-in-out infinite;
+}
+
+@keyframes donations-marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.donations-marquee__track {
+  animation: donations-marquee 40s linear infinite;
+}
+
+.donations-marquee:hover .donations-marquee__track {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .donations-marquee__track {
+    animation: none;
+  }
 }

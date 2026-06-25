@@ -1,8 +1,9 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getHospital, listPatients } from "@/lib/hospitals";
 import {
+  buildHospitalSlug,
   FACILITY_TYPE_META,
   PRIORITY_ZONE_META,
 } from "@/lib/hospitals-meta";
@@ -28,8 +29,10 @@ export default async function HospitalPage({ params }: PageProps) {
   const { id } = await params;
   const hospital = await getHospital(id);
   if (!hospital) notFound();
+  const canonicalSlug = buildHospitalSlug(hospital);
+  if (id !== canonicalSlug) redirect(`/hospitales/${canonicalSlug}`);
 
-  const patients = await listPatients(id);
+  const patients = await listPatients(hospital.id);
   const zone = PRIORITY_ZONE_META[hospital.priorityZone];
   const facility = FACILITY_TYPE_META[hospital.facilityType];
 

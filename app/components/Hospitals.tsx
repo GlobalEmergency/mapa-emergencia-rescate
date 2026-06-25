@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
+  buildHospitalSlug,
   FACILITY_TYPE_META,
   PATIENT_CONDITION_META,
   PATIENT_STATUS_META,
@@ -12,8 +13,10 @@ import {
   type HospitalPriorityZone,
 } from "@/lib/hospitals-meta";
 import HospitalForm, { type HospitalPayload } from "./HospitalForm";
+import HospitalDetailView from "./HospitalDetailView";
 
 type Tab = "hospitals" | "patients";
+const PAGE_SIZE = 20;
 
 interface PatientSearchResult {
   patient: HospitalPatient;
@@ -22,6 +25,7 @@ interface PatientSearchResult {
     name: string;
     state: string;
     municipality: string;
+    address: string;
   };
 }
 
@@ -45,7 +49,9 @@ export default function Hospitals() {
   const [tab, setTab] = useState<Tab>("hospitals");
   const [patientQuery, setPatientQuery] = useState("");
   const [debouncedPatientQuery, setDebouncedPatientQuery] = useState("");
+  const [patientLimit, setPatientLimit] = useState(PAGE_SIZE);
   const [patientResults, setPatientResults] = useState<PatientSearchResult[]>([]);
+  const [patientHasMore, setPatientHasMore] = useState(false);
   const [patientLoading, setPatientLoading] = useState(false);
   const [patientError, setPatientError] = useState<string | null>(null);
 
@@ -68,7 +74,10 @@ export default function Hospitals() {
   }, []);
 
   useEffect(() => {
-    load();
+    const id = window.setTimeout(() => {
+      load();
+    }, 0);
+    return () => window.clearTimeout(id);
   }, [load]);
 
   useEffect(() => {
@@ -78,29 +87,35 @@ export default function Hospitals() {
 
   useEffect(() => {
     const q = debouncedPatientQuery.trim();
-    if (q.length < 2) {
-      setPatientResults([]);
-      setPatientError(null);
+    if (q.length === 1) {
       return;
     }
     let cancelled = false;
-    setPatientLoading(true);
-    setPatientError(null);
-    fetch(`/api/patients/search?q=${encodeURIComponent(q)}`)
-      .then((res) => (res.ok ? res.json() : Promise.reject(new Error("Error"))))
-      .then((data: { results?: PatientSearchResult[] }) => {
-        if (!cancelled) setPatientResults(data.results ?? []);
-      })
-      .catch(() => {
-        if (!cancelled) setPatientError("No se pudo realizar la búsqueda.");
-      })
-      .finally(() => {
-        if (!cancelled) setPatientLoading(false);
-      });
+    const id = window.setTimeout(() => {
+      setPatientLoading(true);
+      setPatientError(null);
+      fetch(
+        `/api/patients/search?q=${encodeURIComponent(q)}&limit=${patientLimit}`,
+      )
+        .then((res) => (res.ok ? res.json() : Promise.reject(new Error("Error"))))
+        .then((data: { results?: PatientSearchResult[]; hasMore?: boolean }) => {
+          if (!cancelled) {
+            setPatientResults(data.results ?? []);
+            setPatientHasMore(Boolean(data.hasMore));
+          }
+        })
+        .catch(() => {
+          if (!cancelled) setPatientError("No se pudo realizar la búsqueda.");
+        })
+        .finally(() => {
+          if (!cancelled) setPatientLoading(false);
+        });
+    }, 0);
     return () => {
       cancelled = true;
+      window.clearTimeout(id);
     };
-  }, [debouncedPatientQuery]);
+  }, [debouncedPatientQuery, patientLimit]);
 
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -208,10 +223,15 @@ export default function Hospitals() {
       {tab === "patients" ? (
         <PatientsSearchView
           query={patientQuery}
-          onQueryChange={setPatientQuery}
+          onQueryChange={(value) => {
+            setPatientQuery(value);
+            setPatientLimit(PAGE_SIZE);
+          }}
           results={patientResults}
+          hasMore={patientHasMore}
           loading={patientLoading}
           error={patientError}
+          onLoadMore={() => setPatientLimit((limit) => limit + PAGE_SIZE)}
         />
       ) : (
         <HospitalsListView
@@ -263,6 +283,8 @@ function HospitalsListView({
   error,
   visible,
 }: HospitalsListViewProps) {
+  const [selectedHospital, setSelectedHospital] = useState<Hospital | null>(null);
+
   return (
     <>
       <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -328,12 +350,22 @@ function HospitalsListView({
           <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {visible.map((h) => (
               <li key={h.id}>
-                <HospitalCard hospital={h} />
+                <HospitalCard
+                  hospital={h}
+                  onOpen={() => setSelectedHospital(h)}
+                />
               </li>
             ))}
           </ul>
         )}
       </div>
+
+      {selectedHospital && (
+        <HospitalDetailOverlay
+          hospital={selectedHospital}
+          onClose={() => setSelectedHospital(null)}
+        />
+      )}
     </>
   );
 }
@@ -342,20 +374,25 @@ interface PatientsSearchViewProps {
   query: string;
   onQueryChange: (value: string) => void;
   results: PatientSearchResult[];
+  hasMore: boolean;
   loading: boolean;
   error: string | null;
+  onLoadMore: () => void;
 }
 
 function PatientsSearchView({
   query,
   onQueryChange,
   results,
+  hasMore,
   loading,
   error,
+  onLoadMore,
 }: PatientsSearchViewProps) {
+  const [selected, setSelected] = useState<PatientSearchResult | null>(null);
   const trimmed = query.trim();
   const empty = trimmed.length === 0;
-  const tooShort = !empty && trimmed.length < 2;
+  const tooShort = trimmed.length === 1;
 
   return (
     <div className="mt-4">
@@ -382,61 +419,86 @@ function PatientsSearchView({
       </div>
 
       <div className="mt-4">
-        {empty ? (
-          <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-5 py-10 text-center">
-            <p className="text-2xl" aria-hidden>
-              🔎
-            </p>
-            <p className="mt-2 text-sm font-medium text-slate-700">
-              Escribe el nombre o la cédula para buscar.
-            </p>
-          </div>
-        ) : tooShort ? (
+        {tooShort ? (
           <p className="text-center text-xs text-slate-500">
             Escribe al menos 2 caracteres.
           </p>
         ) : error ? (
           <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
-        ) : loading ? (
+        ) : loading && results.length === 0 ? (
           <p className="text-center text-sm text-slate-500">Buscando…</p>
         ) : results.length === 0 ? (
           <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-5 py-8 text-center">
             <p className="text-sm font-medium text-slate-700">
-              No se encontró ningún paciente con “{trimmed}”.
+              {empty
+                ? "Todavía no hay pacientes registrados."
+                : `No se encontró ningún paciente con “${trimmed}”.`}
             </p>
-            <p className="mt-1 text-xs text-slate-500">
-              Verifica el nombre o intenta con la cédula.
-            </p>
+            {!empty && (
+              <p className="mt-1 text-xs text-slate-500">
+                Verifica el nombre o intenta con la cédula.
+              </p>
+            )}
           </div>
         ) : (
           <>
             <p className="mb-2 text-xs text-slate-500">
-              {results.length} resultado{results.length === 1 ? "" : "s"}
+              {empty
+                ? `Últimos ${results.length} pacientes registrados`
+                : `${results.length} resultado${results.length === 1 ? "" : "s"}`}
             </p>
             <ul className="space-y-2">
               {results.map((r) => (
                 <li key={r.patient.id}>
-                  <PatientResultCard result={r} />
+                  <PatientResultCard
+                    result={r}
+                    onOpen={() => setSelected(r)}
+                  />
                 </li>
               ))}
             </ul>
+            {hasMore && (
+              <div className="mt-4 flex justify-center">
+                <button
+                  type="button"
+                  onClick={onLoadMore}
+                  disabled={loading}
+                  className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {loading ? "Cargando…" : "Mostrar 20 más"}
+                </button>
+              </div>
+            )}
           </>
         )}
       </div>
+
+      {selected && (
+        <PatientDetailOverlay
+          result={selected}
+          onClose={() => setSelected(null)}
+        />
+      )}
     </div>
   );
 }
 
-function PatientResultCard({ result }: { result: PatientSearchResult }) {
+function PatientResultCard({
+  result,
+  onOpen,
+}: {
+  result: PatientSearchResult;
+  onOpen: () => void;
+}) {
   const { patient, hospital } = result;
   const condition = PATIENT_CONDITION_META[patient.condition];
   const status = PATIENT_STATUS_META[patient.status];
 
   return (
-    <Link
-      href={`/hospitales/${hospital.id}#paciente-${patient.id}`}
-      prefetch={false}
-      className="block rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
+    <button
+      type="button"
+      onClick={onOpen}
+      className="block w-full rounded-xl border border-slate-200 bg-white p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
     >
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
@@ -463,7 +525,7 @@ function PatientResultCard({ result }: { result: PatientSearchResult }) {
             </span>
           </div>
         </div>
-        <span className="text-xs font-semibold text-red-600">Ver →</span>
+        <span className="text-xs font-semibold text-red-600">Ver detalles</span>
       </div>
       <p className="mt-2 truncate text-xs text-slate-600">
         🏥 <span className="font-medium text-slate-800">{hospital.name}</span>
@@ -474,7 +536,218 @@ function PatientResultCard({ result }: { result: PatientSearchResult }) {
       {patient.notes && (
         <p className="mt-1 line-clamp-2 text-xs text-slate-500">{patient.notes}</p>
       )}
-    </Link>
+    </button>
+  );
+}
+
+function PatientDetailOverlay({
+  result,
+  onClose,
+}: {
+  result: PatientSearchResult;
+  onClose: () => void;
+}) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [copied, setCopied] = useState(false);
+  const { patient, hospital } = result;
+  const condition = PATIENT_CONDITION_META[patient.condition];
+  const status = PATIENT_STATUS_META[patient.status];
+  const hospitalLocation = [hospital.state, hospital.municipality]
+    .filter(Boolean)
+    .join(" · ");
+  const directionsHref = getDirectionsHref(hospital);
+  const patientPath = `/hospitales/${buildHospitalSlug(hospital)}#paciente-${patient.id}`;
+
+  const copyPatientLink = useCallback(async () => {
+    const origin =
+      typeof window !== "undefined"
+        ? window.location.origin
+        : "https://terremotovenezuela.app";
+    const url = `${origin}${patientPath}`;
+
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch {
+      window.prompt("Copia el enlace del paciente", url);
+    }
+  }, [patientPath]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    const onPointerDown = (event: PointerEvent) => {
+      if (
+        panelRef.current &&
+        !panelRef.current.contains(event.target as Node)
+      ) {
+        onClose();
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
+  }, [onClose]);
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Detalle de paciente ${patient.name}`}
+      className="fixed inset-0 z-[2100] flex items-center justify-center bg-slate-950/45 px-4 py-6 backdrop-blur-sm"
+    >
+      <div
+        ref={panelRef}
+        className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl"
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Paciente registrado
+            </p>
+            <h3 className="mt-1 text-xl font-bold text-slate-900">
+              {patient.name}
+            </h3>
+            {patient.age !== null && (
+              <p className="mt-0.5 text-sm text-slate-500">
+                {patient.age} años
+              </p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Cerrar detalle"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-slate-100 text-xl leading-none text-slate-600 transition hover:bg-slate-200"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          <span
+            className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-white"
+            style={{ background: status.color }}
+          >
+            {status.label}
+          </span>
+          <span
+            className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-white"
+            style={{ background: condition.color }}
+          >
+            {condition.label}
+          </span>
+        </div>
+
+        <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-2">
+          <DetailRow label="Hospital" value={hospital.name} />
+          <DetailRow label="Ubicación" value={hospitalLocation} />
+          <DetailRow
+            label="Registrado"
+            value={new Date(patient.admittedAt).toLocaleString("es-VE")}
+          />
+          <DetailRow
+            label="Actualizado"
+            value={new Date(patient.updatedAt).toLocaleString("es-VE")}
+          />
+          {patient.contact && <DetailRow label="Contacto" value={patient.contact} />}
+        </dl>
+
+        <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50/70 p-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-wide text-blue-800">
+                Dirección del hospital
+              </p>
+              <p className="mt-1 text-sm font-medium leading-relaxed text-slate-900">
+                {hospital.address || hospitalLocation || hospital.name}
+              </p>
+              {hospital.address && hospitalLocation && (
+                <p className="mt-1 text-xs text-slate-600">{hospitalLocation}</p>
+              )}
+            </div>
+            <a
+              href={directionsHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex shrink-0 items-center justify-center rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+            >
+              Cómo llegar
+            </a>
+          </div>
+        </div>
+
+        {patient.notes && (
+          <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Notas
+            </p>
+            <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-slate-700">
+              {patient.notes}
+            </p>
+          </div>
+        )}
+
+        <div className="mt-5 flex flex-wrap justify-end gap-2">
+          <Link
+            href={patientPath}
+            prefetch={false}
+            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
+          >
+            Abrir hospital
+          </Link>
+          <button
+            type="button"
+            onClick={copyPatientLink}
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
+            aria-label={copied ? "Enlace copiado" : "Copiar enlace del paciente"}
+            title={copied ? "Enlace copiado" : "Copiar enlace del paciente"}
+          >
+            <span aria-hidden>🔗</span>
+            {copied ? "Copiado" : "Copiar link"}
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-red-700"
+          >
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function getDirectionsHref(hospital: PatientSearchResult["hospital"]) {
+  const query = [
+    hospital.name,
+    hospital.address,
+    hospital.municipality,
+    hospital.state,
+    "Venezuela",
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+}
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  if (!value) return null;
+  return (
+    <div>
+      <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        {label}
+      </dt>
+      <dd className="mt-0.5 text-slate-800">{value}</dd>
+    </div>
   );
 }
 
@@ -504,14 +777,216 @@ function TabButton({
   );
 }
 
-function HospitalCard({ hospital }: { hospital: Hospital }) {
+function HospitalDetailOverlay({
+  hospital,
+  onClose,
+}: {
+  hospital: Hospital;
+  onClose: () => void;
+}) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [detailHospital, setDetailHospital] = useState<Hospital>(hospital);
+  const [patients, setPatients] = useState<HospitalPatient[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const zone = PRIORITY_ZONE_META[detailHospital.priorityZone];
+  const facility = FACILITY_TYPE_META[detailHospital.facilityType];
+  const hospitalLocation = [detailHospital.state, detailHospital.municipality]
+    .filter(Boolean)
+    .join(" · ");
+  const directionsHref = getDirectionsHref(detailHospital);
+  const hospitalSlug = buildHospitalSlug(detailHospital);
+  const hospitalPath = `/hospitales/${hospitalSlug}`;
+
+  const copyHospitalLink = useCallback(async () => {
+    const origin =
+      typeof window !== "undefined"
+        ? window.location.origin
+        : "https://terremotovenezuela.app";
+    const url = `${origin}${hospitalPath}`;
+
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch {
+      window.prompt("Copia el enlace del hospital", url);
+    }
+  }, [hospitalPath]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    const onPointerDown = (event: PointerEvent) => {
+      if (
+        panelRef.current &&
+        !panelRef.current.contains(event.target as Node)
+      ) {
+        onClose();
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
+  }, [onClose]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+
+    fetch(`/api/hospitals/${hospital.id}/patients`, { cache: "no-store" })
+      .then((res) =>
+        res.ok
+          ? res.json()
+          : Promise.reject(new Error("No se pudo cargar el hospital.")),
+      )
+      .then((data: { hospital?: Hospital; patients?: HospitalPatient[] }) => {
+        if (cancelled) return;
+        if (data.hospital) setDetailHospital(data.hospital);
+        setPatients(data.patients ?? []);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Error al cargar.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [hospital.id]);
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Detalle de hospital ${detailHospital.name}`}
+      className="fixed inset-0 z-[2100] flex items-start justify-center overflow-y-auto bg-slate-950/45 px-3 py-5 backdrop-blur-sm sm:px-4 sm:py-8"
+    >
+      <div
+        ref={panelRef}
+        className="w-full max-w-5xl overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 shadow-2xl"
+      >
+        <div
+          className="border-b border-slate-200 bg-white px-5 py-4"
+          style={{
+            background: `linear-gradient(180deg, ${zone.color}18, #ffffff 72%)`,
+          }}
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <span
+                  className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white"
+                  style={{ background: zone.color }}
+                >
+                  {detailHospital.priorityZone} · {zone.label}
+                </span>
+                <span className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-0.5 text-[11px] font-medium text-slate-700 shadow-sm">
+                  {facility.emoji} {facility.label}
+                </span>
+                {detailHospital.level && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-0.5 text-[11px] font-medium text-slate-700 shadow-sm">
+                    Nivel {detailHospital.level}
+                  </span>
+                )}
+              </div>
+              <h3 className="mt-3 text-balance text-2xl font-bold tracking-tight text-slate-900">
+                {detailHospital.name}
+              </h3>
+              {hospitalLocation && (
+                <p className="mt-1 text-sm text-slate-600">{hospitalLocation}</p>
+              )}
+              {detailHospital.address && (
+                <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600">
+                  {detailHospital.address}
+                </p>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Cerrar hospital"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-xl leading-none text-slate-600 shadow-sm transition hover:bg-slate-100"
+            >
+              ×
+            </button>
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <a
+              href={directionsHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+            >
+              Cómo llegar
+            </a>
+            <Link
+              href={hospitalPath}
+              prefetch={false}
+              className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
+            >
+              Abrir página completa
+            </Link>
+            <button
+              type="button"
+              onClick={copyHospitalLink}
+              className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
+              aria-label={copied ? "Enlace copiado" : "Copiar enlace del hospital"}
+              title={copied ? "Enlace copiado" : "Copiar enlace del hospital"}
+            >
+              <span aria-hidden>🔗</span>
+              {copied ? "Copiado" : "Copiar link"}
+            </button>
+          </div>
+        </div>
+
+        <div className="max-h-[72vh] overflow-y-auto p-4 sm:p-5">
+          {loading ? (
+            <p className="rounded-xl border border-slate-200 bg-white px-5 py-8 text-center text-sm text-slate-500">
+              Cargando pacientes…
+            </p>
+          ) : error ? (
+            <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+              {error}
+            </p>
+          ) : (
+            <HospitalDetailView
+              hospital={detailHospital}
+              initialPatients={patients}
+            />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HospitalCard({
+  hospital,
+  onOpen,
+}: {
+  hospital: Hospital;
+  onOpen: () => void;
+}) {
   const zone = PRIORITY_ZONE_META[hospital.priorityZone];
   const facility = FACILITY_TYPE_META[hospital.facilityType];
 
   return (
-    <Link
-      href={`/hospitales/${hospital.id}`}
-      prefetch={false}
+    <button
+      type="button"
+      onClick={onOpen}
       className="group flex h-full w-full flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
       style={{ borderLeft: `4px solid ${zone.color}` }}
     >
@@ -558,7 +1033,7 @@ function HospitalCard({ hospital }: { hospital: Hospital }) {
           Ver →
         </span>
       </div>
-    </Link>
+    </button>
   );
 }
 

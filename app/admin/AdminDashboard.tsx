@@ -8,9 +8,18 @@ import {
   type ReportType,
 } from "@/lib/types";
 import AdminLogin from "../components/AdminLogin";
+import { formatDonationUsd } from "@/lib/donation-shared";
 
 const ADMIN_STORAGE_KEY = "emergency:adminToken";
 const POLL_INTERVAL_MS = 7000;
+const OPENPANEL_CLIENT_ID = process.env.NEXT_PUBLIC_OPENPANEL_CLIENT_ID;
+const OPENPANEL_DASHBOARD_URL = process.env.NEXT_PUBLIC_OPENPANEL_DASHBOARD_URL;
+const OPENPANEL_REALTIME_URL = OPENPANEL_DASHBOARD_URL
+  ? `${OPENPANEL_DASHBOARD_URL.replace(/\/$/, "")}/realtime`
+  : "";
+const OPENPANEL_EVENTS_URL = OPENPANEL_DASHBOARD_URL
+  ? `${OPENPANEL_DASHBOARD_URL.replace(/\/$/, "")}/events`
+  : "";
 
 interface Report {
   id: string;
@@ -28,20 +37,6 @@ interface Message {
   id: string;
   name: string;
   text: string;
-  createdAt: number;
-}
-interface Person {
-  id: string;
-  name: string;
-  age: number | null;
-  description: string;
-  lastSeen: string;
-  contact: string;
-  photoUrl: string | null;
-  status?: "active" | "found";
-  resolutionNote?: string | null;
-  resolutionPhotoUrl?: string | null;
-  resolvedAt?: number | null;
   createdAt: number;
 }
 interface SyncRun {
@@ -109,7 +104,41 @@ interface AdminData {
   people: Person[];
 }
 
-type Tab = "reports" | "chat" | "missing";
+interface Person {
+  id: string;
+  name: string;
+  age: number | null;
+  description: string;
+  lastSeen: string;
+  contact: string;
+  photoUrl: string | null;
+  status?: "active" | "found";
+  resolutionNote?: string | null;
+  resolutionPhotoUrl?: string | null;
+  resolvedAt?: number | null;
+  createdAt: number;
+}
+
+interface DonationRow {
+  id: string;
+  name: string;
+  amountCents: number;
+  createdAt: number;
+}
+
+interface AdminDonationsData {
+  generatedAt: number;
+  stats: {
+    count: number;
+    totalCents: number;
+    last24hCount: number;
+    last24hCents: number;
+  };
+  donations: DonationRow[];
+}
+
+type Tab = "analytics" | "reports" | "chat" | "missing" | "donations";
+type RemovableTab = "reports" | "chat" | "missing";
 
 function timeAgo(ts: number): string {
   const s = Math.max(0, Math.round((Date.now() - ts) / 1000));
@@ -168,7 +197,10 @@ export default function AdminDashboard() {
   const [token, setToken] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [data, setData] = useState<AdminData | null>(null);
-  const [tab, setTab] = useState<Tab>("reports");
+  const [donationsData, setDonationsData] = useState<AdminDonationsData | null>(
+    null,
+  );
+  const [tab, setTab] = useState<Tab>("analytics");
   const [query, setQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
@@ -213,6 +245,27 @@ export default function AdminDashboard() {
     }
   }, [logout]);
 
+  const fetchDonations = useCallback(async () => {
+    const current = sessionStorage.getItem(ADMIN_STORAGE_KEY);
+    if (!current) return;
+    try {
+      const res = await fetch("/api/admin/donations", {
+        headers: { "x-admin-token": current },
+        cache: "no-store",
+      });
+      if (res.status === 401) {
+        logout();
+        setError("Tu sesión expiró. Vuelve a iniciar sesión.");
+        return;
+      }
+      if (!res.ok) return;
+      setDonationsData(await res.json());
+      setError(null);
+    } catch {
+      // se reintenta en el siguiente ciclo
+    }
+  }, [logout]);
+
   useEffect(() => {
     if (!token) return;
     let interval: ReturnType<typeof setInterval> | null = null;
@@ -237,8 +290,32 @@ export default function AdminDashboard() {
     };
   }, [token, fetchData]);
 
+  useEffect(() => {
+    if (!token || tab !== "donations") return;
+    let interval: ReturnType<typeof setInterval> | null = null;
+    const start = () => {
+      if (interval) return;
+      fetchDonations();
+      interval = setInterval(fetchDonations, POLL_INTERVAL_MS);
+    };
+    const stop = () => {
+      if (interval) clearInterval(interval);
+      interval = null;
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") start();
+      else stop();
+    };
+    onVisibility();
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      stop();
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [token, tab, fetchDonations]);
+
   const remove = useCallback(
-    async (kind: Tab, id: string) => {
+    async (kind: RemovableTab, id: string) => {
       if (!token) return;
       const endpoint =
         kind === "reports"
@@ -346,6 +423,40 @@ export default function AdminDashboard() {
     });
   }, [data, query]);
 
+  const filteredDonations = useMemo(() => {
+    if (!donationsData) return [];
+    const terms = normalize(query).split(/\s+/).filter(Boolean);
+    return donationsData.donations.filter((donation) => {
+      if (terms.length === 0) return true;
+      const hay = normalize(`${donation.name} ${formatDonationUsd(donation.amountCents)}`);
+      return terms.every((t) => hay.includes(t));
+    });
+  }, [donationsData, query]);
+
+  const exportDonationsCsv = useCallback(() => {
+    if (!filteredDonations.length) return;
+    const rows = [
+      ["nombre", "monto_usd", "fecha"],
+      ...filteredDonations.map((donation) => [
+        donation.name,
+        (donation.amountCents / 100).toFixed(2),
+        new Date(donation.createdAt).toISOString(),
+      ]),
+    ];
+    const csv = rows
+      .map((row) =>
+        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","),
+      )
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `donaciones-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }, [filteredDonations]);
+
   if (!ready) return null;
 
   if (!token) {
@@ -379,6 +490,16 @@ export default function AdminDashboard() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            {OPENPANEL_DASHBOARD_URL && (
+              <a
+                href={OPENPANEL_DASHBOARD_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-800 hover:bg-emerald-100"
+              >
+                OpenPanel
+              </a>
+            )}
             <Link
               href="/"
               className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
@@ -623,9 +744,14 @@ export default function AdminDashboard() {
         <div className="mt-6 flex flex-wrap items-center gap-2 border-b border-slate-200">
           {(
             [
+              ["analytics", "Analytics"],
               ["reports", `Reportes (${data?.reports.length ?? 0})`],
               ["missing", `Desaparecidas (${data?.people.length ?? 0})`],
               ["chat", `Chat (${data?.messages.length ?? 0})`],
+              [
+                "donations",
+                `Donaciones (${donationsData?.stats.count ?? 0})`,
+              ],
             ] as [Tab, string][]
           ).map(([key, label]) => (
             <button
@@ -643,20 +769,118 @@ export default function AdminDashboard() {
           ))}
         </div>
 
-        <div className="relative mt-4">
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar en esta sección…"
-            className="w-full max-w-md rounded-xl border border-slate-300 bg-white py-2.5 pl-9 pr-3 text-sm outline-none focus:border-slate-900"
-          />
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-            🔎
-          </span>
-        </div>
+        {tab !== "analytics" && (
+          <div className="relative mt-4">
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Buscar en esta sección…"
+              className="w-full max-w-md rounded-xl border border-slate-300 bg-white py-2.5 pl-9 pr-3 text-sm outline-none focus:border-slate-900"
+            />
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+              🔎
+            </span>
+          </div>
+        )}
 
         <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          {tab === "analytics" && (
+            <section>
+              <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-100 p-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
+                    OpenPanel
+                  </p>
+                  <h2 className="mt-1 text-lg font-bold text-slate-900">
+                    Usuarios en vivo y tráfico
+                  </h2>
+                  <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600">
+                    Las métricas de tráfico se muestran desde OpenPanel. Si ves
+                    una pantalla de login, inicia sesión en OpenPanel en este
+                    navegador y vuelve a cargar el admin.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {OPENPANEL_REALTIME_URL && (
+                    <a
+                      href={OPENPANEL_REALTIME_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                    >
+                      Realtime
+                    </a>
+                  )}
+                  {OPENPANEL_EVENTS_URL && (
+                    <a
+                      href={OPENPANEL_EVENTS_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                    >
+                      Eventos
+                    </a>
+                  )}
+                    {OPENPANEL_DASHBOARD_URL ? (
+                      <a
+                        href={OPENPANEL_DASHBOARD_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+                      >
+                        Abrir OpenPanel
+                      </a>
+                    ) : (
+                      <span className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800">
+                        Falta NEXT_PUBLIC_OPENPANEL_DASHBOARD_URL
+                      </span>
+                    )}
+                </div>
+              </div>
+              {OPENPANEL_DASHBOARD_URL ? (
+                <iframe
+                  title="OpenPanel analytics"
+                  src={OPENPANEL_DASHBOARD_URL}
+                  className="h-[75vh] min-h-[680px] w-full bg-white"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  loading="lazy"
+                />
+              ) : (
+                <div className="p-6">
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                    Configura `NEXT_PUBLIC_OPENPANEL_DASHBOARD_URL` en Vercel y
+                    vuelve a desplegar para mostrar el dashboard aquí.
+                  </div>
+                </div>
+              )}
+              <div className="grid gap-3 border-t border-slate-100 bg-slate-50 p-4 text-sm md:grid-cols-3">
+                <div className="rounded-lg border border-slate-200 bg-white p-3">
+                  <span className="text-slate-500">SDK</span>
+                  <p className="font-semibold text-emerald-700">Instalado</p>
+                </div>
+                <div className="rounded-lg border border-slate-200 bg-white p-3">
+                  <span className="text-slate-500">Client ID</span>
+                  <p
+                    className={
+                      OPENPANEL_CLIENT_ID
+                        ? "font-semibold text-emerald-700"
+                        : "font-semibold text-amber-700"
+                    }
+                  >
+                    {OPENPANEL_CLIENT_ID ? "Configurado" : "Pendiente"}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-slate-200 bg-white p-3">
+                  <span className="text-slate-500">Tracking local</span>
+                  <p className="font-semibold text-slate-900">
+                    Desactivado fuera de producción
+                  </p>
+                </div>
+              </div>
+            </section>
+          )}
+
           {tab === "reports" && (
             <ul className="divide-y divide-slate-100">
               {filteredReports.length === 0 ? (
@@ -844,6 +1068,99 @@ export default function AdminDashboard() {
                   ))
               )}
             </ul>
+          )}
+
+          {tab === "donations" && (
+            <section>
+              <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-100 p-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">
+                    Donaciones
+                  </p>
+                  <h2 className="mt-1 text-lg font-bold text-slate-900">
+                    Intenciones registradas
+                  </h2>
+                  <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600">
+                    Lista de personas que iniciaron una donación desde el sitio.
+                    Los montos reflejan lo declarado antes de ir a PayPal.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={exportDonationsCsv}
+                  disabled={filteredDonations.length === 0}
+                  className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                >
+                  Exportar CSV
+                </button>
+              </div>
+
+              <div className="grid gap-3 border-b border-slate-100 bg-slate-50 p-4 sm:grid-cols-3">
+                <MetricCard
+                  label="Total recaudado"
+                  value={
+                    donationsData
+                      ? formatDonationUsd(donationsData.stats.totalCents)
+                      : "—"
+                  }
+                  sub="Suma de montos declarados"
+                  accent="#d97706"
+                />
+                <MetricCard
+                  label="Donantes"
+                  value={donationsData?.stats.count ?? "—"}
+                  sub="Personas que iniciaron donación"
+                />
+                <MetricCard
+                  label="Últimas 24 h"
+                  value={
+                    donationsData
+                      ? `${donationsData.stats.last24hCount} · ${formatDonationUsd(donationsData.stats.last24hCents)}`
+                      : "—"
+                  }
+                  sub="Cantidad y monto del último día"
+                  accent="#9333ea"
+                />
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-left text-sm">
+                  <thead className="border-b border-slate-100 bg-white text-xs uppercase tracking-wide text-slate-500">
+                    <tr>
+                      <th className="px-4 py-3 font-semibold">Nombre</th>
+                      <th className="px-4 py-3 font-semibold">Monto</th>
+                      <th className="px-4 py-3 font-semibold">Fecha</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {filteredDonations.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={3}
+                          className="px-4 py-8 text-center text-slate-500"
+                        >
+                          {donationsData ? "Sin donaciones." : "Cargando donaciones…"}
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredDonations.map((donation) => (
+                        <tr key={donation.id} className="bg-white">
+                          <td className="px-4 py-3 font-medium text-slate-900">
+                            {donation.name}
+                          </td>
+                          <td className="px-4 py-3 text-slate-700">
+                            {formatDonationUsd(donation.amountCents)}
+                          </td>
+                          <td className="px-4 py-3 text-slate-500">
+                            {fmt(donation.createdAt)}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
           )}
         </div>
       </div>

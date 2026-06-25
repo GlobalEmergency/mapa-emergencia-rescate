@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { psychologyHelpUrl } from "@/lib/site";
+import { trackEvent } from "./openpanel";
+import TranslateWidget from "./TranslateWidget";
 
 function psychologyClickLabel(count: number): string {
   const n = count.toLocaleString("es-VE");
@@ -33,6 +35,9 @@ export default function StickyHelpButton() {
   }, []);
 
   const trackPsychologyClick = useCallback(() => {
+    trackEvent("psychology_help_requested", {
+      destination: psychologyIsExternal ? "external" : "mailto",
+    });
     fetch("/api/stats/psychology-help", {
       method: "POST",
       keepalive: true,
@@ -44,7 +49,7 @@ export default function StickyHelpButton() {
         }
       })
       .catch(() => {});
-  }, []);
+  }, [psychologyIsExternal]);
 
   useEffect(() => {
     if (!open) return;
@@ -64,6 +69,21 @@ export default function StickyHelpButton() {
     };
   }, [open]);
 
+  useEffect(() => {
+    const closeIfMobileSheetOpen = () => {
+      if (document.body.classList.contains("mobile-sheet-open")) {
+        setOpen(false);
+      }
+    };
+    closeIfMobileSheetOpen();
+    const observer = new MutationObserver(closeIfMobileSheetOpen);
+    observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+    return () => observer.disconnect();
+  }, []);
+
   if (pathname?.startsWith("/admin")) {
     return null;
   }
@@ -71,7 +91,8 @@ export default function StickyHelpButton() {
   return (
     <div
       ref={rootRef}
-      className="fixed bottom-[calc(3.75rem+env(safe-area-inset-bottom))] right-3 z-[1900] flex flex-col items-end gap-3 md:bottom-[max(1rem,env(safe-area-inset-bottom))] md:right-4"
+      data-sticky-help-root
+      className="fixed bottom-[calc(3.75rem+env(safe-area-inset-bottom))] right-3 z-[1840] flex flex-col items-end gap-3 md:bottom-[max(1rem,env(safe-area-inset-bottom))] md:right-4 md:z-[1900]"
     >
       <div
         id="sticky-help-menu"
@@ -100,6 +121,7 @@ export default function StickyHelpButton() {
             setOpen(false);
             trackPsychologyClick();
           }}
+          data-track="psychology_help_clicked"
           className="relative mt-3 flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-500"
         >
           <span className="flex items-center gap-2">
@@ -119,24 +141,28 @@ export default function StickyHelpButton() {
         </p>
       </div>
 
-      <button
-        type="button"
-        aria-expanded={open}
-        aria-haspopup="menu"
-        aria-controls="sticky-help-menu"
-        aria-label={
-          open ? "Cerrar menú de apoyo psicológico" : "Abrir menú de apoyo psicológico"
-        }
-        onClick={() => setOpen((value) => !value)}
-        className={`relative flex min-h-12 max-w-[calc(100vw-1.5rem)] items-center gap-2 rounded-full bg-violet-600 px-3 py-3 text-xs font-semibold text-white shadow-lg transition hover:bg-violet-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-400 sm:max-w-none sm:px-4 sm:text-sm ${
-          open ? "" : "animate-pulse-soft"
-        }`}
-      >
-        <span aria-hidden className="shrink-0 text-base">
-          {open ? "×" : "💜"}
-        </span>
-        <span className="truncate">{open ? "Cerrar" : "Apoyo psicológico"}</span>
-      </button>
+      <div className="flex items-center gap-2">
+        <TranslateWidget floating />
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-haspopup="menu"
+          aria-controls="sticky-help-menu"
+          aria-label={
+            open ? "Cerrar menú de apoyo psicológico" : "Abrir menú de apoyo psicológico"
+          }
+          onClick={() => setOpen((value) => !value)}
+          data-track="psychology_menu_toggled"
+          className={`relative flex min-h-12 max-w-[calc(100vw-1.5rem)] items-center gap-2 rounded-full bg-violet-600 px-3 py-3 text-xs font-semibold text-white shadow-lg transition hover:bg-violet-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-400 sm:max-w-none sm:px-4 sm:text-sm ${
+            open ? "" : "animate-pulse-soft"
+          }`}
+        >
+          <span aria-hidden className="shrink-0 text-base">
+            {open ? "×" : "💜"}
+          </span>
+          <span className="truncate">{open ? "Cerrar" : "Apoyo psicológico"}</span>
+        </button>
+      </div>
     </div>
   );
 }

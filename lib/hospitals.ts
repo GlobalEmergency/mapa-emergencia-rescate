@@ -5,6 +5,7 @@ import {
   PATIENT_CONDITIONS,
   PATIENT_STATUSES,
   PRIORITY_ZONES,
+  matchesHospitalSlug,
   type Hospital,
   type HospitalFacilityType,
   type HospitalLevel,
@@ -244,6 +245,7 @@ export async function listHospitals(
       WHERE ${conditions.join(" AND ")}
       GROUP BY h.id
       ORDER BY
+        active_patients DESC,
         CASE h.priority_zone WHEN 'P0' THEN 0 WHEN 'P1' THEN 1 WHEN 'P2' THEN 2 ELSE 3 END,
         h.state, h.name
       LIMIT $${limitIdx}
@@ -279,6 +281,9 @@ export async function listHospitals(
       };
     });
   list.sort((a, b) => {
+    if (a.activePatients !== b.activePatients) {
+      return b.activePatients - a.activePatients;
+    }
     const order = { P0: 0, P1: 1, P2: 2, P3: 3 } as const;
     if (order[a.priorityZone] !== order[b.priorityZone]) {
       return order[a.priorityZone] - order[b.priorityZone];
@@ -321,11 +326,20 @@ export async function getHospital(id: string): Promise<Hospital | null> {
       WHERE h.id = ${id}
       GROUP BY h.id
     `) as HospitalRow[];
-    return rows[0] ? rowToHospital(rows[0]) : null;
+    if (rows[0]) return rowToHospital(rows[0]);
+
+    const hospitals = await listHospitals({ limit: 1000 });
+    return hospitals.find((h) => matchesHospitalSlug(h, id)) ?? null;
   }
   ensureMemorySeed();
   const h = memoryHospitals.get(id);
-  if (!h) return null;
+  if (!h) {
+    const match = [...memoryHospitals.values()].find((hospital) =>
+      matchesHospitalSlug(hospital, id),
+    );
+    if (!match) return null;
+    return getHospital(match.id);
+  }
   const patients = [...memoryPatients.values()].filter((p) => p.hospitalId === id);
   return {
     ...h,
@@ -382,6 +396,7 @@ export interface PatientSearchResult {
     name: string;
     state: string;
     municipality: string;
+    address: string;
   };
 }
 
@@ -394,11 +409,54 @@ export async function searchPatients(
   limit: number = 50,
 ): Promise<PatientSearchResult[]> {
   const q = (query ?? "").trim();
-  if (!q || q.length < 2) return [];
   const cleanLimit = Math.min(Math.max(limit, 1), 200);
 
   if (hasDbEnv()) {
     await ensureSchema();
+    await seedHospitalsIfNeeded();
+    const baseSelect = `
+      SELECT
+        p.id, p.hospital_id, p.name, p.age, p.condition, p.status,
+        p.notes, p.contact, p.admitted_at, p.updated_at,
+        h.name AS hospital_name,
+        h.state AS hospital_state,
+        h.municipality AS hospital_municipality,
+        h.address AS hospital_address
+      FROM hospital_patients p
+      INNER JOIN hospitals h ON h.id = p.hospital_id
+    `;
+
+    if (!q) {
+      const rows = (await getSql().query(
+        `
+        ${baseSelect}
+        ORDER BY
+          CASE p.status WHEN 'hospitalized' THEN 0 ELSE 1 END,
+          p.admitted_at DESC
+        LIMIT $1
+        `,
+        [cleanLimit],
+      )) as (PatientRow & {
+        hospital_name: string;
+        hospital_state: string;
+        hospital_municipality: string;
+        hospital_address: string;
+      })[];
+
+      return rows.map((r) => ({
+        patient: rowToPatient(r),
+        hospital: {
+          id: r.hospital_id,
+          name: r.hospital_name,
+          state: r.hospital_state,
+          municipality: r.hospital_municipality,
+          address: r.hospital_address,
+        },
+      }));
+    }
+
+    if (q.length < 2) return [];
+
     const like = `%${q.toLowerCase()}%`;
     // Para cédulas el usuario puede escribir con o sin puntos: comparo también
     // contra una versión "limpia" (sólo dígitos) de las notas.
@@ -407,14 +465,7 @@ export async function searchPatients(
 
     const rows = (await getSql().query(
       `
-      SELECT
-        p.id, p.hospital_id, p.name, p.age, p.condition, p.status,
-        p.notes, p.contact, p.admitted_at, p.updated_at,
-        h.name AS hospital_name,
-        h.state AS hospital_state,
-        h.municipality AS hospital_municipality
-      FROM hospital_patients p
-      INNER JOIN hospitals h ON h.id = p.hospital_id
+      ${baseSelect}
       WHERE
         LOWER(p.name) LIKE $1
         OR LOWER(p.notes) LIKE $1
@@ -431,6 +482,7 @@ export async function searchPatients(
       hospital_name: string;
       hospital_state: string;
       hospital_municipality: string;
+      hospital_address: string;
     })[];
 
     return rows.map((r) => ({
@@ -440,9 +492,33 @@ export async function searchPatients(
         name: r.hospital_name,
         state: r.hospital_state,
         municipality: r.hospital_municipality,
+        address: r.hospital_address,
       },
     }));
   }
+
+  ensureMemorySeed();
+  if (!q) {
+    return [...memoryPatients.values()]
+      .map((p) => {
+        const h = memoryHospitals.get(p.hospitalId);
+        if (!h) return null;
+        return {
+          patient: p,
+          hospital: {
+            id: h.id,
+            name: h.name,
+            state: h.state,
+            municipality: h.municipality,
+            address: h.address,
+          },
+        };
+      })
+      .filter((r): r is PatientSearchResult => r !== null)
+      .sort((a, b) => b.patient.admittedAt - a.patient.admittedAt)
+      .slice(0, cleanLimit);
+  }
+  if (q.length < 2) return [];
 
   const ql = q.toLowerCase();
   const digits = q.replace(/[^0-9]/g, "");
@@ -464,6 +540,7 @@ export async function searchPatients(
         name: h.name,
         state: h.state,
         municipality: h.municipality,
+        address: h.address,
       },
     });
   }

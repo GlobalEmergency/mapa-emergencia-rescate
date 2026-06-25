@@ -20,7 +20,7 @@ export async function GET(
   if (!hospital) {
     return NextResponse.json({ error: "Hospital no encontrado." }, { status: 404 });
   }
-  const patients = await listPatients(id);
+  const patients = await listPatients(hospital.id);
   return NextResponse.json({ patients, hospital });
 }
 
@@ -72,7 +72,7 @@ export async function POST(
   }
 
   try {
-    const patient = await addPatient(id, {
+    const patient = await addPatient(hospital.id, {
       name,
       age: body.age,
       condition: body.condition,

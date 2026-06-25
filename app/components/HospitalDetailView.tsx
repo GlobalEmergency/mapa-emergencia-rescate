@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  buildHospitalSlug,
   PATIENT_CONDITION_META,
   PATIENT_STATUS_META,
   type Hospital,
@@ -29,6 +31,9 @@ export default function HospitalDetailView({
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [adminToken, setAdminToken] = useState<string | null>(null);
+  const [selectedPatient, setSelectedPatient] = useState<HospitalPatient | null>(
+    null,
+  );
   const [now, setNow] = useState(() => Date.now());
   const hospitalIdRef = useRef(initialHospital.id);
 
@@ -184,7 +189,16 @@ export default function HospitalDetailView({
                 <li
                   key={p.id}
                   id={`paciente-${p.id}`}
-                  className="scroll-mt-24 rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition target:border-red-400 target:bg-red-50 hover:border-slate-300"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setSelectedPatient(p)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      setSelectedPatient(p);
+                    }
+                  }}
+                  className="cursor-pointer scroll-mt-24 rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition target:border-red-400 target:bg-red-50 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
@@ -204,7 +218,10 @@ export default function HospitalDetailView({
                     {adminToken && (
                       <button
                         type="button"
-                        onClick={() => handleDelete(p.id)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleDelete(p.id);
+                        }}
                         className="text-xs font-medium text-red-600 hover:underline"
                       >
                         Eliminar
@@ -236,6 +253,218 @@ export default function HospitalDetailView({
           onSubmit={handleSubmit}
         />
       )}
+
+      {selectedPatient && (
+        <PatientDetailOverlay
+          hospital={hospital}
+          patient={selectedPatient}
+          onClose={() => setSelectedPatient(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function PatientDetailOverlay({
+  hospital,
+  patient,
+  onClose,
+}: {
+  hospital: Hospital;
+  patient: HospitalPatient;
+  onClose: () => void;
+}) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [copied, setCopied] = useState(false);
+  const condition = PATIENT_CONDITION_META[patient.condition];
+  const status = PATIENT_STATUS_META[patient.status];
+  const hospitalLocation = [hospital.state, hospital.municipality]
+    .filter(Boolean)
+    .join(" · ");
+  const directionsHref = getDirectionsHref(hospital);
+  const patientPath = `/hospitales/${buildHospitalSlug(hospital)}#paciente-${patient.id}`;
+
+  const copyPatientLink = useCallback(async () => {
+    const origin =
+      typeof window !== "undefined"
+        ? window.location.origin
+        : "https://terremotovenezuela.app";
+    const url = `${origin}${patientPath}`;
+
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch {
+      window.prompt("Copia el enlace del paciente", url);
+    }
+  }, [patientPath]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    const onPointerDown = (event: PointerEvent) => {
+      if (
+        panelRef.current &&
+        !panelRef.current.contains(event.target as Node)
+      ) {
+        onClose();
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
+  }, [onClose]);
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Detalle de paciente ${patient.name}`}
+      className="fixed inset-0 z-[2200] flex items-center justify-center bg-slate-950/45 px-4 py-6 backdrop-blur-sm"
+    >
+      <div
+        ref={panelRef}
+        className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl"
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Paciente registrado
+            </p>
+            <h3 className="mt-1 text-xl font-bold text-slate-900">
+              {patient.name}
+            </h3>
+            {patient.age !== null && (
+              <p className="mt-0.5 text-sm text-slate-500">
+                {patient.age} años
+              </p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Cerrar detalle"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-slate-100 text-xl leading-none text-slate-600 transition hover:bg-slate-200"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Pill bg={status.color}>{status.label}</Pill>
+          <Pill bg={condition.color}>{condition.label}</Pill>
+        </div>
+
+        <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-2">
+          <DetailRow label="Hospital" value={hospital.name} />
+          <DetailRow label="Ubicación" value={hospitalLocation} />
+          <DetailRow
+            label="Registrado"
+            value={new Date(patient.admittedAt).toLocaleString("es-VE")}
+          />
+          <DetailRow
+            label="Actualizado"
+            value={new Date(patient.updatedAt).toLocaleString("es-VE")}
+          />
+          {patient.contact && <DetailRow label="Contacto" value={patient.contact} />}
+        </dl>
+
+        <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50/70 p-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-wide text-blue-800">
+                Dirección del hospital
+              </p>
+              <p className="mt-1 text-sm font-medium leading-relaxed text-slate-900">
+                {hospital.address || hospitalLocation || hospital.name}
+              </p>
+              {hospital.address && hospitalLocation && (
+                <p className="mt-1 text-xs text-slate-600">{hospitalLocation}</p>
+              )}
+            </div>
+            <a
+              href={directionsHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex shrink-0 items-center justify-center rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+            >
+              Cómo llegar
+            </a>
+          </div>
+        </div>
+
+        {patient.notes && (
+          <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Notas
+            </p>
+            <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-slate-700">
+              {patient.notes}
+            </p>
+          </div>
+        )}
+
+        <div className="mt-5 flex flex-wrap justify-end gap-2">
+          <Link
+            href={patientPath}
+            prefetch={false}
+            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
+          >
+            Abrir hospital
+          </Link>
+          <button
+            type="button"
+            onClick={copyPatientLink}
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
+            aria-label={copied ? "Enlace copiado" : "Copiar enlace del paciente"}
+            title={copied ? "Enlace copiado" : "Copiar enlace del paciente"}
+          >
+            <span aria-hidden>🔗</span>
+            {copied ? "Copiado" : "Copiar link"}
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-red-700"
+          >
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function getDirectionsHref(
+  hospital: Pick<Hospital, "name" | "address" | "municipality" | "state">,
+) {
+  const query = [
+    hospital.name,
+    hospital.address,
+    hospital.municipality,
+    hospital.state,
+    "Venezuela",
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+}
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  if (!value) return null;
+  return (
+    <div>
+      <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        {label}
+      </dt>
+      <dd className="mt-0.5 text-slate-800">{value}</dd>
     </div>
   );
 }

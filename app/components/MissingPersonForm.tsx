@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import { trackEvent } from "./openpanel";
 
 export interface MissingPersonPayload {
   name: string;
@@ -101,6 +102,13 @@ export default function MissingPersonForm({ onCancel, onSubmit }: Props) {
           contact: contact.trim(),
           photo,
         });
+        trackEvent("missing_person_created", {
+          hasAge: Boolean(age.trim()),
+          hasLastSeen: Boolean(lastSeen.trim()),
+          hasDescription: Boolean(description.trim()),
+          hasContact: Boolean(contact.trim()),
+          hasPhoto: Boolean(photo),
+        });
       } catch (err) {
         setError(err instanceof Error ? err.message : "No se pudo guardar.");
         setSubmitting(false);
@@ -119,6 +127,7 @@ export default function MissingPersonForm({ onCancel, onSubmit }: Props) {
           <button
             type="button"
             onClick={onCancel}
+            data-track="missing_form_close"
             aria-label="Cerrar"
             className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700"
           >

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { trackEvent } from "./openpanel";
 import {
   FACILITY_TYPE_META,
   PRIORITY_ZONE_META,
@@ -58,6 +59,14 @@ export default function HospitalForm({ onCancel, onSubmit, initialState }: Props
         municipality: municipality.trim(),
         address: address.trim(),
         level,
+        priorityZone,
+      });
+      trackEvent("hospital_created", {
+        facilityType,
+        state: state.trim(),
+        hasMunicipality: Boolean(municipality.trim()),
+        hasAddress: Boolean(address.trim()),
+        level: level ?? "unknown",
         priorityZone,
       });
     } catch (err) {

@@ -5,6 +5,7 @@ import "./globals.css";
 import PwaRegister from "./components/PwaRegister";
 import MourningRibbon from "./components/MourningRibbon";
 import StickyHelpButton from "./components/StickyHelpButton";
+import OpenPanelProduction from "./components/OpenPanelProduction";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -20,6 +21,7 @@ const SITE_URL = "https://terremotovenezuela.app";
 const SITE_TITLE = "Mapa de Emergencia y Rescate · Terremoto en Venezuela";
 const SITE_DESC =
   "Reporte ciudadano en tiempo real para coordinar rescates, identificar daños estructurales y organizar la entrega de ayuda humanitaria tras el terremoto en Venezuela.";
+const OPENPANEL_CLIENT_ID = process.env.NEXT_PUBLIC_OPENPANEL_CLIENT_ID;
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -120,6 +122,10 @@ export default function RootLayout({
 
         {/* Cinta de luto: solo en páginas de cara al público, no en /admin */}
         <MourningRibbon />
+
+        {OPENPANEL_CLIENT_ID && (
+          <OpenPanelProduction clientId={OPENPANEL_CLIENT_ID} />
+        )}
 
         {children}
         <PwaRegister />
