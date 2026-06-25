@@ -132,7 +132,7 @@ for (let i = 0; i < slice.length; i++) {
         ${photoExternal}, ${externalId}, ${source}, ${sourceUrl},
         ${status}, ${resolutionNote}, ${resolvedAt}, ${createdAt}
       )
-      ON CONFLICT (external_id) WHERE external_id IS NOT NULL DO UPDATE SET
+      ON CONFLICT (source, external_id) WHERE external_id IS NOT NULL DO UPDATE SET
         name = EXCLUDED.name,
         age = EXCLUDED.age,
         description = EXCLUDED.description,
@@ -253,5 +253,8 @@ async function ensureSchema() {
   await sql`ALTER TABLE missing_persons ADD COLUMN IF NOT EXISTS source TEXT`;
   await sql`ALTER TABLE missing_persons ADD COLUMN IF NOT EXISTS source_url TEXT`;
   await sql`ALTER TABLE missing_persons ADD COLUMN IF NOT EXISTS photo_external_url TEXT`;
-  await sql`CREATE UNIQUE INDEX IF NOT EXISTS missing_persons_external_id_idx ON missing_persons (external_id) WHERE external_id IS NOT NULL`;
+  // Unicidad por (source, external_id): dos fuentes pueden usar el mismo id
+  // crudo sin chocar. Migra desde el índice antiguo de solo external_id.
+  await sql`CREATE UNIQUE INDEX IF NOT EXISTS missing_persons_source_external_id_idx ON missing_persons (source, external_id) WHERE external_id IS NOT NULL`;
+  await sql`DROP INDEX IF EXISTS missing_persons_external_id_idx`;
 }

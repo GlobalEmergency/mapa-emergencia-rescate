@@ -22,15 +22,6 @@ export function normalizeAge(age: unknown): number | null {
   return n;
 }
 
-/**
- * Id namespaced por fuente para que dos sitios no choquen aunque usen el mismo
- * id crudo. Ej: ("desaparecidosterremotovenezuela.com", "p123") ->
- * "desaparecidosterremotovenezuela.com:p123".
- */
-export function namespacedExternalId(source: string, rawId: string): string {
-  return `${source}:${rawId}`;
-}
-
 /** Parsea un valor a epoch-ms: acepta número (ms) o string de fecha. */
 export function toEpochMs(value: unknown): number | null {
   if (value === null || value === undefined || value === "") return null;

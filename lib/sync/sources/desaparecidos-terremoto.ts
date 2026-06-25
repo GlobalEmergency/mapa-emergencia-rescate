@@ -5,9 +5,14 @@
  * Respuesta: { items: [ { id, nombre, edad, ubicacion, descripcion, contacto,
  *              foto, estado, localizado*, createdAt, updatedAt } ] }
  *
+ * Paginación: GET ...?page=N&pageSize=M. La respuesta trae
+ * { items, total, page, pageSize, totalPages, counts }. Es paginación por
+ * OFFSET sobre un feed vivo: como entran registros nuevos arriba, las páginas
+ * se desplazan y un mismo id puede aparecer en páginas contiguas. Por eso
+ * deduplicamos por externalId dentro de cada corrida (y el upsert es idempotente
+ * de todos modos). Ver RFC §3.5.
+ *
  * Notas:
- * - La API ignora la paginación y devuelve todo el set (ver RFC §3.5). Si se
- *   pasa `limit`, recortamos del lado del cliente.
  * - `contacto` son teléfonos en claro: NO se importan salvo que se active
  *   explícitamente el flag (ver RFC §6).
  */
@@ -18,8 +23,24 @@ import { normalizeAge, toEpochMs, httpUrlOrNull } from "../normalize";
 const SOURCE_ID = "desaparecidosterremotovenezuela.com";
 const DEFAULT_URL =
   "https://desaparecidos-terremoto-api.theempire.tech/api/personas";
-/** La API entera tarda; le damos margen pero acotado. */
-const FETCH_TIMEOUT_MS = 90_000;
+/** Timeout por página. */
+const FETCH_TIMEOUT_MS = 45_000;
+/** Tamaño de página al escanear (la API lo respeta hasta 100). */
+const PAGE_SIZE = 100;
+/** Pausa entre páginas para ser gentiles con la fuente. */
+const INTER_PAGE_DELAY_MS = 200;
+/** Tope duro de páginas (cinturón de seguridad anti-bucle). */
+const HARD_PAGE_CAP = 10_000;
+
+interface ApiResponse {
+  items?: ApiPerson[];
+  total?: number;
+  page?: number;
+  pageSize?: number;
+  totalPages?: number;
+}
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 interface ApiPerson {
   id?: string;
@@ -92,37 +113,68 @@ export const desaparecidosTerremotoAdapter: SourceAdapter = {
   kind: "json-api",
 
   async fetchAll(ctx: FetchCtx): Promise<ExternalPerson[]> {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-    // Si el motor ya pasó una señal, encadenamos el abort.
-    ctx.signal?.addEventListener("abort", () => controller.abort());
+    // Si el límite es chico, no pidas páginas de 100.
+    const pageSize = ctx.limit ? Math.min(ctx.limit, PAGE_SIZE) : PAGE_SIZE;
 
-    let res: Response;
-    try {
-      res = await fetch(sourceUrl(), {
-        headers: {
-          accept: "application/json",
-          "user-agent": ctx.userAgent,
-        },
-        signal: controller.signal,
-      });
-    } finally {
-      clearTimeout(timeout);
-    }
-
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status} al consultar ${SOURCE_ID}`);
-    }
-
-    const body = (await res.json()) as { items?: ApiPerson[] } | ApiPerson[];
-    const items = Array.isArray(body) ? body : (body.items ?? []);
-
+    const seen = new Set<string>(); // dedup de solapes entre páginas
     const people: ExternalPerson[] = [];
-    for (const raw of items) {
-      const person = mapPerson(raw);
-      if (person) people.push(person);
-      if (ctx.limit && people.length >= ctx.limit) break;
+    let page = 1;
+    let totalPages = Infinity;
+
+    while (page <= totalPages && page <= HARD_PAGE_CAP) {
+      const { items, meta } = await fetchPage(page, pageSize, ctx);
+      if (typeof meta.totalPages === "number" && meta.totalPages > 0) {
+        totalPages = meta.totalPages;
+      }
+      if (items.length === 0) break;
+
+      for (const raw of items) {
+        const person = mapPerson(raw);
+        if (!person || seen.has(person.externalId)) continue;
+        seen.add(person.externalId);
+        people.push(person);
+        if (ctx.limit && people.length >= ctx.limit) return people;
+      }
+
+      // Última página: menos items que el tamaño pedido.
+      if (items.length < pageSize) break;
+      page++;
+      await sleep(INTER_PAGE_DELAY_MS);
     }
+
     return people;
   },
 };
+
+/** Trae una página y devuelve sus items + metadatos de paginación. */
+async function fetchPage(
+  page: number,
+  pageSize: number,
+  ctx: FetchCtx,
+): Promise<{ items: ApiPerson[]; meta: ApiResponse }> {
+  const url = new URL(sourceUrl());
+  url.searchParams.set("page", String(page));
+  url.searchParams.set("pageSize", String(pageSize));
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  ctx.signal?.addEventListener("abort", () => controller.abort());
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      headers: { accept: "application/json", "user-agent": ctx.userAgent },
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
+
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status} al consultar ${SOURCE_ID} (page ${page})`);
+  }
+
+  const body = (await res.json()) as ApiResponse | ApiPerson[];
+  if (Array.isArray(body)) return { items: body, meta: {} };
+  return { items: body.items ?? [], meta: body };
+}

@@ -56,10 +56,17 @@ export interface ExternalPerson {
 }
 ```
 
-**Decisión: namespacing del `external_id`.** Para que dos fuentes no choquen
-(ambas pueden usar `id="p123"`), se persiste `external_id = "${source}:${rawId}"`.
-El índice único actual sigue siendo válido y sabemos siempre de qué fuente salió
-cada registro.
+**Decisión (revisada tras validar contra datos reales): unicidad por
+`(source, external_id)`, NO namespacing.** Los `external_id` ya importados
+manualmente se guardaron CRUDOS (ej. `p8fd01c513881`). Si namespáramos
+(`source:rawId`) no harían match y la sync DUPLICARÍA ~33k filas en vez de
+actualizarlas. En cambio, guardamos el `external_id` crudo y movemos la unicidad
+a un índice compuesto parcial `(source, external_id) WHERE external_id IS NOT
+NULL`. Así dos fuentes pueden reusar el mismo id sin chocar, y los datos
+existentes siguen funcionando. La migración en prod es solo un *swap de índice*
+(crear el compuesto, soltar el viejo de solo `external_id`) — `ensureSchema` lo
+aplica solo. Confirmado read-only contra prod: los ids de la API coinciden 20/20
+con los `external_id` ya importados.
 
 ### 3.2 Adaptador de fuente (el punto de extensión)
 
@@ -94,12 +101,14 @@ contacto). Activar una fuente nueva = agregar un archivo + una línea.
 
 #### Mapeo de `desaparecidosterremotovenezuela.com`
 
-`GET https://desaparecidos-terremoto-api.theempire.tech/api/personas` →
-`{ "items": [ … ] }` (la paginación no se respeta; devuelve todo de golpe → §5).
+`GET .../api/personas?page=N&pageSize=M` →
+`{ items, total, page, pageSize, totalPages, counts }`. Paginación por OFFSET
+sobre feed vivo: páginas contiguas se solapan (mismo id) → deduplicar por
+externalId en cada corrida (el upsert es idempotente igual). Ver §5.
 
 | Campo API | `ExternalPerson` | Nota |
 | --- | --- | --- |
-| `id` | `externalId` (namespaced) | único por dominio |
+| `id` | `externalId` (crudo) | unicidad por (source, external_id) |
 | `nombre` | `name` | |
 | `edad` | `age` | nullable |
 | `ubicacion` | `lastSeen` | |
@@ -165,7 +174,10 @@ tiempo máximo de función. Estrategias (combinables):
   visto por fuente; cada corrida procesa solo lo más nuevo (cuando la fuente lo
   permita filtrar) o, si la fuente solo da todo, hacer upsert acotado por lote y
   comparar un hash de contenido para no reescribir lo igual.
-- Usar paginación real de la fuente si/ cuando la exponga.
+- La fuente expone paginación real (`?page=N&pageSize=M`, hasta 100/pág; ~437
+  páginas para 43k). El adaptador la escanea página por página. Pendiente:
+  el cuello de botella no es traer las páginas sino los ~43k upserts por corrida
+  (chunking / bulk upsert / proceso en background).
 
 ## 4. Deduplicación entre fuentes (fase posterior)
 
@@ -184,7 +196,8 @@ primero).
 
 ## 5. Idempotencia e incremental
 
-- `external_id` namespaced → reimportar no duplica.
+- Unicidad por `(source, external_id)` con `external_id` crudo → reimportar no
+  duplica (re-correr actualiza; solo entran los genuinamente nuevos).
 - `sync_state(source, last_updated_at, last_run_at)` como watermark por fuente.
 - El upsert actual usa `COALESCE(existing, new)` para `photo/source/source_url`
   (first-write-wins) y **sí** actualiza `status`/`resolution` → correcto.

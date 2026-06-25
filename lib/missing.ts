@@ -97,7 +97,12 @@ function ensureSchema(): Promise<void> {
       await sql`ALTER TABLE missing_persons ADD COLUMN IF NOT EXISTS photo_external_url TEXT`;
       await sql`ALTER TABLE missing_persons ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION`;
       await sql`ALTER TABLE missing_persons ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION`;
-      await sql`CREATE UNIQUE INDEX IF NOT EXISTS missing_persons_external_id_idx ON missing_persons (external_id) WHERE external_id IS NOT NULL`;
+      // Identidad de registros externos por (source, external_id): permite que
+      // dos fuentes usen el mismo id crudo sin chocar. Migra desde el índice
+      // antiguo de solo external_id (crea el nuevo y luego suelta el viejo, de
+      // modo que la unicidad nunca queda sin proteger).
+      await sql`CREATE UNIQUE INDEX IF NOT EXISTS missing_persons_source_external_id_idx ON missing_persons (source, external_id) WHERE external_id IS NOT NULL`;
+      await sql`DROP INDEX IF EXISTS missing_persons_external_id_idx`;
 
       // Índice del listado paginado: filtro por estado + orden + offset.
       await sql`
@@ -739,7 +744,14 @@ export async function upsertExternalMissing(
   }
   await ensureSchema();
 
-  const externalId = `${input.source}:${input.externalId}`;
+  // Identidad: el external_id se guarda CRUDO (tal como viene de la fuente) y la
+  // unicidad es por (source, external_id) — ver índice compuesto en ensureSchema.
+  // Así no hay que reescribir los external_id ya importados, y dos fuentes pueden
+  // reusar el mismo id sin chocar.
+  const externalId = input.externalId.trim();
+  const source = clipText(input.source, 120);
+  if (!source) throw new Error("Registro externo sin `source`.");
+  if (!externalId) throw new Error("Registro externo sin `externalId`.");
   const name = clipText(input.name, MAX_NAME);
   if (!name) throw new Error("Registro sin nombre.");
   const age = normalizeAge(input.age);
@@ -751,7 +763,6 @@ export async function upsertExternalMissing(
     typeof input.photoUrl === "string" && /^https?:\/\//i.test(input.photoUrl)
       ? input.photoUrl.slice(0, 600)
       : null;
-  const source = clipText(input.source, 120) || null;
   const sourceUrl =
     typeof input.sourceUrl === "string" ? input.sourceUrl.slice(0, 300) : null;
 
@@ -774,7 +785,7 @@ export async function upsertExternalMissing(
       ${photoExternal}, ${externalId}, ${source}, ${sourceUrl},
       ${status}, ${resolutionNote}, ${resolvedAt}, ${createdAt}
     )
-    ON CONFLICT (external_id) WHERE external_id IS NOT NULL DO UPDATE SET
+    ON CONFLICT (source, external_id) WHERE external_id IS NOT NULL DO UPDATE SET
       name = EXCLUDED.name,
       age = EXCLUDED.age,
       description = EXCLUDED.description,
