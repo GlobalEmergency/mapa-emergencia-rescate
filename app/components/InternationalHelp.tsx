@@ -66,6 +66,45 @@ const OFFICES: CountryOffice[] = [
         href: "https://www.cruzroja.org.ar/rcf/",
       },
     ],
+    donationPoints: [
+      {
+        city: "Buenos Aires",
+        name: "Colecta comunidad venezolana",
+        address: "Amenábar 1024, Ciudad de Buenos Aires",
+        hours: "13:00 a 19:00",
+        accepts:
+          "Ropa, calzado, alimentos no perecederos, higiene, medicamentos y primeros auxilios.",
+        source: "Noticias Argentinas",
+        sourceHref:
+          "https://noticiasargentinas.com/internacionales/terremoto-en-venezuela--organizan-una-colecta-solidaria-en-buenos-aires-para-enviar-ayuda-a-los-damnificados_a6a3d5c14fd88dacfc571f701",
+        updatedAt: "25 jun 2026",
+      },
+      {
+        city: "Buenos Aires",
+        name: "Colecta comunidad venezolana",
+        address: "Libertad 996, Ciudad de Buenos Aires",
+        hours: "10:00 a 21:00",
+        accepts:
+          "Ropa, calzado, alimentos no perecederos, higiene, medicamentos y primeros auxilios.",
+        source: "Noticias Argentinas",
+        sourceHref:
+          "https://noticiasargentinas.com/internacionales/terremoto-en-venezuela--organizan-una-colecta-solidaria-en-buenos-aires-para-enviar-ayuda-a-los-damnificados_a6a3d5c14fd88dacfc571f701",
+        updatedAt: "25 jun 2026",
+      },
+    ],
+    shareChannels: [
+      {
+        name: "Alianza Venezuela",
+        description:
+          "Organización en CABA mencionada como canal para centralizar ayuda humanitaria enviada desde Argentina.",
+        href: "https://www.eldiariosur.com/esteban-echeverria/2026/6/25/venezolanos-en-monte-grande-luis-guillon-organizan-una-colecta-para-ayudar-las-victimas-del-terremoto-81142.html",
+        source: "El Diario Sur",
+        sourceHref:
+          "https://www.eldiariosur.com/esteban-echeverria/2026/6/25/venezolanos-en-monte-grande-luis-guillon-organizan-una-colecta-para-ayudar-las-victimas-del-terremoto-81142.html",
+        updatedAt: "25 jun 2026",
+        status: "verified",
+      },
+    ],
   },
   {
     country: "Colombia",
@@ -130,6 +169,18 @@ const OFFICES: CountryOffice[] = [
           "https://caracol.com.co/2026/06/25/en-santander-se-inicia-recoleccion-de-ayudas-para-afectados-por-terremoto-en-venezuela/",
         updatedAt: "25 jun 2026",
       },
+      {
+        city: "Barranquilla",
+        name: "Centro de acopio Barranquillita",
+        address: "Carrera 43 #6-120, sector Barranquillita",
+        hours: "8:00 a.m. a 4:00 p.m.",
+        accepts:
+          "Agua potable, alimentos no perecederos, insumos médicos, medicamentos, ropa, abrigos, colchones, colchonetas y aseo personal.",
+        source: "Caracol Radio",
+        sourceHref:
+          "https://caracol.com.co/2026/06/25/barranquilla-habilita-centro-de-acopio-para-apoyar-a-afectados-por-terremoto-en-venezuela/",
+        updatedAt: "25 jun 2026",
+      },
     ],
     shareChannels: [
       {
@@ -183,13 +234,46 @@ const OFFICES: CountryOffice[] = [
     donationPoints: [
       {
         city: "Quito",
+        name: "Cachapas El Félix",
+        address: "Av. Naciones Unidas y Av. 10 de Agosto",
+        accepts:
+          "Alimentos no perecibles, agua, kits de higiene, medicamentos básicos, ropa y mantas.",
+        source: "Teleamazonas",
+        sourceHref:
+          "https://www.teleamazonas.com/actualidad/noticias/sociedad/terremoto-venezuela-puntos-acopio-donaciones-ecuador-121128/",
+        updatedAt: "25 jun 2026",
+      },
+      {
+        city: "Quito",
+        name: "IMPAQTO La Carolina",
+        address: "Av. Shyris y Suecia, edificio IQON",
+        accepts:
+          "Alimentos no perecibles, agua, kits de higiene, medicamentos básicos, ropa y mantas.",
+        source: "Teleamazonas",
+        sourceHref:
+          "https://www.teleamazonas.com/actualidad/noticias/sociedad/terremoto-venezuela-puntos-acopio-donaciones-ecuador-121128/",
+        updatedAt: "25 jun 2026",
+      },
+      {
+        city: "Quito",
         name: "Edificio Gaudí",
-        address: "Sector de la calle Checoslovaquia",
+        address: "Calle Checoslovaquia; preguntar por Luis Magallanes",
         accepts:
           "Agua potable, alimentos no perecibles, insumos médicos, higiene, pañales, cobijas, linternas, baterías, radios y materiales básicos de rescate.",
-        source: "Ecuavisa",
+        source: "Teleamazonas",
         sourceHref:
-          "https://www.ecuavisa.com/ecuador/terremoto-venezuela-puntos-donaciones-afectados-quito-guayaquil--20260625-0032.html",
+          "https://www.teleamazonas.com/actualidad/noticias/sociedad/terremoto-venezuela-puntos-acopio-donaciones-ecuador-121128/",
+        updatedAt: "25 jun 2026",
+      },
+      {
+        city: "Guayaquil",
+        name: "Chamos Burger",
+        address: "Av. Víctor Emilio Estrada y Jiguas",
+        accepts:
+          "Alimentos no perecibles, agua, kits de higiene, medicamentos básicos, ropa y mantas.",
+        source: "Teleamazonas",
+        sourceHref:
+          "https://www.teleamazonas.com/actualidad/noticias/sociedad/terremoto-venezuela-puntos-acopio-donaciones-ecuador-121128/",
         updatedAt: "25 jun 2026",
       },
       {
@@ -200,6 +284,17 @@ const OFFICES: CountryOffice[] = [
         source: "Ecuavisa",
         sourceHref:
           "https://www.ecuavisa.com/ecuador/terremoto-venezuela-puntos-donaciones-afectados-quito-guayaquil--20260625-0032.html",
+        updatedAt: "25 jun 2026",
+      },
+      {
+        city: "Cuenca",
+        name: "Edificio Portal del Sol",
+        address: "Av. 12 de Octubre y calle Emilio Carrere, sector Yanuncay",
+        accepts:
+          "Alimentos no perecibles, agua, kits de higiene, medicamentos básicos, ropa y mantas.",
+        source: "Teleamazonas",
+        sourceHref:
+          "https://www.teleamazonas.com/actualidad/noticias/sociedad/terremoto-venezuela-puntos-acopio-donaciones-ecuador-121128/",
         updatedAt: "25 jun 2026",
       },
       {
@@ -298,6 +393,121 @@ const OFFICES: CountryOffice[] = [
       },
     ],
   },
+  {
+    country: "Estados Unidos",
+    countryCode: "US",
+    organization: "Cruz Roja Americana / organizaciones locales",
+    lines: [
+      {
+        type: "web",
+        label: "Global Empowerment Mission - Venezuela Earthquake",
+        href: "https://www.globalempowermentmission.org/mission/venezuela-earthquake/",
+      },
+      {
+        type: "phone",
+        label: "AFE Doral: 305-602-4466",
+        href: "tel:+13056024466",
+      },
+    ],
+    donationPoints: [
+      {
+        city: "Doral, FL",
+        name: "Global Empowerment Mission (GEM)",
+        address: "1850 NW 84th Ave, Doral, FL",
+        hours: "Lunes a viernes, 9:00 a.m. a 4:00 p.m.",
+        accepts:
+          "Primeros auxilios, linternas, baterías, cargadores solares, guantes, pañales y suministros esenciales.",
+        source: "Local 10",
+        sourceHref:
+          "https://www.local10.com/news/local/2026/06/25/here-are-4-drop-off-locations-for-donations-to-help-venezuelans-after-earthquakes/",
+        updatedAt: "25 jun 2026",
+      },
+      {
+        city: "Doral, FL",
+        name: "Miami-Dade Supervisor of Elections Office Lobby",
+        address: "2700 NW 87th Ave, Doral, FL",
+        hours: "Lunes a viernes, 8:00 a.m. a 5:00 p.m.",
+        accepts:
+          "Primeros auxilios, equipos de emergencia, artículos para bebés y suministros esenciales.",
+        source: "Local 10",
+        sourceHref:
+          "https://www.local10.com/news/local/2026/06/25/here-are-4-drop-off-locations-for-donations-to-help-venezuelans-after-earthquakes/",
+        updatedAt: "25 jun 2026",
+      },
+      {
+        city: "Doral, FL",
+        name: "Doral Legacy Park Community Center",
+        address: "11400 NW 82 St, Doral, FL",
+        hours:
+          "Lunes a viernes, 5:00 p.m. a 9:00 p.m.; sábado y domingo, 8:00 a.m. a 5:00 p.m.",
+        accepts:
+          "Primeros auxilios, equipos de emergencia, artículos para bebés y suministros esenciales.",
+        source: "Local 10",
+        sourceHref:
+          "https://www.local10.com/news/local/2026/06/25/here-are-4-drop-off-locations-for-donations-to-help-venezuelans-after-earthquakes/",
+        updatedAt: "25 jun 2026",
+      },
+      {
+        city: "Doral, FL",
+        name: "El Arepazo",
+        address: "10191 NW 58th St, Doral, FL",
+        hours: "24 horas, lunes a domingo",
+        accepts:
+          "Primeros auxilios, equipos de emergencia, artículos para bebés y suministros esenciales.",
+        source: "Local 10",
+        sourceHref:
+          "https://www.local10.com/news/local/2026/06/25/here-are-4-drop-off-locations-for-donations-to-help-venezuelans-after-earthquakes/",
+        updatedAt: "25 jun 2026",
+      },
+      {
+        city: "Miami, FL",
+        name: "Centro Comunitario AFE",
+        address: "6090 NW 84 Ave, Miami, FL 33166",
+        hours: "9:30 a.m. a 3:00 p.m.",
+        accepts:
+          "Alimentos no perecederos, agua, higiene personal, pañales, leche para bebés, ropa, zapatos, cobijas, ropa de cama, carpas e insumos médicos básicos.",
+        source: "Diario Las Américas",
+        sourceHref:
+          "https://www.diariolasamericas.com/florida/sur-la-florida-se-moviliza-ayuda-las-victimas-los-sismos-venezuela-n5397794",
+        updatedAt: "25 jun 2026",
+      },
+      {
+        city: "Pembroke Pines, FL",
+        name: "All for Venezuela",
+        address: "1391 NW 187th Ave, Pembroke Pines, FL 33029",
+        accepts:
+          "Medicamentos e insumos solicitados por All for Venezuela; verificar lista vigente antes de llevar donaciones.",
+        source: "Univision",
+        sourceHref:
+          "https://www.univision.com/local/miami-wltv/donde-miami-recolecta-ayuda-para-afectados-terremoto-venezuela",
+        updatedAt: "25 jun 2026",
+      },
+    ],
+    shareChannels: [
+      {
+        name: "Global Empowerment Mission",
+        description:
+          "ONG en Doral movilizada para ayuda humanitaria y donaciones económicas para la emergencia en Venezuela.",
+        href: "https://www.globalempowermentmission.org/mission/venezuela-earthquake/",
+        source: "GEM",
+        sourceHref:
+          "https://www.globalempowermentmission.org/mission/venezuela-earthquake/",
+        updatedAt: "25 jun 2026",
+        status: "verified",
+      },
+      {
+        name: "Cámara de Comercio Venezolana",
+        description:
+          "Canal de donaciones económicas reportado por Univision para apoyo desde el sur de Florida.",
+        href: "https://www.univision.com/local/miami-wltv/donde-miami-recolecta-ayuda-para-afectados-terremoto-venezuela",
+        source: "Univision",
+        sourceHref:
+          "https://www.univision.com/local/miami-wltv/donde-miami-recolecta-ayuda-para-afectados-terremoto-venezuela",
+        updatedAt: "25 jun 2026",
+        status: "verified",
+      },
+    ],
+  },
 ];
 
 const CONTACT_ICON = {
@@ -314,6 +524,10 @@ const TIME_ZONE_COUNTRY_CODES: Record<string, string> = {
   "America/Guayaquil": "EC",
   "America/Tegucigalpa": "HN",
   "America/Mexico_City": "MX",
+  "America/New_York": "US",
+  "America/Chicago": "US",
+  "America/Denver": "US",
+  "America/Los_Angeles": "US",
 };
 
 const COUNTRY_STORAGE_KEY = "apoyo-global-country-code";
