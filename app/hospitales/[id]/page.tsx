@@ -42,7 +42,7 @@ export default async function HospitalPage({ params }: PageProps) {
           </Link>
           <span aria-hidden>/</span>
           <Link
-            href="/#hospitales"
+            href="/hospitales"
             className="hover:text-slate-700 hover:underline"
           >
             Hospitales

@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   Brain,
   CircleCheck,
@@ -26,6 +28,21 @@ const SHARE_TEXT =
   "Mapa de Emergencia y Rescate: Terremoto en Venezuela. Reporta y consulta el estado de las zonas en tiempo real.";
 
 const MOBILE_NAV_BOTTOM = "calc(3.25rem + env(safe-area-inset-bottom))";
+
+function isAnchor(href: string): boolean {
+  return href.startsWith("#");
+}
+
+/**
+ * Devuelve el href final según el contexto:
+ * - Ancla en el home: hash literal
+ * - Ancla fuera del home: `/#xxx` para volver y posicionar
+ * - Ruta absoluta: tal cual
+ */
+function resolveHref(href: string, onHome: boolean): string {
+  if (!isAnchor(href)) return href;
+  return onHome ? href : `/${href}`;
+}
 
 /** Navegación por ancla compatible con iOS Safari y barra inferior fija. */
 function scrollToSection(href: string) {
@@ -139,11 +156,12 @@ const DESKTOP_ICON = {
   [PRIMARY_MAP_LINK.href]: MapPinned,
   "#desaparecidas": Search,
   "#localizados": CircleCheck,
-  "#telefonos": PhoneCall,
-  "#guia": HeartHandshake,
-  "#centros-acopio": HandHeart,
-  "#ayuda-internacional": Globe2,
-  "#chat": MessageCircle,
+  "/hospitales": HeartHandshake,
+  "/telefonos": PhoneCall,
+  "/guia": HeartHandshake,
+  "/acopio": HandHeart,
+  "/apoyo-global": Globe2,
+  "/chat": MessageCircle,
 };
 
 const DESKTOP_LABEL: Record<
@@ -160,27 +178,32 @@ const DESKTOP_LABEL: Record<
     medium: "Ubicados",
     long: "Localizados",
   },
-  "#telefonos": {
+  "/hospitales": {
+    short: "Hosp.",
+    medium: "Hosp.",
+    long: "Hospitales",
+  },
+  "/telefonos": {
     short: "Tel.",
     medium: "Tels.",
     long: "Teléfonos",
   },
-  "#guia": {
+  "/guia": {
     short: "Guía",
     medium: "Guía",
     long: "Guía",
   },
-  "#centros-acopio": {
+  "/acopio": {
     short: "Aco.",
     medium: "Acopio",
     long: "Acopio",
   },
-  "#ayuda-internacional": {
+  "/apoyo-global": {
     short: "Glob.",
     medium: "Global",
     long: "Apoyo global",
   },
-  "#chat": {
+  "/chat": {
     short: "Chat",
     medium: "Chat",
     long: "Chat",
@@ -191,12 +214,14 @@ function NavLink({
   link,
   missing,
   found,
+  onHome,
   className,
   compact = false,
 }: {
   link: SectionLink;
   missing: number | null;
   found: number | null;
+  onHome: boolean;
   className?: string;
   compact?: boolean;
 }) {
@@ -209,13 +234,10 @@ function NavLink({
     long: link.label,
   };
 
-  return (
-    <a
-      href={link.href}
-      title={link.label}
-      aria-label={link.label}
-      className={`inline-flex min-h-9 shrink-0 items-center justify-center gap-1 rounded-lg border px-1.5 py-1.5 text-xs font-semibold shadow-sm transition lg:gap-1.5 lg:px-2 lg:text-[13px] xl:px-2.5 ${DESKTOP_CHIP[tone]} ${className ?? ""}`}
-    >
+  const baseClassName = `inline-flex min-h-9 shrink-0 items-center justify-center gap-1 rounded-lg border px-1.5 py-1.5 text-xs font-semibold shadow-sm transition lg:gap-1.5 lg:px-2 lg:text-[13px] xl:px-2.5 ${DESKTOP_CHIP[tone]} ${className ?? ""}`;
+
+  const content = (
+    <>
       <Icon aria-hidden className="h-4 w-4 shrink-0" strokeWidth={2.2} />
       {compact ? (
         <>
@@ -231,13 +253,50 @@ function NavLink({
           {compact ? compactBadge(badge) : badge}
         </span>
       )}
-    </a>
+    </>
+  );
+
+  if (isAnchor(link.href)) {
+    return (
+      <a
+        href={resolveHref(link.href, onHome)}
+        onClick={
+          onHome
+            ? (e) => {
+                e.preventDefault();
+                scrollToSection(link.href);
+              }
+            : undefined
+        }
+        title={link.label}
+        aria-label={link.label}
+        className={baseClassName}
+      >
+        {content}
+      </a>
+    );
+  }
+
+  return (
+    <Link
+      href={link.href}
+      prefetch={false}
+      title={link.label}
+      aria-label={link.label}
+      className={baseClassName}
+    >
+      {content}
+    </Link>
   );
 }
 
 /** Menú superior de secciones — solo desktop/tablet. */
 export function HeroDesktopNav() {
   const { missing, found } = usePeopleTotals();
+  const pathname = usePathname();
+  const onHome = pathname === "/";
+
+  const primaryHref = resolveHref(PRIMARY_MAP_LINK.href, onHome);
 
   return (
     <nav
@@ -246,7 +305,15 @@ export function HeroDesktopNav() {
     >
       <div className="mx-auto flex max-w-7xl flex-nowrap items-center justify-center gap-1 lg:gap-1.5">
         <a
-          href={PRIMARY_MAP_LINK.href}
+          href={primaryHref}
+          onClick={
+            onHome
+              ? (e) => {
+                  e.preventDefault();
+                  scrollToSection(PRIMARY_MAP_LINK.href);
+                }
+              : undefined
+          }
           title={PRIMARY_MAP_LINK.label}
           aria-label={PRIMARY_MAP_LINK.label}
           className="inline-flex min-h-9 shrink-0 items-center justify-center gap-1 rounded-lg bg-red-600 px-2 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-red-500 lg:gap-1.5 lg:px-2.5 lg:text-[13px]"
@@ -261,6 +328,7 @@ export function HeroDesktopNav() {
             link={link}
             missing={missing}
             found={found}
+            onHome={onHome}
             compact
           />
         ))}
@@ -366,6 +434,8 @@ function ShareNavButton({
 export function MobileStickyNav() {
   const { missing, found } = usePeopleTotals();
   const [sheetOpen, setSheetOpen] = useState(false);
+  const pathname = usePathname();
+  const onHome = pathname === "/";
 
   useEffect(() => {
     document.body.classList.add("has-mobile-nav");
@@ -387,17 +457,27 @@ export function MobileStickyNav() {
 
   const closeSheet = useCallback(() => setSheetOpen(false), []);
 
-  const navigateFromSheet = useCallback((href: string) => {
-    setSheetOpen(false);
-    window.setTimeout(() => scrollToSection(href), 50);
-  }, []);
-
-  const navigateFromBar = useCallback(
-    (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
-      e.preventDefault();
-      scrollToSection(href);
+  const handleBarClick = useCallback(
+    (e: React.MouseEvent<HTMLAnchorElement>, link: SectionLink) => {
+      if (isAnchor(link.href) && onHome) {
+        e.preventDefault();
+        scrollToSection(link.href);
+      }
     },
-    [],
+    [onHome],
+  );
+
+  const handleSheetClick = useCallback(
+    (e: React.MouseEvent<HTMLAnchorElement>, link: SectionLink) => {
+      if (isAnchor(link.href) && onHome) {
+        e.preventDefault();
+        setSheetOpen(false);
+        window.setTimeout(() => scrollToSection(link.href), 50);
+        return;
+      }
+      setSheetOpen(false);
+    },
+    [onHome],
   );
 
   return (
@@ -412,8 +492,8 @@ export function MobileStickyNav() {
             return (
               <a
                 key={link.href}
-                href={link.href}
-                onClick={(e) => navigateFromBar(e, link.href)}
+                href={resolveHref(link.href, onHome)}
+                onClick={(e) => handleBarClick(e, link)}
                 className="flex min-h-[3.25rem] touch-manipulation flex-col items-center justify-center gap-0.5 px-1 py-2 text-[10px] font-semibold text-slate-700 transition active:bg-slate-100"
               >
                 <span className="relative text-lg leading-none" aria-hidden>
@@ -477,9 +557,9 @@ export function MobileStickyNav() {
                 const badge = badgeValue(link, missing, found);
                 return (
                   <li key={link.href}>
-                    <button
-                      type="button"
-                      onClick={() => navigateFromSheet(link.href)}
+                    <a
+                      href={resolveHref(link.href, onHome)}
+                      onClick={(e) => handleSheetClick(e, link)}
                       className="flex min-h-12 w-full touch-manipulation items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-semibold text-slate-800 transition active:bg-slate-100"
                     >
                       <span className="text-xl" aria-hidden>
@@ -491,7 +571,7 @@ export function MobileStickyNav() {
                           {badge}
                         </span>
                       )}
-                    </button>
+                    </a>
                   </li>
                 );
               })}
@@ -522,5 +602,19 @@ export function HeroMobileCta() {
       <span aria-hidden>{PRIMARY_MAP_LINK.icon}</span>
       {PRIMARY_MAP_LINK.label}
     </a>
+  );
+}
+
+/** Mini hero móvil para sub-páginas: enlace de regreso al mapa principal. */
+export function MobileBackToMapCta() {
+  return (
+    <Link
+      href="/#mapa"
+      prefetch={false}
+      className="mt-4 inline-flex min-h-11 w-full max-w-sm touch-manipulation items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50 md:hidden"
+    >
+      <MapPinned aria-hidden className="h-4 w-4" strokeWidth={2.2} />
+      Volver al mapa
+    </Link>
   );
 }
