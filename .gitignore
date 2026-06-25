@@ -39,7 +39,7 @@ yarn-error.log*
 # database backups
 *.sql
 *.dump
-backup-*.sql.gz
+*.sql.gz
 
 # typescript
 *.tsbuildinfo
