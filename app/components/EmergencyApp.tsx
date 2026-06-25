@@ -536,11 +536,20 @@ export default function EmergencyApp() {
             bias={focus ? { lat: focus.lat, lng: focus.lng } : AFFECTED_CENTER}
           />
           <div className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-            <span>
-              <strong className="font-semibold text-slate-950">
-                Riesgo sísmico:
-              </strong>{" "}
-              priorización de inspección, no daño confirmado.
+            <span className="flex items-center gap-3">
+              <span
+                aria-hidden
+                className="relative grid h-8 w-8 shrink-0 place-items-center rounded-full bg-red-50 text-red-700 ring-1 ring-red-200"
+              >
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-25" />
+                <span className="relative text-base font-black">!</span>
+              </span>
+              <span>
+                <strong className="font-semibold text-slate-950">
+                  Riesgo sísmico:
+                </strong>{" "}
+                priorización de inspección, no daño confirmado.
+              </span>
             </span>
             <Link
               href="/riesgo-sismico"
