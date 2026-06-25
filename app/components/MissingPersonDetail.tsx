@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import MissingFoundForm, {
   type MissingFoundPayload,
 } from "./MissingFoundForm";
@@ -28,6 +28,10 @@ function extractPhone(contact: string): string | null {
 interface Props {
   person: MissingPerson;
   onClose: () => void;
+  /** Lista para navegar entre fichas (anterior/siguiente). */
+  people?: MissingPerson[];
+  /** Actualiza la persona visible al usar flechas, teclado o gestos. */
+  onNavigate?: (person: MissingPerson) => void;
   /** Llamado al confirmar el formulario "marcar como localizada". */
   onMarkFound?: (payload: MissingFoundPayload) => Promise<void>;
 }
@@ -50,16 +54,55 @@ function shareText(person: MissingPerson): string {
 export default function MissingPersonDetail({
   person,
   onClose,
+  people,
+  onNavigate,
   onMarkFound,
 }: Props) {
   const phone = extractPhone(person.contact);
   const [showFoundForm, setShowFoundForm] = useState(false);
   const [copied, setCopied] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
+  const touchStartX = useRef<number | null>(null);
+
+  const currentIndex =
+    people?.findIndex((entry) => entry.id === person.id) ?? -1;
+  const hasNav =
+    Boolean(people && people.length > 1 && onNavigate && currentIndex >= 0);
+  const hasPrev = hasNav && currentIndex > 0;
+  const hasNext = hasNav && people != null && currentIndex < people.length - 1;
+
+  const goPrev = useCallback(() => {
+    if (!hasPrev || !people || !onNavigate) return;
+    onNavigate(people[currentIndex - 1]);
+  }, [currentIndex, hasPrev, onNavigate, people]);
+
+  const goNext = useCallback(() => {
+    if (!hasNext || !people || !onNavigate) return;
+    onNavigate(people[currentIndex + 1]);
+  }, [currentIndex, hasNext, onNavigate, people]);
+
+  useEffect(() => {
+    setShowFoundForm(false);
+    setCopied(false);
+    setShareError(null);
+  }, [person.id]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !showFoundForm) onClose();
+      if (showFoundForm) return;
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        goPrev();
+        return;
+      }
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        goNext();
+      }
     };
     document.addEventListener("keydown", onKey);
     const prev = document.body.style.overflow;
@@ -68,7 +111,7 @@ export default function MissingPersonDetail({
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = prev;
     };
-  }, [onClose, showFoundForm]);
+  }, [goNext, goPrev, onClose, showFoundForm]);
 
   const isFound = person.status === "found";
 
@@ -98,6 +141,24 @@ export default function MissingPersonDetail({
     }
   }, [copyShare, person.name, text, url]);
 
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0]?.clientX ?? null;
+  }, []);
+
+  const handleTouchEnd = useCallback(
+    (e: React.TouchEvent) => {
+      if (touchStartX.current === null || !hasNav) return;
+      const endX = e.changedTouches[0]?.clientX;
+      if (endX == null) return;
+      const delta = endX - touchStartX.current;
+      touchStartX.current = null;
+      if (Math.abs(delta) < 48) return;
+      if (delta > 0) goPrev();
+      else goNext();
+    },
+    [goNext, goPrev, hasNav],
+  );
+
   return (
     <div
       role="dialog"
@@ -106,10 +167,49 @@ export default function MissingPersonDetail({
       className="fixed inset-0 z-[2000] flex items-end justify-center bg-slate-900/60 p-0 sm:items-center sm:p-4"
       onClick={onClose}
     >
+      {hasNav && (
+        <>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              goPrev();
+            }}
+            disabled={!hasPrev}
+            aria-label="Persona anterior"
+            className="absolute left-2 top-1/2 z-[2001] grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/95 text-lg text-slate-800 shadow-lg transition hover:bg-white disabled:opacity-30 sm:left-4 sm:h-12 sm:w-12 md:left-6"
+          >
+            ‹
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              goNext();
+            }}
+            disabled={!hasNext}
+            aria-label="Persona siguiente"
+            className="absolute right-2 top-1/2 z-[2001] grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/95 text-lg text-slate-800 shadow-lg transition hover:bg-white disabled:opacity-30 sm:right-4 sm:h-12 sm:w-12 md:right-6"
+          >
+            ›
+          </button>
+        </>
+      )}
+
       <div
         onClick={(e) => e.stopPropagation()}
-        className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-white shadow-xl sm:rounded-2xl"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        className="relative z-[2001] max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-white shadow-xl sm:rounded-2xl"
       >
+        {hasNav && people && (
+          <p
+            className="absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded-full bg-slate-900/70 px-3 py-1 text-[11px] font-medium text-white backdrop-blur-sm"
+            aria-live="polite"
+          >
+            {currentIndex + 1} de {people.length}
+          </p>
+        )}
         <div className="relative">
           {person.photoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -316,6 +416,27 @@ export default function MissingPersonDetail({
               </button>
             </div>
           </div>
+
+          {hasNav && (
+            <div className="flex items-center gap-2 border-t border-slate-100 pt-4 sm:hidden">
+              <button
+                type="button"
+                onClick={goPrev}
+                disabled={!hasPrev}
+                className="flex min-h-11 flex-1 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-40"
+              >
+                ← Anterior
+              </button>
+              <button
+                type="button"
+                onClick={goNext}
+                disabled={!hasNext}
+                className="flex min-h-11 flex-1 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-40"
+              >
+                Siguiente →
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

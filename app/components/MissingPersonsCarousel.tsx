@@ -308,6 +308,8 @@ export default function MissingPersonsCarousel() {
       {selected && (
         <MissingPersonDetail
           person={selected}
+          people={preview}
+          onNavigate={setSelected}
           onClose={() => setSelected(null)}
         />
       )}

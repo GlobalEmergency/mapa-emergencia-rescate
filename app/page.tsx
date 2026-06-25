@@ -5,6 +5,7 @@ import HeroPeopleLinks from "./components/HeroPeopleLinks";
 import EmergencyContacts from "./components/EmergencyContacts";
 import InternationalHelp from "./components/InternationalHelp";
 import SurvivalGuide from "./components/SurvivalGuide";
+import CollectionCenters from "./components/CollectionCenters";
 import { REPORT_TYPES, type ReportType } from "@/lib/types";
 
 const MissingPersonsCarousel = dynamic(
@@ -64,41 +65,52 @@ const STEPS: {
 export default function Home() {
   return (
     <main className="flex-1">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto w-full max-w-7xl px-4 py-6 text-center sm:py-10">
-          <span className="inline-flex items-center gap-2 rounded-full bg-red-50 px-3 py-1 text-sm font-medium text-red-700">
+      <header className="relative overflow-hidden border-b border-slate-800">
+        <div
+          className="absolute inset-0 bg-[url('/images/hero-terremoto-venezuela.png')] bg-cover bg-center bg-no-repeat"
+          aria-hidden
+        />
+        <div className="absolute inset-0 bg-black/65 sm:bg-black/60" aria-hidden />
+        <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col items-center justify-center px-4 py-10 text-center sm:min-h-[22rem] sm:py-14 md:min-h-[26rem] md:py-16">
+          <span className="inline-flex items-center gap-2 rounded-full border border-red-400/30 bg-red-600/90 px-3 py-1 text-sm font-medium text-white shadow-lg backdrop-blur-sm">
             🚨 Plataforma de ayuda humanitaria
           </span>
-          <h1 className="mt-3 text-2xl font-bold tracking-tight text-slate-900 sm:mt-4 sm:text-4xl md:text-5xl">
+          <h1 className="mt-3 text-balance text-2xl font-bold tracking-tight text-white drop-shadow-sm sm:mt-4 sm:text-4xl md:text-5xl">
             Mapa de Emergencia y Rescate: Terremoto en Venezuela
           </h1>
-          <h2 className="mx-auto mt-3 max-w-3xl text-sm text-slate-600 sm:mt-4 sm:text-lg">
+          <h2 className="mx-auto mt-3 max-w-3xl text-pretty text-sm leading-relaxed text-slate-200 sm:mt-4 sm:text-lg">
             Reporte ciudadano en tiempo real para coordinar rescates, identificar
             daños estructurales y organizar la entrega de ayuda humanitaria.
           </h2>
-          <div className="mx-auto mt-5 grid max-w-md grid-cols-2 gap-2 sm:mt-6 sm:flex sm:max-w-none sm:flex-wrap sm:justify-center sm:gap-3">
+          <div className="mx-auto mt-5 grid w-full max-w-md grid-cols-2 gap-2 sm:mt-6 sm:flex sm:max-w-none sm:flex-wrap sm:justify-center sm:gap-3">
             <a
               href="#mapa"
-              className="col-span-2 flex items-center justify-center rounded-lg bg-red-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700 sm:col-span-1"
+              className="col-span-2 flex items-center justify-center rounded-lg bg-red-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:bg-red-500 sm:col-span-1"
             >
               Ir al mapa y reportar
             </a>
             <HeroPeopleLinks />
             <a
               href="#guia"
-              className="flex items-center justify-center rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+              className="flex items-center justify-center rounded-lg border border-white/20 bg-white/95 px-5 py-2.5 text-sm font-semibold text-slate-800 shadow-lg backdrop-blur-sm transition hover:bg-white"
             >
               🧭 Guía rápida
             </a>
             <a
+              href="#centros-acopio"
+              className="flex items-center justify-center rounded-lg border border-emerald-300/50 bg-emerald-500/90 px-5 py-2.5 text-sm font-semibold text-white shadow-lg backdrop-blur-sm transition hover:bg-emerald-400"
+            >
+              🟢 Centros de acopio
+            </a>
+            <a
               href="#telefonos"
-              className="flex items-center justify-center rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+              className="flex items-center justify-center rounded-lg border border-white/20 bg-white/95 px-5 py-2.5 text-sm font-semibold text-slate-800 shadow-lg backdrop-blur-sm transition hover:bg-white"
             >
               📞 Teléfonos de emergencia
             </a>
             <a
               href="#ayuda-internacional"
-              className="flex items-center justify-center rounded-lg border border-sky-300 bg-sky-50 px-5 py-2.5 text-sm font-semibold text-sky-800 shadow-sm transition hover:bg-sky-100"
+              className="flex items-center justify-center rounded-lg border border-sky-300/50 bg-sky-500/90 px-5 py-2.5 text-sm font-semibold text-white shadow-lg backdrop-blur-sm transition hover:bg-sky-400"
             >
               🌍 Ayuda internacional
             </a>
@@ -220,6 +232,8 @@ export default function Home() {
       <FoundPersons />
 
       <SurvivalGuide />
+
+      <CollectionCenters />
 
       <EmergencyContacts />
 

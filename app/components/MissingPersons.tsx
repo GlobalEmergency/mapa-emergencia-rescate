@@ -437,6 +437,8 @@ export default function MissingPersons() {
       {selected && (
         <MissingPersonDetail
           person={selected}
+          people={people}
+          onNavigate={setSelected}
           onClose={() => setSelected(null)}
           onMarkFound={(payload) => handleMarkFound(selected.id, payload)}
         />

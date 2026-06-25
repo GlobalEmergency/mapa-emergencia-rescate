@@ -217,6 +217,8 @@ export default function FoundPersons() {
       {selected && (
         <MissingPersonDetail
           person={selected}
+          people={people}
+          onNavigate={setSelected}
           onClose={() => setSelected(null)}
         />
       )}
