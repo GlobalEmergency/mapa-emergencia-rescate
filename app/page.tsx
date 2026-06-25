@@ -1,7 +1,10 @@
 import dynamic from "next/dynamic";
 import EmergencyApp from "./components/EmergencyApp";
-import ShareButton from "./components/ShareButton";
-import HeroPeopleLinks from "./components/HeroPeopleLinks";
+import {
+  HeroDesktopNav,
+  HeroMobileCta,
+  MobileStickyNav,
+} from "./components/SectionNav";
 import EmergencyContacts from "./components/EmergencyContacts";
 import InternationalHelp from "./components/InternationalHelp";
 import SurvivalGuide from "./components/SurvivalGuide";
@@ -90,42 +93,12 @@ export default function Home() {
             <span aria-hidden>✉️</span>
             {CONTACT_EMAIL}
           </a>
-          <div className="mx-auto mt-5 grid w-full max-w-md grid-cols-2 gap-2 sm:mt-6 sm:flex sm:max-w-none sm:flex-wrap sm:justify-center sm:gap-3">
-            <a
-              href="#mapa"
-              className="col-span-2 flex items-center justify-center rounded-lg bg-red-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:bg-red-500 sm:col-span-1"
-            >
-              Ir al mapa y reportar
-            </a>
-            <HeroPeopleLinks />
-            <a
-              href="#guia"
-              className="flex items-center justify-center rounded-lg border border-white/20 bg-white/95 px-5 py-2.5 text-sm font-semibold text-slate-800 shadow-lg backdrop-blur-sm transition hover:bg-white"
-            >
-              🧭 Guía rápida
-            </a>
-            <a
-              href="#centros-acopio"
-              className="flex items-center justify-center rounded-lg border border-emerald-300/50 bg-emerald-500/90 px-5 py-2.5 text-sm font-semibold text-white shadow-lg backdrop-blur-sm transition hover:bg-emerald-400"
-            >
-              🟢 Centros de acopio
-            </a>
-            <a
-              href="#telefonos"
-              className="flex items-center justify-center rounded-lg border border-white/20 bg-white/95 px-5 py-2.5 text-sm font-semibold text-slate-800 shadow-lg backdrop-blur-sm transition hover:bg-white"
-            >
-              📞 Teléfonos de emergencia
-            </a>
-            <a
-              href="#ayuda-internacional"
-              className="flex items-center justify-center rounded-lg border border-sky-300/50 bg-sky-500/90 px-5 py-2.5 text-sm font-semibold text-white shadow-lg backdrop-blur-sm transition hover:bg-sky-400"
-            >
-              🌍 Ayuda internacional
-            </a>
-            <ShareButton />
-          </div>
+          <HeroMobileCta />
+          <HeroDesktopNav />
         </div>
       </header>
+
+      <MobileStickyNav />
 
       <MissingPersonsCarousel />
 

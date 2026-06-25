@@ -36,7 +36,7 @@ export default function StickyHelpButton() {
   return (
     <div
       ref={rootRef}
-      className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-4 z-[1900] flex flex-col items-end gap-3"
+      className="fixed bottom-[calc(3.75rem+env(safe-area-inset-bottom))] right-3 z-[1900] flex flex-col items-end gap-3 md:bottom-[max(1rem,env(safe-area-inset-bottom))] md:right-4"
     >
       <div
         id="sticky-help-menu"

@@ -17,6 +17,16 @@ body {
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
 }
 
+body.has-mobile-nav {
+  padding-bottom: calc(3.75rem + env(safe-area-inset-bottom));
+}
+
+@media (min-width: 768px) {
+  body.has-mobile-nav {
+    padding-bottom: 0;
+  }
+}
+
 .leaflet-container {
   font: inherit;
 }
