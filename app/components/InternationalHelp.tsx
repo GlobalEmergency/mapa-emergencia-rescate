@@ -106,6 +106,60 @@ const OFFICES: CountryOffice[] = [
     ],
   },
   {
+    country: "Canadá",
+    countryCode: "CA",
+    organization: "San Lorenzo Community Center",
+    lines: [
+      {
+        type: "phone",
+        label: "416-831-4187",
+        href: "tel:+14168314187",
+      },
+      {
+        type: "email",
+        label: "donation@sanlorenzo.ca",
+        href: "mailto:donation@sanlorenzo.ca",
+      },
+    ],
+    donationPoints: [
+      {
+        city: "Toronto",
+        name: "San Lorenzo Community Center",
+        address: "22 Wenderly Dr, Toronto, ON",
+        accepts: "Donaciones presenciales y transferencias electrónicas.",
+        source: "Toronto Hispano",
+        sourceHref:
+          "https://www.torontohispano.com/publicacion/donde-hacer-donaciones-en-toronto-venezuela-terremoto-2026/",
+        updatedAt: "25 jun 2026",
+      },
+      {
+        city: "Toronto",
+        name: "Radiotón solidaria - Iglesia San Lorenzo",
+        address: "2981 Dufferin St, Toronto, ON",
+        hours: "27 y 28 de junio, 12:00 p.m. a 9:00 p.m.",
+        accepts:
+          "Fondos y apoyo comunitario para personas afectadas por el terremoto.",
+        source: "Toronto Hispano",
+        sourceHref:
+          "https://www.torontohispano.com/publicacion/donde-hacer-donaciones-en-toronto-venezuela-terremoto-2026/",
+        updatedAt: "25 jun 2026",
+      },
+    ],
+    shareChannels: [
+      {
+        name: "San Lorenzo Community Center",
+        description:
+          "Campaña solidaria en Toronto con donaciones presenciales, e-transfer y radiotón.",
+        href: "https://www.torontohispano.com/publicacion/donde-hacer-donaciones-en-toronto-venezuela-terremoto-2026/",
+        source: "Toronto Hispano",
+        sourceHref:
+          "https://www.torontohispano.com/publicacion/donde-hacer-donaciones-en-toronto-venezuela-terremoto-2026/",
+        updatedAt: "25 jun 2026",
+        status: "verified",
+      },
+    ],
+  },
+  {
     country: "Colombia",
     countryCode: "CO",
     organization: "Cruz Roja Colombiana",
@@ -348,6 +402,114 @@ const OFFICES: CountryOffice[] = [
         sourceHref: "https://www.instagram.com/p/DaA_djUkdNS/",
         updatedAt: "25 jun 2026",
         status: "social",
+      },
+    ],
+  },
+  {
+    country: "España",
+    countryCode: "ES",
+    organization: "Venezuelan Press / asociaciones venezolanas",
+    lines: [
+      {
+        type: "email",
+        label: "directiva@venezuelanpress.com",
+        href: "mailto:directiva@venezuelanpress.com",
+      },
+      {
+        type: "web",
+        label: "Guía de ayuda desde España",
+        href: "https://www.venezuelanpress.com/2026/06/25/venezuelan-press-ante-el-terremoto-en-venezuela-informacion-y-redes-de-apoyo/",
+      },
+    ],
+    donationPoints: [
+      {
+        city: "Madrid",
+        name: "Asociación Civil Venezolanos en España",
+        address:
+          "Pardillo Center, Avda. de Madrid 4, Local 1, 28229 Villanueva del Pardillo",
+        accepts: "Ayuda humanitaria para personas afectadas por el terremoto.",
+        source: "Venezuelan Press",
+        sourceHref:
+          "https://www.venezuelanpress.com/2026/06/25/venezuelan-press-ante-el-terremoto-en-venezuela-informacion-y-redes-de-apoyo/",
+        updatedAt: "25 jun 2026",
+      },
+      {
+        city: "Tenerife",
+        name: "Centro de acopio permanente",
+        address: "Calle de Francisco García Talavera 2, 38009 Santa Cruz de Tenerife",
+        accepts: "Ayuda humanitaria para personas afectadas por el terremoto.",
+        source: "Venezuelan Press",
+        sourceHref:
+          "https://www.venezuelanpress.com/2026/06/25/venezuelan-press-ante-el-terremoto-en-venezuela-informacion-y-redes-de-apoyo/",
+        updatedAt: "25 jun 2026",
+      },
+      {
+        city: "Valencia",
+        name: "Asociación Venezolana en España - Comunidad Valenciana",
+        address: "Avenida Amado Granell Mesado 66, bajo derecha",
+        accepts:
+          "Alimentos no perecederos, material sanitario y donaciones económicas.",
+        source: "Venezuelan Press",
+        sourceHref:
+          "https://www.venezuelanpress.com/2026/06/25/venezuelan-press-ante-el-terremoto-en-venezuela-informacion-y-redes-de-apoyo/",
+        updatedAt: "25 jun 2026",
+      },
+      {
+        city: "Valencia",
+        name: "Testau Gastro Bar",
+        address: "Avenida Burjassot, bajo 29",
+        accepts:
+          "Alimentos no perecederos, material sanitario y donaciones económicas.",
+        source: "Venezuelan Press",
+        sourceHref:
+          "https://www.venezuelanpress.com/2026/06/25/venezuelan-press-ante-el-terremoto-en-venezuela-informacion-y-redes-de-apoyo/",
+        updatedAt: "25 jun 2026",
+      },
+    ],
+    shareChannels: [
+      {
+        name: "Cruz Roja Española",
+        description:
+          "Donaciones directas para Venezuela por Bizum 33512 o SMS con la palabra VENEZUELA al 38092.",
+        href: "https://www.cruzroja.es/",
+        source: "THE OBJECTIVE",
+        sourceHref:
+          "https://theobjective.com/internacional/2026-06-25/guia-ayuda-venezuela-espana-terremoto/",
+        updatedAt: "25 jun 2026",
+        status: "verified",
+      },
+      {
+        name: "We Love Venezuela Foundation",
+        description:
+          "Fondo de emergencia para apoyar familias y comunidades afectadas.",
+        href: "https://www.welove.foundation/",
+        source: "THE OBJECTIVE",
+        sourceHref:
+          "https://theobjective.com/internacional/2026-06-25/guia-ayuda-venezuela-espana-terremoto/",
+        updatedAt: "25 jun 2026",
+        status: "verified",
+      },
+      {
+        name: "GlobalGiving - Venezuela Earthquake Relief Fund",
+        description:
+          "Fondo internacional que canaliza donaciones hacia organizaciones locales verificadas.",
+        href: "https://www.globalgiving.org/",
+        source: "THE OBJECTIVE",
+        sourceHref:
+          "https://theobjective.com/internacional/2026-06-25/guia-ayuda-venezuela-espana-terremoto/",
+        updatedAt: "25 jun 2026",
+        status: "verified",
+      },
+      {
+        name: "World Central Kitchen",
+        description:
+          "Canal de donación desde España por Bizum 03843 o vía web.",
+        href: "https://wck.org/",
+        source: "THE OBJECTIVE",
+        sourceHref:
+          "https://theobjective.com/internacional/2026-06-25/guia-ayuda-venezuela-espana-terremoto/",
+        updatedAt: "25 jun 2026",
+        status: "verified",
       },
     ],
   },
@@ -608,8 +770,15 @@ const CONTACT_ICON = {
 const TIME_ZONE_COUNTRY_CODES: Record<string, string> = {
   "America/Argentina/Buenos_Aires": "AR",
   "America/Bogota": "CO",
+  "America/Toronto": "CA",
+  "America/Vancouver": "CA",
+  "America/Winnipeg": "CA",
+  "America/Edmonton": "CA",
+  "America/Halifax": "CA",
   "America/Costa_Rica": "CR",
   "America/Guayaquil": "EC",
+  "Europe/Madrid": "ES",
+  "Atlantic/Canary": "ES",
   "America/Tegucigalpa": "HN",
   "America/Mexico_City": "MX",
   "America/Panama": "PA",
