@@ -8,7 +8,7 @@
 
 import { hasDbEnv } from "../db";
 import { upsertExternalMissingBatch } from "../missing";
-import type { SourceAdapter, SyncResult } from "./types";
+import type { SourceAdapter, SyncResult, ExternalPerson } from "./types";
 import { enabledSources, getSource } from "./sources";
 import { getSyncCursor, setSyncCursor } from "./state";
 
@@ -175,13 +175,26 @@ export async function runSyncChunked(
     let pagesProcessed = 0;
     let cycleCompleted = false;
     let lastPage = page - 1;
+    let runError: string | undefined;
 
     while (
       pagesProcessed < pagesPerRun &&
       Date.now() - startedAt < timeBudgetMs &&
       page <= HARD_PAGE_CAP
     ) {
-      const { people, totalPages: tp } = await adapter.fetchPage(page, { userAgent: ua });
+      // Error de una página: cortamos la corrida pero NO perdemos el progreso
+      // (el cursor se persiste abajo en la última página completada). Reanudar
+      // es seguro e idempotente.
+      let people: ExternalPerson[];
+      let tp: number | null;
+      try {
+        const res = await adapter.fetchPage(page, { userAgent: ua });
+        people = res.people;
+        tp = res.totalPages;
+      } catch (err) {
+        runError = err instanceof Error ? err.message : "Error al traer página.";
+        break;
+      }
       if (typeof tp === "number" && tp > 0) totalPages = tp;
       base.fetched += people.length;
 
@@ -196,11 +209,16 @@ export async function runSyncChunked(
         seen.add(p.externalId);
         return true;
       });
-      const r = await upsertExternalMissingBatch(fresh);
-      base.inserted += r.inserted;
-      base.updated += r.updated;
-      base.skipped += r.skipped;
-      base.errors += r.errors;
+      try {
+        const r = await upsertExternalMissingBatch(fresh);
+        base.inserted += r.inserted;
+        base.updated += r.updated;
+        base.skipped += r.skipped;
+        base.errors += r.errors;
+      } catch (err) {
+        runError = err instanceof Error ? err.message : "Error al escribir página.";
+        break;
+      }
 
       lastPage = page;
       pagesProcessed++;
@@ -214,16 +232,15 @@ export async function runSyncChunked(
       await sleep(INTER_PAGE_DELAY_MS);
     }
 
-    const nextPage = cycleCompleted ? 1 : page;
-    await setSyncCursor(
-      adapter.id,
-      { nextPage, totalPages },
-      { cycleCompleted },
-    );
+    // Persistimos el cursor en la próxima página NO procesada (progreso guardado
+    // aunque la corrida se haya cortado por error o por presupuesto).
+    const nextPage = cycleCompleted ? 1 : lastPage + 1;
+    await setSyncCursor(adapter.id, { nextPage, totalPages }, { cycleCompleted });
 
     return finalize({
       ...base,
-      ok: true,
+      ok: !runError,
+      error: runError,
       pagesProcessed,
       fromPage,
       toPage: lastPage,
