@@ -163,3 +163,42 @@ export const PATIENT_STATUS_META: Record<
   transferred: { label: "Transferido", color: "#7c3aed" },
   deceased: { label: "Fallecido", color: "#334155" },
 };
+
+export function slugifyHospitalPart(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+export function buildHospitalSlug(
+  hospital: Pick<Hospital, "name" | "municipality" | "state">,
+): string {
+  const parts = [
+    hospital.name,
+    hospital.municipality || hospital.state,
+  ].filter(Boolean);
+
+  return slugifyHospitalPart(parts.join(" ")) || "hospital";
+}
+
+export function matchesHospitalSlug(
+  hospital: Pick<Hospital, "name" | "municipality" | "state">,
+  slug: string,
+): boolean {
+  const normalized = slugifyHospitalPart(slug);
+  if (!normalized) return false;
+
+  return (
+    normalized === buildHospitalSlug(hospital) ||
+    normalized === slugifyHospitalPart(hospital.name) ||
+    normalized ===
+      slugifyHospitalPart(
+        [hospital.name, hospital.municipality, hospital.state]
+          .filter(Boolean)
+          .join(" "),
+      )
+  );
+}

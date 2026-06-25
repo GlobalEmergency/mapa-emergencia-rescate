@@ -5,6 +5,7 @@ import {
   PATIENT_CONDITIONS,
   PATIENT_STATUSES,
   PRIORITY_ZONES,
+  matchesHospitalSlug,
   type Hospital,
   type HospitalFacilityType,
   type HospitalLevel,
@@ -244,6 +245,7 @@ export async function listHospitals(
       WHERE ${conditions.join(" AND ")}
       GROUP BY h.id
       ORDER BY
+        active_patients DESC,
         CASE h.priority_zone WHEN 'P0' THEN 0 WHEN 'P1' THEN 1 WHEN 'P2' THEN 2 ELSE 3 END,
         h.state, h.name
       LIMIT $${limitIdx}
@@ -279,6 +281,9 @@ export async function listHospitals(
       };
     });
   list.sort((a, b) => {
+    if (a.activePatients !== b.activePatients) {
+      return b.activePatients - a.activePatients;
+    }
     const order = { P0: 0, P1: 1, P2: 2, P3: 3 } as const;
     if (order[a.priorityZone] !== order[b.priorityZone]) {
       return order[a.priorityZone] - order[b.priorityZone];
@@ -321,11 +326,20 @@ export async function getHospital(id: string): Promise<Hospital | null> {
       WHERE h.id = ${id}
       GROUP BY h.id
     `) as HospitalRow[];
-    return rows[0] ? rowToHospital(rows[0]) : null;
+    if (rows[0]) return rowToHospital(rows[0]);
+
+    const hospitals = await listHospitals({ limit: 1000 });
+    return hospitals.find((h) => matchesHospitalSlug(h, id)) ?? null;
   }
   ensureMemorySeed();
   const h = memoryHospitals.get(id);
-  if (!h) return null;
+  if (!h) {
+    const match = [...memoryHospitals.values()].find((hospital) =>
+      matchesHospitalSlug(hospital, id),
+    );
+    if (!match) return null;
+    return getHospital(match.id);
+  }
   const patients = [...memoryPatients.values()].filter((p) => p.hospitalId === id);
   return {
     ...h,

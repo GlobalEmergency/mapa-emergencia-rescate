@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
+  buildHospitalSlug,
   FACILITY_TYPE_META,
   PATIENT_CONDITION_META,
   PATIENT_STATUS_META,
@@ -12,6 +13,7 @@ import {
   type HospitalPriorityZone,
 } from "@/lib/hospitals-meta";
 import HospitalForm, { type HospitalPayload } from "./HospitalForm";
+import HospitalDetailView from "./HospitalDetailView";
 
 type Tab = "hospitals" | "patients";
 const PAGE_SIZE = 20;
@@ -281,6 +283,8 @@ function HospitalsListView({
   error,
   visible,
 }: HospitalsListViewProps) {
+  const [selectedHospital, setSelectedHospital] = useState<Hospital | null>(null);
+
   return (
     <>
       <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -346,12 +350,22 @@ function HospitalsListView({
           <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {visible.map((h) => (
               <li key={h.id}>
-                <HospitalCard hospital={h} />
+                <HospitalCard
+                  hospital={h}
+                  onOpen={() => setSelectedHospital(h)}
+                />
               </li>
             ))}
           </ul>
         )}
       </div>
+
+      {selectedHospital && (
+        <HospitalDetailOverlay
+          hospital={selectedHospital}
+          onClose={() => setSelectedHospital(null)}
+        />
+      )}
     </>
   );
 }
@@ -534,6 +548,7 @@ function PatientDetailOverlay({
   onClose: () => void;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const [copied, setCopied] = useState(false);
   const { patient, hospital } = result;
   const condition = PATIENT_CONDITION_META[patient.condition];
   const status = PATIENT_STATUS_META[patient.status];
@@ -541,6 +556,23 @@ function PatientDetailOverlay({
     .filter(Boolean)
     .join(" · ");
   const directionsHref = getDirectionsHref(hospital);
+  const patientPath = `/hospitales/${buildHospitalSlug(hospital)}#paciente-${patient.id}`;
+
+  const copyPatientLink = useCallback(async () => {
+    const origin =
+      typeof window !== "undefined"
+        ? window.location.origin
+        : "https://terremotovenezuela.app";
+    const url = `${origin}${patientPath}`;
+
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch {
+      window.prompt("Copia el enlace del paciente", url);
+    }
+  }, [patientPath]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -664,12 +696,22 @@ function PatientDetailOverlay({
 
         <div className="mt-5 flex flex-wrap justify-end gap-2">
           <Link
-            href={`/hospitales/${hospital.id}#paciente-${patient.id}`}
+            href={patientPath}
             prefetch={false}
             className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
           >
             Abrir hospital
           </Link>
+          <button
+            type="button"
+            onClick={copyPatientLink}
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
+            aria-label={copied ? "Enlace copiado" : "Copiar enlace del paciente"}
+            title={copied ? "Enlace copiado" : "Copiar enlace del paciente"}
+          >
+            <span aria-hidden>🔗</span>
+            {copied ? "Copiado" : "Copiar link"}
+          </button>
           <button
             type="button"
             onClick={onClose}
@@ -735,14 +777,216 @@ function TabButton({
   );
 }
 
-function HospitalCard({ hospital }: { hospital: Hospital }) {
+function HospitalDetailOverlay({
+  hospital,
+  onClose,
+}: {
+  hospital: Hospital;
+  onClose: () => void;
+}) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [detailHospital, setDetailHospital] = useState<Hospital>(hospital);
+  const [patients, setPatients] = useState<HospitalPatient[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const zone = PRIORITY_ZONE_META[detailHospital.priorityZone];
+  const facility = FACILITY_TYPE_META[detailHospital.facilityType];
+  const hospitalLocation = [detailHospital.state, detailHospital.municipality]
+    .filter(Boolean)
+    .join(" · ");
+  const directionsHref = getDirectionsHref(detailHospital);
+  const hospitalSlug = buildHospitalSlug(detailHospital);
+  const hospitalPath = `/hospitales/${hospitalSlug}`;
+
+  const copyHospitalLink = useCallback(async () => {
+    const origin =
+      typeof window !== "undefined"
+        ? window.location.origin
+        : "https://terremotovenezuela.app";
+    const url = `${origin}${hospitalPath}`;
+
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch {
+      window.prompt("Copia el enlace del hospital", url);
+    }
+  }, [hospitalPath]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    const onPointerDown = (event: PointerEvent) => {
+      if (
+        panelRef.current &&
+        !panelRef.current.contains(event.target as Node)
+      ) {
+        onClose();
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
+  }, [onClose]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+
+    fetch(`/api/hospitals/${hospital.id}/patients`, { cache: "no-store" })
+      .then((res) =>
+        res.ok
+          ? res.json()
+          : Promise.reject(new Error("No se pudo cargar el hospital.")),
+      )
+      .then((data: { hospital?: Hospital; patients?: HospitalPatient[] }) => {
+        if (cancelled) return;
+        if (data.hospital) setDetailHospital(data.hospital);
+        setPatients(data.patients ?? []);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Error al cargar.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [hospital.id]);
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Detalle de hospital ${detailHospital.name}`}
+      className="fixed inset-0 z-[2100] flex items-start justify-center overflow-y-auto bg-slate-950/45 px-3 py-5 backdrop-blur-sm sm:px-4 sm:py-8"
+    >
+      <div
+        ref={panelRef}
+        className="w-full max-w-5xl overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 shadow-2xl"
+      >
+        <div
+          className="border-b border-slate-200 bg-white px-5 py-4"
+          style={{
+            background: `linear-gradient(180deg, ${zone.color}18, #ffffff 72%)`,
+          }}
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <span
+                  className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white"
+                  style={{ background: zone.color }}
+                >
+                  {detailHospital.priorityZone} · {zone.label}
+                </span>
+                <span className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-0.5 text-[11px] font-medium text-slate-700 shadow-sm">
+                  {facility.emoji} {facility.label}
+                </span>
+                {detailHospital.level && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-0.5 text-[11px] font-medium text-slate-700 shadow-sm">
+                    Nivel {detailHospital.level}
+                  </span>
+                )}
+              </div>
+              <h3 className="mt-3 text-balance text-2xl font-bold tracking-tight text-slate-900">
+                {detailHospital.name}
+              </h3>
+              {hospitalLocation && (
+                <p className="mt-1 text-sm text-slate-600">{hospitalLocation}</p>
+              )}
+              {detailHospital.address && (
+                <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600">
+                  {detailHospital.address}
+                </p>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Cerrar hospital"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-xl leading-none text-slate-600 shadow-sm transition hover:bg-slate-100"
+            >
+              ×
+            </button>
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <a
+              href={directionsHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+            >
+              Cómo llegar
+            </a>
+            <Link
+              href={hospitalPath}
+              prefetch={false}
+              className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
+            >
+              Abrir página completa
+            </Link>
+            <button
+              type="button"
+              onClick={copyHospitalLink}
+              className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
+              aria-label={copied ? "Enlace copiado" : "Copiar enlace del hospital"}
+              title={copied ? "Enlace copiado" : "Copiar enlace del hospital"}
+            >
+              <span aria-hidden>🔗</span>
+              {copied ? "Copiado" : "Copiar link"}
+            </button>
+          </div>
+        </div>
+
+        <div className="max-h-[72vh] overflow-y-auto p-4 sm:p-5">
+          {loading ? (
+            <p className="rounded-xl border border-slate-200 bg-white px-5 py-8 text-center text-sm text-slate-500">
+              Cargando pacientes…
+            </p>
+          ) : error ? (
+            <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+              {error}
+            </p>
+          ) : (
+            <HospitalDetailView
+              hospital={detailHospital}
+              initialPatients={patients}
+            />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HospitalCard({
+  hospital,
+  onOpen,
+}: {
+  hospital: Hospital;
+  onOpen: () => void;
+}) {
   const zone = PRIORITY_ZONE_META[hospital.priorityZone];
   const facility = FACILITY_TYPE_META[hospital.facilityType];
 
   return (
-    <Link
-      href={`/hospitales/${hospital.id}`}
-      prefetch={false}
+    <button
+      type="button"
+      onClick={onOpen}
       className="group flex h-full w-full flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
       style={{ borderLeft: `4px solid ${zone.color}` }}
     >
@@ -789,7 +1033,7 @@ function HospitalCard({ hospital }: { hospital: Hospital }) {
           Ver →
         </span>
       </div>
-    </Link>
+    </button>
   );
 }
 

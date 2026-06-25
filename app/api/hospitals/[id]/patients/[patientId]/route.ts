@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { deletePatient } from "@/lib/hospitals";
+import { deletePatient, getHospital } from "@/lib/hospitals";
 import { isAdminRequest } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +12,14 @@ export async function DELETE(
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   }
   const { id, patientId } = await params;
-  const ok = await deletePatient(id, patientId);
+  const hospital = await getHospital(id);
+  if (!hospital) {
+    return NextResponse.json(
+      { error: "Hospital no encontrado." },
+      { status: 404 },
+    );
+  }
+  const ok = await deletePatient(hospital.id, patientId);
   if (!ok) {
     return NextResponse.json(
       { error: "Paciente no encontrado." },
