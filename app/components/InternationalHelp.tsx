@@ -1516,6 +1516,31 @@ const OFFICES: CountryOffice[] = [
     ],
   },
   {
+    country: "Santa Sede",
+    countryCode: "VA",
+    organization: "Limosnería Apostólica",
+    lines: [
+      {
+        type: "web",
+        label: "Ayuda inicial del Papa León XIV",
+        href: "https://www.ansa.it/english/news/vatican/2026/06/25/pope-sends-initial-aid-of-100000-euros-to-venezuela_28277e86-8eb4-4631-806b-446b2161846f.html",
+      },
+    ],
+    shareChannels: [
+      {
+        name: "Limosnería Apostólica",
+        description:
+          "La Santa Sede envió una ayuda inicial de 100.000 euros para apoyar labores de socorro tras los terremotos en Venezuela.",
+        href: "https://www.ansa.it/english/news/vatican/2026/06/25/pope-sends-initial-aid-of-100000-euros-to-venezuela_28277e86-8eb4-4631-806b-446b2161846f.html",
+        source: "ANSA",
+        sourceHref:
+          "https://www.ansa.it/english/news/vatican/2026/06/25/pope-sends-initial-aid-of-100000-euros-to-venezuela_28277e86-8eb4-4631-806b-446b2161846f.html",
+        updatedAt: "25 jun 2026",
+        status: "verified",
+      },
+    ],
+  },
+  {
     country: "Sudáfrica",
     countryCode: "ZA",
     organization: "Islamic Relief South Africa",
@@ -1825,6 +1850,7 @@ const TIME_ZONE_COUNTRY_CODES: Record<string, string> = {
   "Europe/Istanbul": "TR",
   "Europe/London": "GB",
   "Europe/Stockholm": "SE",
+  "Europe/Vatican": "VA",
   "Africa/Johannesburg": "ZA",
   "America/Port_of_Spain": "TT",
   "America/Montevideo": "UY",
