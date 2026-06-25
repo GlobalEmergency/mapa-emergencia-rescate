@@ -56,6 +56,18 @@ body.mobile-sheet-open [data-sticky-help-root] {
   font: inherit;
 }
 
+/* Oculta la barra superior que inyecta Google Translate para mantener el diseño limpio. */
+.goog-te-banner-frame,
+.goog-te-balloon-frame,
+body > .skiptranslate:not(#google-translate-container),
+.goog-te-gadget {
+  display: none !important;
+}
+
+body {
+  top: 0 !important;
+}
+
 /* Ocultar el triángulo nativo de <summary> en navegadores WebKit/Firefox para
  * usar nuestro chevron personalizado. */
 summary::-webkit-details-marker {

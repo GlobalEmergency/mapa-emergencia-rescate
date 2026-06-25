@@ -16,6 +16,7 @@ import {
   Search,
   Share2,
 } from "lucide-react";
+import TranslateWidget from "./TranslateWidget";
 import {
   MOBILE_BAR_LINKS,
   PRIMARY_MAP_LINK,
@@ -333,6 +334,7 @@ export function HeroDesktopNav() {
           />
         ))}
         <PsychologyHelpNavButton />
+        <TranslateWidget />
         <ShareNavButton variant="desktop" />
       </div>
     </nav>
@@ -581,7 +583,12 @@ export function MobileStickyNav() {
                 );
               })}
               <li className="pt-2">
-                <ShareNavButton variant="sheet" onAfterShare={closeSheet} />
+                <div className="flex gap-2 px-1">
+                  <div className="flex-1">
+                    <ShareNavButton variant="sheet" onAfterShare={closeSheet} />
+                  </div>
+                  <TranslateWidget />
+                </div>
               </li>
             </ul>
           </div>
