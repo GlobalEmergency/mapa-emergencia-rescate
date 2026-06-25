@@ -486,6 +486,31 @@ const OFFICES: CountryOffice[] = [
     ],
   },
   {
+    country: "Cuba",
+    countryCode: "CU",
+    organization: "Colaboradores de salud de Cuba",
+    lines: [
+      {
+        type: "web",
+        label: "Cuba moviliza colaboradores de salud",
+        href: "https://www.swissinfo.ch/spa/pa%C3%ADses-de-todo-el-mundo-ofrecen-ayuda-a-venezuela-tras-los-mort%C3%ADferos-terremotos/91646660",
+      },
+    ],
+    shareChannels: [
+      {
+        name: "Colaboradores de salud cubanos",
+        description:
+          "Cuba informó que sus colaboradores de salud presentes en Venezuela están movilizados y prestando servicios médicos a la población afectada.",
+        href: "https://www.swissinfo.ch/spa/pa%C3%ADses-de-todo-el-mundo-ofrecen-ayuda-a-venezuela-tras-los-mort%C3%ADferos-terremotos/91646660",
+        source: "AFP / Swissinfo",
+        sourceHref:
+          "https://www.swissinfo.ch/spa/pa%C3%ADses-de-todo-el-mundo-ofrecen-ayuda-a-venezuela-tras-los-mort%C3%ADferos-terremotos/91646660",
+        updatedAt: "25 jun 2026",
+        status: "verified",
+      },
+    ],
+  },
+  {
     country: "Costa Rica",
     countryCode: "CR",
     organization: "Cruz Roja Costarricense",
@@ -836,6 +861,31 @@ const OFFICES: CountryOffice[] = [
         source: "The New Indian Express",
         sourceHref:
           "https://www.newindianexpress.com/india/2026/Jun/25/india-stands-ready-to-help-pm-modi-condoles-loss-of-lives-in-venezuela-earthquake-disaster",
+        updatedAt: "25 jun 2026",
+        status: "verified",
+      },
+    ],
+  },
+  {
+    country: "Irán",
+    countryCode: "IR",
+    organization: "Ministerio de Relaciones Exteriores de Irán",
+    lines: [
+      {
+        type: "web",
+        label: "Irán ofrece apoyo de rescate",
+        href: "https://www.swissinfo.ch/spa/pa%C3%ADses-de-todo-el-mundo-ofrecen-ayuda-a-venezuela-tras-los-mort%C3%ADferos-terremotos/91646660",
+      },
+    ],
+    shareChannels: [
+      {
+        name: "Apoyo de rescate de Irán",
+        description:
+          "Irán expresó disposición a proporcionar toda la ayuda necesaria en operaciones de rescate y salvamento en Venezuela.",
+        href: "https://www.swissinfo.ch/spa/pa%C3%ADses-de-todo-el-mundo-ofrecen-ayuda-a-venezuela-tras-los-mort%C3%ADferos-terremotos/91646660",
+        source: "AFP / Swissinfo",
+        sourceHref:
+          "https://www.swissinfo.ch/spa/pa%C3%ADses-de-todo-el-mundo-ofrecen-ayuda-a-venezuela-tras-los-mort%C3%ADferos-terremotos/91646660",
         updatedAt: "25 jun 2026",
         status: "verified",
       },
@@ -1544,6 +1594,7 @@ const TIME_ZONE_COUNTRY_CODES: Record<string, string> = {
   "America/Edmonton": "CA",
   "America/Halifax": "CA",
   "America/Costa_Rica": "CR",
+  "America/Havana": "CU",
   "America/Guayaquil": "EC",
   "America/Santo_Domingo": "DO",
   "Europe/Madrid": "ES",
@@ -1552,6 +1603,7 @@ const TIME_ZONE_COUNTRY_CODES: Record<string, string> = {
   "Europe/Paris": "FR",
   "America/Tegucigalpa": "HN",
   "Asia/Kolkata": "IN",
+  "Asia/Tehran": "IR",
   "Europe/Dublin": "IE",
   "Asia/Jerusalem": "IL",
   "Europe/Rome": "IT",
