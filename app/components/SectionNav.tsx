@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Brain,
+  ChevronDown,
   CircleCheck,
   Globe2,
   HandHeart,
@@ -18,9 +19,12 @@ import {
 } from "lucide-react";
 import TranslateWidget from "./TranslateWidget";
 import {
+  DESKTOP_NAV_GROUPS,
   MOBILE_BAR_LINKS,
   PRIMARY_MAP_LINK,
   SECTION_LINKS,
+  linksForDesktopGroup,
+  type DesktopNavGroup,
   type SectionLink,
 } from "@/lib/section-nav";
 import { psychologyHelpUrl } from "@/lib/site";
@@ -165,97 +169,63 @@ const DESKTOP_ICON = {
   "/chat": MessageCircle,
 };
 
-const DESKTOP_LABEL: Record<
-  string,
-  { short: string; medium: string; long: string }
+const DESKTOP_GROUP_ICON: Record<
+  DesktopNavGroup["id"],
+  typeof Search
 > = {
-  "#desaparecidas": {
-    short: "Des.",
-    medium: "Desap.",
-    long: "Desaparecidas",
-  },
-  "#localizados": {
-    short: "Loc.",
-    medium: "Ubicados",
-    long: "Localizados",
-  },
-  "/hospitales": {
-    short: "Hosp.",
-    medium: "Hosp.",
-    long: "Hospitales",
-  },
-  "/telefonos": {
-    short: "Tel.",
-    medium: "Tels.",
-    long: "Teléfonos",
-  },
-  "/guia": {
-    short: "Guía",
-    medium: "Guía",
-    long: "Guía",
-  },
-  "/acopio": {
-    short: "Aco.",
-    medium: "Acopio",
-    long: "Acopio",
-  },
-  "/apoyo-global": {
-    short: "Glob.",
-    medium: "Global",
-    long: "Apoyo global",
-  },
-  "/chat": {
-    short: "Chat",
-    medium: "Chat",
-    long: "Chat",
-  },
+  personas: Search,
+  salud: HeartHandshake,
+  recursos: Globe2,
 };
 
-function NavLink({
+function groupBadge(
+  group: DesktopNavGroup,
+  missing: number | null,
+  found: number | null,
+): string | null {
+  if (group.id === "personas") {
+    if (missing !== null) return missing.toLocaleString("es-VE");
+    if (found !== null) return found.toLocaleString("es-VE");
+  }
+  return null;
+}
+
+function NavDropdownItem({
   link,
   missing,
   found,
   onHome,
-  className,
-  compact = false,
 }: {
   link: SectionLink;
   missing: number | null;
   found: number | null;
   onHome: boolean;
-  className?: string;
-  compact?: boolean;
 }) {
   const badge = badgeValue(link, missing, found);
-  const tone = link.tone ?? "default";
   const Icon = DESKTOP_ICON[link.href as keyof typeof DESKTOP_ICON] ?? Link2;
-  const labels = DESKTOP_LABEL[link.href] ?? {
-    short: link.shortLabel,
-    medium: link.shortLabel,
-    long: link.label,
-  };
 
-  const baseClassName = `inline-flex min-h-9 shrink-0 items-center justify-center gap-1 rounded-lg border px-1.5 py-1.5 text-xs font-semibold shadow-sm transition lg:gap-1.5 lg:px-2 lg:text-[13px] xl:px-2.5 ${DESKTOP_CHIP[tone]} ${className ?? ""}`;
-
-  const content = (
+  const row = (
     <>
-      <Icon aria-hidden className="h-4 w-4 shrink-0" strokeWidth={2.2} />
-      {compact ? (
-        <>
-          <span className="lg:hidden">{labels.short}</span>
-          <span className="hidden lg:inline xl:hidden">{labels.medium}</span>
-          <span className="hidden xl:inline">{labels.long}</span>
-        </>
-      ) : (
-        <span>{link.label}</span>
-      )}
-      {badge && (
-        <span className="rounded-full bg-current/10 px-1.5 py-0.5 text-[10px] font-bold leading-none">
-          {compact ? compactBadge(badge) : badge}
+      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-base">
+        {link.icon}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-semibold text-slate-900">
+          {link.label}
         </span>
+      </span>
+      {badge ? (
+        <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-700">
+          {compactBadge(badge)}
+        </span>
+      ) : (
+        <Icon aria-hidden className="h-4 w-4 shrink-0 text-slate-400" strokeWidth={2} />
       )}
     </>
   );
+
+  const itemClassName =
+    "flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition hover:bg-slate-50";
 
   if (isAnchor(link.href)) {
     return (
@@ -270,10 +240,9 @@ function NavLink({
             : undefined
         }
         title={link.label}
-        aria-label={link.label}
-        className={baseClassName}
+        className={itemClassName}
       >
-        {content}
+        {row}
       </a>
     );
   }
@@ -283,11 +252,73 @@ function NavLink({
       href={link.href}
       prefetch={false}
       title={link.label}
-      aria-label={link.label}
-      className={baseClassName}
+      className={itemClassName}
     >
-      {content}
+      {row}
     </Link>
+  );
+}
+
+function NavGroup({
+  group,
+  missing,
+  found,
+  onHome,
+}: {
+  group: DesktopNavGroup;
+  missing: number | null;
+  found: number | null;
+  onHome: boolean;
+}) {
+  const links = linksForDesktopGroup(group);
+  const tone = group.tone ?? "default";
+  const GroupIcon = DESKTOP_GROUP_ICON[group.id];
+  const badge = groupBadge(group, missing, found);
+
+  return (
+    <div className="group/nav relative shrink-0">
+      <button
+        type="button"
+        aria-haspopup="menu"
+        aria-label={`${group.label}: ver secciones`}
+        className={`inline-flex min-h-9 items-center justify-center gap-1 rounded-lg border px-2 py-1.5 text-xs font-semibold shadow-sm transition lg:gap-1.5 lg:px-2.5 lg:text-[13px] ${DESKTOP_CHIP[tone]}`}
+      >
+        <GroupIcon aria-hidden className="h-4 w-4 shrink-0" strokeWidth={2.2} />
+        <span className="hidden lg:inline xl:hidden">{group.shortLabel}</span>
+        <span className="hidden xl:inline">{group.label}</span>
+        <span className="lg:hidden">{group.shortLabel.slice(0, 4)}</span>
+        {badge && (
+          <span className="rounded-full bg-current/10 px-1.5 py-0.5 text-[10px] font-bold leading-none">
+            {compactBadge(badge)}
+          </span>
+        )}
+        <ChevronDown
+          aria-hidden
+          className="h-3.5 w-3.5 shrink-0 opacity-70 transition group-hover/nav:rotate-180"
+          strokeWidth={2.5}
+        />
+      </button>
+
+      <div
+        role="menu"
+        className="invisible absolute left-1/2 top-full z-[1900] w-[min(18rem,calc(100vw-2rem))] -translate-x-1/2 pt-1.5 opacity-0 transition-all duration-150 group-hover/nav:visible group-hover/nav:opacity-100 group-focus-within/nav:visible group-focus-within/nav:opacity-100"
+      >
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl ring-1 ring-black/5">
+          <p className="px-2 pb-1 pt-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-400">
+            {group.label}
+          </p>
+          {links.map((link) => (
+            <NavDropdownItem
+              key={link.href}
+              link={link}
+              missing={missing}
+              found={found}
+              onHome={onHome}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -323,14 +354,13 @@ export function HeroDesktopNav() {
           {PRIMARY_MAP_LINK.shortLabel}
         </a>
 
-        {SECTION_LINKS.map((link) => (
-          <NavLink
-            key={link.href}
-            link={link}
+        {DESKTOP_NAV_GROUPS.map((group) => (
+          <NavGroup
+            key={group.id}
+            group={group}
             missing={missing}
             found={found}
             onHome={onHome}
-            compact
           />
         ))}
         <PsychologyHelpNavButton />
