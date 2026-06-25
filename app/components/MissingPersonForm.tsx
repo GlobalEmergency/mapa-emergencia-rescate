@@ -52,6 +52,7 @@ export default function MissingPersonForm({ onCancel, onSubmit }: Props) {
   const [photo, setPhoto] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [consent, setConsent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -84,6 +85,12 @@ export default function MissingPersonForm({ onCancel, onSubmit }: Props) {
         setError("Indica el nombre de la persona.");
         return;
       }
+      if (!consent) {
+        setError(
+          "Debes confirmar que un familiar autoriza publicar estos datos.",
+        );
+        return;
+      }
       setSubmitting(true);
       try {
         await onSubmit({
@@ -99,7 +106,7 @@ export default function MissingPersonForm({ onCancel, onSubmit }: Props) {
         setSubmitting(false);
       }
     },
-    [name, age, lastSeen, description, contact, photo, onSubmit],
+    [name, age, lastSeen, description, contact, photo, consent, onSubmit],
   );
 
   return (
@@ -244,6 +251,44 @@ export default function MissingPersonForm({ onCancel, onSubmit }: Props) {
                 </button>
               )}
             </div>
+          </div>
+
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+            <p className="font-semibold">⚠️ Antes de publicar</p>
+            <ul className="mt-1 list-disc space-y-0.5 pl-5">
+              <li>
+                Estos datos serán públicos: pueden ser vistos por cualquier
+                persona en internet.
+              </li>
+              <li>
+                No publiques datos sensibles innecesarios (cédula, dirección
+                exacta de vivienda).
+              </li>
+              <li>
+                Si la persona aparece, avísanos para que retiremos el reporte.
+              </li>
+            </ul>
+            <label className="mt-3 flex items-start gap-2">
+              <input
+                type="checkbox"
+                checked={consent}
+                onChange={(e) => setConsent(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-red-600"
+              />
+              <span>
+                Confirmo que un familiar o allegado autoriza publicar estos
+                datos para ayudar a localizar a la persona, y acepto la{" "}
+                <a
+                  href="/privacidad"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold underline"
+                >
+                  política de privacidad
+                </a>
+                .
+              </span>
+            </label>
           </div>
 
           {error && <p className="text-sm text-red-600">{error}</p>}

@@ -21,6 +21,15 @@ body {
   font: inherit;
 }
 
+/* Ocultar el triángulo nativo de <summary> en navegadores WebKit/Firefox para
+ * usar nuestro chevron personalizado. */
+summary::-webkit-details-marker {
+  display: none;
+}
+summary {
+  list-style: none;
+}
+
 .emergency-marker {
   background: transparent;
   border: none;
@@ -28,29 +37,42 @@ body {
 
 .emergency-pin {
   display: block;
-  width: 22px;
-  height: 22px;
+  width: 30px;
+  height: 30px;
   border-radius: 50% 50% 50% 0;
   transform: rotate(-45deg);
   border: 2px solid #ffffff;
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.4);
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.45);
   margin: 0 auto;
+  position: relative;
 }
 
-.emergency-pin::after {
-  content: "";
+.emergency-pin__icon {
   position: absolute;
-  top: 5px;
-  left: 5px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.85);
+  inset: 0;
+  display: grid;
+  place-items: center;
+  transform: rotate(45deg);
+  font-size: 15px;
+  line-height: 1;
+  color: #ffffff;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35));
 }
 
 .emergency-pin--draft {
   background: #2563eb;
   animation: pin-pulse 1.2s ease-in-out infinite;
+}
+
+.emergency-pin--draft::after {
+  content: "";
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
 }
 
 @keyframes pin-pulse {

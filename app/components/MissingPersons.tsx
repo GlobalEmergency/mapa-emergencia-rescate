@@ -5,6 +5,7 @@ import MissingPersonForm, {
   type MissingPersonPayload,
 } from "./MissingPersonForm";
 import MissingPersonDetail from "./MissingPersonDetail";
+import { timeAgo } from "@/lib/format";
 
 interface MissingPerson {
   id: string;
@@ -14,10 +15,14 @@ interface MissingPerson {
   lastSeen: string;
   contact: string;
   photoUrl: string | null;
+  status?: "active" | "found";
+  resolutionNote?: string | null;
+  resolutionPhotoUrl?: string | null;
+  resolvedAt?: number | null;
   createdAt: number;
 }
 
-const POLL_INTERVAL_MS = 15000;
+const POLL_INTERVAL_MS = 8000;
 const ADMIN_STORAGE_KEY = "emergency:adminToken";
 
 function extractPhone(contact: string): string | null {
@@ -39,18 +44,36 @@ export default function MissingPersons() {
   const [adminToken, setAdminToken] = useState<string | null>(null);
   const [persistent, setPersistent] = useState(true);
   const [selected, setSelected] = useState<MissingPerson | null>(null);
+  const [lastFetchAt, setLastFetchAt] = useState<number | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [now, setNow] = useState<number>(() => Date.now());
 
-  const fetchPeople = useCallback(async () => {
+  const fetchPeople = useCallback(async (manual = false) => {
     setAdminToken(sessionStorage.getItem(ADMIN_STORAGE_KEY));
+    if (manual) setRefreshing(true);
     try {
-      const res = await fetch("/api/missing", { cache: "no-store" });
+      // Para refresco manual saltamos la caché del CDN agregando un query
+      // único; para polling normal aprovechamos la caché edge (s-maxage=2s).
+      const url = manual
+        ? `/api/missing?_=${Date.now()}`
+        : "/api/missing";
+      const res = await fetch(url, { cache: "no-store" });
       if (!res.ok) return;
       const data = await res.json();
       setPeople(data.people ?? []);
       setPersistent(Boolean(data.persistent));
+      setLastFetchAt(Date.now());
     } catch {
       // se reintenta en el siguiente ciclo
+    } finally {
+      if (manual) setRefreshing(false);
     }
+  }, []);
+
+  // Re-render del indicador "actualizado hace X" cada 5 s sin pedir red.
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 5_000);
+    return () => clearInterval(id);
   }, []);
 
   useEffect(() => {
@@ -58,7 +81,7 @@ export default function MissingPersons() {
     const start = () => {
       if (interval) return;
       fetchPeople();
-      interval = setInterval(fetchPeople, POLL_INTERVAL_MS);
+      interval = setInterval(() => fetchPeople(), POLL_INTERVAL_MS);
     };
     const stop = () => {
       if (interval) clearInterval(interval);
@@ -111,6 +134,24 @@ export default function MissingPersons() {
     [adminToken, people],
   );
 
+  const handleMarkFound = useCallback(
+    async (id: string, payload: { note: string; photo: string | null }) => {
+      const res = await fetch(`/api/missing/${id}/found`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error ?? "No se pudo marcar como localizada.");
+      }
+      // Quitamos de la lista pública y cerramos modal con feedback.
+      setPeople((prev) => prev.filter((p) => p.id !== id));
+      setSelected(null);
+    },
+    [],
+  );
+
   const visible = useMemo(() => {
     const terms = normalize(query).split(/\s+/).filter(Boolean);
     if (terms.length === 0) return people;
@@ -125,13 +166,37 @@ export default function MissingPersons() {
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-lg font-bold text-slate-900">
-              🧍 Personas desaparecidas
-            </h2>
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-lg font-bold text-slate-900">
+                🧍 Personas desaparecidas
+              </h2>
+              <span
+                className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-semibold text-purple-800"
+                aria-label={`${people.length} personas reportadas`}
+                title="Total de personas reportadas"
+              >
+                {people.length} reportada{people.length === 1 ? "" : "s"}
+              </span>
+            </div>
             <p className="mt-1 text-sm text-slate-600">
               Lista de personas que se buscan tras el terremoto. Si reconoces a
               alguien o tienes información, contacta a la persona indicada.
             </p>
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+              <span>
+                {lastFetchAt
+                  ? `Actualizada ${timeAgo(lastFetchAt, now)}`
+                  : "Actualizando…"}
+              </span>
+              <button
+                type="button"
+                onClick={() => fetchPeople(true)}
+                disabled={refreshing}
+                className="rounded-md border border-slate-200 px-2 py-0.5 font-medium text-slate-600 transition hover:bg-slate-50 disabled:opacity-60"
+              >
+                {refreshing ? "🔄 Cargando…" : "🔄 Refrescar"}
+              </button>
+            </div>
           </div>
           <button
             type="button"
@@ -165,7 +230,14 @@ export default function MissingPersons() {
               : `No se encontraron personas para “${query.trim()}”.`}
           </p>
         ) : (
-          <ul className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <>
+            {query.trim() && (
+              <p className="mt-3 text-xs font-medium text-slate-500">
+                {visible.length} resultado{visible.length === 1 ? "" : "s"} de{" "}
+                {people.length}
+              </p>
+            )}
+            <ul className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {visible.map((person) => {
               const phone = extractPhone(person.contact);
               return (
@@ -244,7 +316,8 @@ export default function MissingPersons() {
                 </li>
               );
             })}
-          </ul>
+            </ul>
+          </>
         )}
 
         {!persistent && (
@@ -265,6 +338,7 @@ export default function MissingPersons() {
         <MissingPersonDetail
           person={selected}
           onClose={() => setSelected(null)}
+          onMarkFound={(payload) => handleMarkFound(selected.id, payload)}
         />
       )}
     </section>

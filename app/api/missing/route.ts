@@ -12,7 +12,7 @@ import { checkRateLimit, clientIp } from "@/lib/ratelimit";
 export const dynamic = "force-dynamic";
 
 const LIST_CACHE_HEADERS = {
-  "Cache-Control": "public, max-age=0, s-maxage=5, stale-while-revalidate=30",
+  "Cache-Control": "public, max-age=0, s-maxage=2, stale-while-revalidate=15",
 };
 
 export async function GET() {

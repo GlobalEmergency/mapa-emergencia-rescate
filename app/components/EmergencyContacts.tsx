@@ -80,56 +80,75 @@ function telHref(display: string): string {
 }
 
 export default function EmergencyContacts() {
+  const totalNumbers = GROUPS.reduce(
+    (acc, g) => acc + g.contacts.reduce((s, c) => s + c.numbers.length, 0),
+    0,
+  );
+
   return (
     <section id="telefonos" className="mx-auto w-full max-w-7xl px-4 py-10">
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-        <h2 className="text-lg font-bold text-slate-900">
-          📞 Teléfonos de emergencia
-        </h2>
-        <p className="mt-1 text-sm text-slate-600">
-          Toca cualquier número para llamar directamente. Referencial para Caracas
-          y la Gran Caracas (código 0212).
-        </p>
+      <details className="group rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-2xl p-4 sm:p-6">
+          <div>
+            <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900">
+              📞 Teléfonos de emergencia
+              <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
+                {totalNumbers}
+              </span>
+            </h2>
+            <p className="mt-1 text-sm text-slate-600">
+              Toca para ver y llamar directamente. Caracas y Gran Caracas (0212).
+            </p>
+          </div>
+          <span
+            aria-hidden
+            className="shrink-0 text-slate-400 transition-transform duration-200 group-open:rotate-180"
+          >
+            ▼
+          </span>
+        </summary>
 
-        <div className="mt-5 grid gap-5 md:grid-cols-3">
-          {GROUPS.map((group) => (
-            <div key={group.title}>
-              <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-900">
-                <span aria-hidden>{group.icon}</span> {group.title}
-              </h3>
-              <ul className="space-y-2">
-                {group.contacts.map((contact) => (
-                  <li
-                    key={contact.name}
-                    className="rounded-xl border border-slate-100 bg-slate-50 p-3"
-                  >
-                    <p className="text-sm font-medium text-slate-800">
-                      {contact.name}
-                    </p>
-                    <div className="mt-1.5 flex flex-wrap gap-1.5">
-                      {contact.numbers.map((number) => (
-                        <a
-                          key={number}
-                          href={telHref(number)}
-                          className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-white px-2.5 py-1 text-xs font-semibold text-red-700 transition hover:bg-red-50"
-                        >
-                          📞 {number}
-                        </a>
-                      ))}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+        <div className="border-t border-slate-100 p-4 sm:p-6">
+          <div className="grid gap-5 md:grid-cols-3">
+            {GROUPS.map((group) => (
+              <div key={group.title}>
+                <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-900">
+                  <span aria-hidden>{group.icon}</span> {group.title}
+                </h3>
+                <ul className="space-y-2">
+                  {group.contacts.map((contact) => (
+                    <li
+                      key={contact.name}
+                      className="rounded-xl border border-slate-100 bg-slate-50 p-3"
+                    >
+                      <p className="text-sm font-medium text-slate-800">
+                        {contact.name}
+                      </p>
+                      <div className="mt-1.5 flex flex-wrap gap-1.5">
+                        {contact.numbers.map((number) => (
+                          <a
+                            key={number}
+                            href={telHref(number)}
+                            className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-white px-2.5 py-1 text-xs font-semibold text-red-700 transition hover:bg-red-50"
+                          >
+                            📞 {number}
+                          </a>
+                        ))}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+
+          <p className="mt-5 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            Comparte esta información: puede servir a personas que sí necesitan
+            ayuda. Si un número no responde, intenta con la línea de emergencia
+            general (171 / 911).
+          </p>
         </div>
-
-        <p className="mt-5 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
-          Comparte esta información: puede servir a personas que sí necesitan
-          ayuda. Si un número no responde, intenta con la línea de emergencia
-          general (171 / 911).
-        </p>
-      </div>
+      </details>
     </section>
   );
 }

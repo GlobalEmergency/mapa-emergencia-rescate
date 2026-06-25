@@ -21,7 +21,7 @@ export async function GET(request: Request) {
   const [reports, messages, people] = await Promise.all([
     listReports(),
     listMessages(),
-    listMissing(),
+    listMissing({ includeFound: true }),
   ]);
 
   const now = Date.now();
@@ -32,11 +32,13 @@ export async function GET(request: Request) {
   let totalAffected = 0;
   let reportsLastHour = 0;
   let reportsLast24h = 0;
+  let reportsWithPhoto = 0;
   for (const report of reports) {
     if (byType[report.type] !== undefined) byType[report.type] += 1;
     totalAffected += report.affected;
     if (now - report.createdAt <= HOUR) reportsLastHour += 1;
     if (now - report.createdAt <= DAY) reportsLast24h += 1;
+    if (report.photoUrl) reportsWithPhoto += 1;
   }
 
   const messagesLastHour = messages.filter(
@@ -44,6 +46,8 @@ export async function GET(request: Request) {
   ).length;
 
   const peopleWithPhoto = people.filter((p) => p.photoUrl).length;
+  const peopleFound = people.filter((p) => p.status === "found").length;
+  const peopleActive = people.length - peopleFound;
 
   return NextResponse.json(
     {
@@ -56,6 +60,7 @@ export async function GET(request: Request) {
           totalAffected,
           lastHour: reportsLastHour,
           last24h: reportsLast24h,
+          withPhoto: reportsWithPhoto,
         },
         chat: {
           total: messages.length,
@@ -63,6 +68,8 @@ export async function GET(request: Request) {
         },
         missing: {
           total: people.length,
+          active: peopleActive,
+          found: peopleFound,
           withPhoto: peopleWithPhoto,
         },
       },

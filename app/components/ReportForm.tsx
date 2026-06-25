@@ -1,16 +1,18 @@
 "use client";
 
-import { useState } from "react";
-import { REPORT_TYPES, type ReportType } from "@/lib/types";
+import { useCallback, useRef, useState } from "react";
+import { REPORT_TYPES, REPORT_TYPE_KEYS, type ReportType } from "@/lib/types";
 
 interface ReportFormProps {
   coords: { lat: number; lng: number };
   onCancel: () => void;
+  onCoordsChange?: (coords: { lat: number; lng: number }) => void;
   onSubmit: (payload: {
     type: ReportType;
     place: string;
     affected: number;
     needs: string;
+    photo: string | null;
   }) => Promise<void>;
 }
 
@@ -50,25 +52,111 @@ const COPY_BY_TYPE: Partial<Record<ReportType, Partial<FieldCopy>>> = {
     needsPlaceholder:
       "Nombre, edad, estatura, vestimenta, señas particulares y un contacto",
   },
+  building: {
+    placeLabel: "Nombre o dirección del edificio",
+    placePlaceholder: "Ej: Torre Solymar, Av. Andrés Bello, La Candelaria",
+    showAffected: false,
+    needsLabel: "Estado estructural observado",
+    needsPlaceholder:
+      "Ej: grietas verticales en columnas del 1er piso, fachada inclinada, vidrios rotos. Anexa foto para que ingenieros lo evalúen.",
+  },
 };
 
 function copyFor(type: ReportType): FieldCopy {
   return { ...DEFAULT_COPY, ...COPY_BY_TYPE[type] };
 }
 
+const MAX_DIM = 1280;
+const JPEG_QUALITY = 0.7;
+
+/** Redimensiona la imagen del usuario para reducir su peso antes de subirla. */
+async function fileToResizedDataUrl(file: File): Promise<string> {
+  const bitmap = await createImageBitmap(file);
+  let { width, height } = bitmap;
+  if (width >= height && width > MAX_DIM) {
+    height = Math.round((height * MAX_DIM) / width);
+    width = MAX_DIM;
+  } else if (height > MAX_DIM) {
+    width = Math.round((width * MAX_DIM) / height);
+    height = MAX_DIM;
+  }
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("No se pudo procesar la imagen.");
+  ctx.drawImage(bitmap, 0, 0, width, height);
+  bitmap.close?.();
+  return canvas.toDataURL("image/jpeg", JPEG_QUALITY);
+}
+
 export default function ReportForm({
   coords,
   onCancel,
+  onCoordsChange,
   onSubmit,
 }: ReportFormProps) {
   const [type, setType] = useState<ReportType>("critical");
   const [place, setPlace] = useState("");
   const [affected, setAffected] = useState("");
   const [needs, setNeeds] = useState("");
+  const [photo, setPhoto] = useState<string | null>(null);
+  const [processingPhoto, setProcessingPhoto] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [locating, setLocating] = useState(false);
+  const [geoError, setGeoError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const useMyLocation = useCallback(() => {
+    if (!("geolocation" in navigator)) {
+      setGeoError("Tu navegador no soporta geolocalización.");
+      return;
+    }
+    setLocating(true);
+    setGeoError(null);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        onCoordsChange?.({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        });
+        setLocating(false);
+      },
+      (err) => {
+        setLocating(false);
+        setGeoError(
+          err.code === err.PERMISSION_DENIED
+            ? "Permiso denegado. Activa la ubicación en los permisos del sitio."
+            : "No se pudo obtener tu ubicación. Toca el mapa manualmente.",
+        );
+      },
+      { enableHighAccuracy: true, timeout: 10_000, maximumAge: 60_000 },
+    );
+  }, [onCoordsChange]);
 
   const copy = copyFor(type);
+
+  const handleFile = useCallback(
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      if (!file.type.startsWith("image/")) {
+        setError("Selecciona un archivo de imagen.");
+        return;
+      }
+      setError(null);
+      setProcessingPhoto(true);
+      try {
+        setPhoto(await fileToResizedDataUrl(file));
+      } catch {
+        setError("No se pudo procesar la imagen. Intenta con otra foto.");
+      } finally {
+        setProcessingPhoto(false);
+      }
+    },
+    [],
+  );
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -84,6 +172,7 @@ export default function ReportForm({
         place: place.trim(),
         affected: copy.showAffected ? Number(affected) || 0 : 0,
         needs: needs.trim(),
+        photo,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al publicar.");
@@ -93,13 +182,13 @@ export default function ReportForm({
 
   return (
     <div
-      className="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-900/60 p-4"
+      className="fixed inset-0 z-[2000] flex items-end justify-center bg-slate-900/60 p-0 sm:items-center sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="form-title"
     >
-      <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
-        <div className="mb-4 flex items-start justify-between">
+      <div className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-white p-5 shadow-xl sm:rounded-2xl sm:p-6">
+        <div className="mb-3 flex items-start justify-between">
           <h2 id="form-title" className="text-lg font-bold text-slate-900">
             🚨 Reportar Emergencia / Solicitar Ayuda
           </h2>
@@ -107,46 +196,81 @@ export default function ReportForm({
             type="button"
             onClick={onCancel}
             aria-label="Cerrar"
-            className="text-2xl leading-none text-slate-400 hover:text-slate-700"
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700"
           >
             ×
           </button>
         </div>
 
-        <p className="mb-4 text-xs text-slate-500">
-          Ubicación seleccionada: {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}
-        </p>
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <p className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-1 text-xs text-slate-600">
+            📍 {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}
+          </p>
+          {onCoordsChange && (
+            <button
+              type="button"
+              onClick={useMyLocation}
+              disabled={locating}
+              className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+            >
+              {locating ? "Localizando…" : "🛰️ Usar mi ubicación"}
+            </button>
+          )}
+        </div>
+        {geoError && (
+          <p className="-mt-2 mb-3 rounded-md bg-amber-50 px-2 py-1 text-xs text-amber-800">
+            {geoError}
+          </p>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <fieldset>
             <legend className="mb-2 block text-sm font-medium text-slate-700">
               Tipo de marcador
             </legend>
-            <div className="grid grid-cols-1 gap-2">
-              {(Object.keys(REPORT_TYPES) as ReportType[]).map((key) => (
-                <label
-                  key={key}
-                  className={`flex cursor-pointer items-center gap-2 rounded-lg border p-2 text-sm transition ${
-                    type === key
-                      ? "border-slate-900 bg-slate-50"
-                      : "border-slate-200 hover:border-slate-300"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="type"
-                    value={key}
-                    checked={type === key}
-                    onChange={() => setType(key)}
-                    className="sr-only"
-                  />
-                  <span>{REPORT_TYPES[key].emoji}</span>
-                  <span className="font-medium text-slate-800">
-                    {REPORT_TYPES[key].label}
-                  </span>
-                </label>
-              ))}
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {REPORT_TYPE_KEYS.map((key) => {
+                const meta = REPORT_TYPES[key];
+                const active = type === key;
+                return (
+                  <label
+                    key={key}
+                    className={`relative flex cursor-pointer flex-col items-center gap-1 rounded-xl border-2 p-3 text-center text-xs transition ${
+                      active
+                        ? "border-slate-900 bg-slate-50 shadow-sm"
+                        : "border-slate-200 hover:border-slate-300"
+                    }`}
+                    style={
+                      active
+                        ? { borderColor: meta.color, background: `${meta.color}10` }
+                        : undefined
+                    }
+                  >
+                    <input
+                      type="radio"
+                      name="type"
+                      value={key}
+                      checked={active}
+                      onChange={() => setType(key)}
+                      className="sr-only"
+                    />
+                    <span
+                      className="grid h-10 w-10 place-items-center rounded-full text-xl text-white shadow-sm"
+                      style={{ background: meta.color }}
+                      aria-hidden
+                    >
+                      {meta.icon}
+                    </span>
+                    <span className="font-semibold leading-tight text-slate-800">
+                      {meta.label}
+                    </span>
+                  </label>
+                );
+              })}
             </div>
+            <p className="mt-2 text-xs text-slate-500">
+              {REPORT_TYPES[type].description}
+            </p>
           </fieldset>
 
           <div>
@@ -200,8 +324,65 @@ export default function ReportForm({
               onChange={(e) => setNeeds(e.target.value)}
               rows={3}
               placeholder={copy.needsPlaceholder}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-900"
+              className="w-full resize-none rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-900"
             />
+          </div>
+
+          <div>
+            <p className="mb-1 block text-sm font-medium text-slate-700">
+              {type === "building"
+                ? "Foto del edificio (muy recomendada)"
+                : "Foto (opcional)"}
+            </p>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFile}
+              className="hidden"
+            />
+            <div className="flex items-center gap-3">
+              {photo ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={photo}
+                  alt="Vista previa"
+                  className="h-20 w-20 rounded-lg object-cover ring-1 ring-slate-200"
+                />
+              ) : (
+                <div className="grid h-20 w-20 place-items-center rounded-lg bg-slate-100 text-2xl text-slate-400">
+                  📷
+                </div>
+              )}
+              <div className="flex flex-col gap-1">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={processingPhoto}
+                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                >
+                  {processingPhoto
+                    ? "Procesando…"
+                    : photo
+                      ? "Cambiar foto"
+                      : "Subir foto"}
+                </button>
+                {photo && (
+                  <button
+                    type="button"
+                    onClick={() => setPhoto(null)}
+                    className="text-xs text-slate-500 hover:text-red-600"
+                  >
+                    Quitar
+                  </button>
+                )}
+                <p className="text-[11px] text-slate-500">
+                  {type === "building"
+                    ? "Muestra grietas, inclinaciones, fachadas o columnas. Útil para que ingenieros evalúen."
+                    : "Ayuda a los rescatistas a verificar la situación."}
+                </p>
+              </div>
+            </div>
           </div>
 
           {error && (
@@ -220,10 +401,10 @@ export default function ReportForm({
             </button>
             <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || processingPhoto}
               className="flex-1 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
             >
-              {submitting ? "Publicando…" : "Publicar Alerta en el Mapa"}
+              {submitting ? "Publicando…" : "Publicar Alerta"}
             </button>
           </div>
         </form>

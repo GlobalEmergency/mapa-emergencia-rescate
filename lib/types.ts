@@ -3,7 +3,8 @@ export type ReportType =
   | "supplies"
   | "shelter"
   | "nopower"
-  | "missing";
+  | "missing"
+  | "building";
 
 export interface EmergencyReport {
   id: string;
@@ -13,19 +14,38 @@ export interface EmergencyReport {
   place: string;
   affected: number;
   needs: string;
+  /** URL del endpoint que sirve la foto si el reporte tiene una, o null. */
+  photoUrl: string | null;
+  /** Cantidad de confirmaciones por terceros ("yo también veo esto"). */
+  confirmations: number;
   createdAt: number;
 }
 
-export type NewReport = Omit<EmergencyReport, "id" | "createdAt">;
+export type NewReport = Omit<
+  EmergencyReport,
+  "id" | "createdAt" | "photoUrl" | "confirmations"
+> & {
+  /** Data URL opcional con la foto del reporte. */
+  photo?: string | null;
+};
 
 export const REPORT_TYPES: Record<
   ReportType,
-  { label: string; color: string; emoji: string; description: string }
+  {
+    label: string;
+    color: string;
+    /** Emoji circular usado en la leyenda, lista y marcadores. */
+    emoji: string;
+    /** Icono semántico usado en la selección del formulario. */
+    icon: string;
+    description: string;
+  }
 > = {
   critical: {
     label: "Emergencia Crítica",
     color: "#dc2626",
     emoji: "🔴",
+    icon: "🆘",
     description:
       "Personas atrapadas, heridos de gravedad o colapso estructural inminente. Prioridad máxima de rescate.",
   },
@@ -33,6 +53,7 @@ export const REPORT_TYPES: Record<
     label: "Suministros",
     color: "#eab308",
     emoji: "🟡",
+    icon: "📦",
     description:
       "Zonas seguras pero con necesidad urgente de suministros (falta de agua, comida, cobijo o primeros auxilios).",
   },
@@ -40,6 +61,7 @@ export const REPORT_TYPES: Record<
     label: "Centro de Acopio",
     color: "#16a34a",
     emoji: "🟢",
+    icon: "🏠",
     description:
       "Punto verificado y habilitado para recibir donaciones físicas o resguardar familias (Refugio seguro).",
   },
@@ -47,6 +69,7 @@ export const REPORT_TYPES: Record<
     label: "Zona estable (sin electricidad)",
     color: "#0ea5e9",
     emoji: "🔵",
+    icon: "💡",
     description:
       "Zona sin daños graves y segura, pero sin servicio eléctrico (y posiblemente sin señal). Útil para saber qué sectores están bien.",
   },
@@ -54,8 +77,17 @@ export const REPORT_TYPES: Record<
     label: "Se busca (persona)",
     color: "#9333ea",
     emoji: "🟣",
+    icon: "🔍",
     description:
       "Búsqueda de una persona desaparecida. Indica su última ubicación conocida y una descripción para ayudar a localizarla.",
+  },
+  building: {
+    label: "Edificación",
+    color: "#78350f",
+    emoji: "🟤",
+    icon: "🏢",
+    description:
+      "Registro fotográfico del estado de un edificio o construcción. Útil para que ingenieros y autoridades evalúen daños estructurales.",
   },
 };
 

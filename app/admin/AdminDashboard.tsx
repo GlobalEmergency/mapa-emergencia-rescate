@@ -20,6 +20,8 @@ interface Report {
   place: string;
   affected: number;
   needs: string;
+  photoUrl: string | null;
+  confirmations: number;
   createdAt: number;
 }
 interface Message {
@@ -36,6 +38,10 @@ interface Person {
   lastSeen: string;
   contact: string;
   photoUrl: string | null;
+  status?: "active" | "found";
+  resolutionNote?: string | null;
+  resolutionPhotoUrl?: string | null;
+  resolvedAt?: number | null;
   createdAt: number;
 }
 interface AdminData {
@@ -48,9 +54,15 @@ interface AdminData {
       totalAffected: number;
       lastHour: number;
       last24h: number;
+      withPhoto: number;
     };
     chat: { total: number; lastHour: number };
-    missing: { total: number; withPhoto: number };
+    missing: {
+      total: number;
+      active?: number;
+      found?: number;
+      withPhoto: number;
+    };
   };
   reports: Report[];
   messages: Message[];
@@ -309,9 +321,11 @@ export default function AdminDashboard() {
           />
           <MetricCard
             label="Desaparecidas"
-            value={stats?.missing.total ?? "—"}
+            value={stats?.missing.active ?? stats?.missing.total ?? "—"}
             sub={
-              stats ? `${stats.missing.withPhoto} con foto` : undefined
+              stats
+                ? `${stats.missing.found ?? 0} localizadas · ${stats.missing.withPhoto} con foto`
+                : undefined
             }
             accent="#9333ea"
           />
@@ -391,7 +405,23 @@ export default function AdminDashboard() {
               ) : (
                 filteredReports.map((r) => (
                   <li key={r.id} className="flex items-start gap-3 p-3">
-                    <span className="text-lg">{REPORT_TYPES[r.type].emoji}</span>
+                    {r.photoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={r.photoUrl}
+                        alt={r.place}
+                        loading="lazy"
+                        className="h-16 w-16 shrink-0 rounded-lg object-cover ring-1 ring-slate-200"
+                      />
+                    ) : (
+                      <div
+                        className="grid h-16 w-16 shrink-0 place-items-center rounded-lg text-2xl text-white"
+                        style={{ background: REPORT_TYPES[r.type].color }}
+                        aria-hidden
+                      >
+                        {REPORT_TYPES[r.type].icon}
+                      </div>
+                    )}
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-slate-900">
                         {r.place}
@@ -483,13 +513,35 @@ export default function AdminDashboard() {
                           {fmt(p.createdAt)}
                         </p>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => remove("missing", p.id)}
-                        className="shrink-0 rounded-md border border-red-200 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-50"
-                      >
-                        Eliminar
-                      </button>
+                      <div className="flex shrink-0 flex-col items-end gap-1">
+                        {p.status === "found" && (
+                          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">
+                            ✓ Localizada
+                          </span>
+                        )}
+                        {p.status === "found" && token && (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              await fetch(`/api/missing/${p.id}/restore`, {
+                                method: "POST",
+                                headers: { "x-admin-token": token },
+                              }).catch(() => null);
+                              fetchData();
+                            }}
+                            className="rounded-md border border-amber-200 px-2 py-1 text-xs font-medium text-amber-700 hover:bg-amber-50"
+                          >
+                            Restaurar
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => remove("missing", p.id)}
+                          className="rounded-md border border-red-200 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-50"
+                        >
+                          Eliminar
+                        </button>
+                      </div>
                     </li>
                   );
                 })

@@ -11,19 +11,20 @@ import {
   useMapEvents,
 } from "react-leaflet";
 import { REPORT_TYPES, type EmergencyReport, type ReportType } from "@/lib/types";
+import { timeAgo } from "@/lib/format";
 
 const iconCache = new Map<ReportType, L.DivIcon>();
 
 function markerIcon(type: ReportType): L.DivIcon {
   const cached = iconCache.get(type);
   if (cached) return cached;
-  const color = REPORT_TYPES[type].color;
+  const meta = REPORT_TYPES[type];
   const icon = L.divIcon({
     className: "emergency-marker",
-    html: `<span class="emergency-pin" style="background:${color}"></span>`,
-    iconSize: [26, 26],
-    iconAnchor: [13, 26],
-    popupAnchor: [0, -24],
+    html: `<span class="emergency-pin" style="background:${meta.color}"><span class="emergency-pin__icon">${meta.icon}</span></span>`,
+    iconSize: [34, 34],
+    iconAnchor: [17, 34],
+    popupAnchor: [0, -30],
   });
   iconCache.set(type, icon);
   return icon;
@@ -89,6 +90,8 @@ interface MapViewProps {
   draft: { lat: number; lng: number } | null;
   onPick: (lat: number, lng: number) => void;
   onResolve: (id: string) => void;
+  onConfirm: (id: string) => void;
+  confirmed: Set<string>;
   isAdmin: boolean;
   focus: { lat: number; lng: number; ts: number; id?: string } | null;
   center: [number, number];
@@ -100,6 +103,8 @@ export default function MapView({
   draft,
   onPick,
   onResolve,
+  onConfirm,
+  confirmed,
   isAdmin,
   focus,
   center,
@@ -115,8 +120,8 @@ export default function MapView({
       L.divIcon({
         className: "emergency-marker",
         html: `<span class="emergency-pin emergency-pin--draft"></span>`,
-        iconSize: [26, 26],
-        iconAnchor: [13, 26],
+        iconSize: [34, 34],
+        iconAnchor: [17, 34],
       }),
     [],
   );
@@ -151,19 +156,56 @@ export default function MapView({
               <p className="font-semibold">
                 {REPORT_TYPES[report.type].emoji} {REPORT_TYPES[report.type].label}
               </p>
+              {report.photoUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <a
+                  href={report.photoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Ver foto en grande"
+                >
+                  <img
+                    src={report.photoUrl}
+                    alt="Foto del reporte"
+                    loading="lazy"
+                    className="my-1 max-h-40 w-full rounded-md object-cover"
+                  />
+                </a>
+              )}
               <p className="font-medium">{report.place}</p>
               {report.affected > 0 && (
                 <p>Personas afectadas/atrapadas: {report.affected}</p>
               )}
               {report.needs && <p>Necesidad: {report.needs}</p>}
-              <p className="text-xs text-gray-500">
+              <p
+                className="text-xs text-gray-500"
+                title={new Date(report.createdAt).toLocaleString("es-VE")}
+              >
+                🕒 {timeAgo(report.createdAt)} ·{" "}
                 {new Date(report.createdAt).toLocaleString("es-VE")}
               </p>
+              <button
+                type="button"
+                onClick={() => onConfirm(report.id)}
+                disabled={confirmed.has(report.id)}
+                title={
+                  confirmed.has(report.id)
+                    ? "Ya confirmaste este reporte"
+                    : "Yo también veo esto"
+                }
+                className={`mt-2 inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-semibold transition ${
+                  confirmed.has(report.id)
+                    ? "border-slate-200 bg-slate-100 text-slate-500"
+                    : "border-sky-200 text-sky-700 hover:bg-sky-50"
+                }`}
+              >
+                ✓ Yo también veo esto · {report.confirmations}
+              </button>
               {isAdmin && (
                 <button
                   type="button"
                   onClick={() => onResolve(report.id)}
-                  className="mt-1 text-xs font-medium text-emerald-700 underline"
+                  className="mt-1 block text-xs font-medium text-emerald-700 underline"
                 >
                   Marcar como atendido (limpiar del mapa)
                 </button>

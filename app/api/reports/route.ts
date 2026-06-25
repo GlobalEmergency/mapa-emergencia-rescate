@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
-import { addReport, isPersistent, listReports } from "@/lib/store";
+import {
+  addReport,
+  isPersistent,
+  listReports,
+  MAX_REPORT_PHOTO_CHARS,
+} from "@/lib/store";
 import { checkRateLimit, clientIp } from "@/lib/ratelimit";
 import { REPORT_TYPE_KEYS, type NewReport, type ReportType } from "@/lib/types";
 
@@ -60,6 +65,22 @@ export async function POST(request: Request) {
     );
   }
 
+  const photo = typeof body.photo === "string" ? body.photo : null;
+  if (photo) {
+    if (!/^data:image\/(jpeg|png|webp);base64,/.test(photo)) {
+      return NextResponse.json(
+        { error: "La foto debe ser una imagen JPG, PNG o WebP válida." },
+        { status: 400 },
+      );
+    }
+    if (photo.length > MAX_REPORT_PHOTO_CHARS) {
+      return NextResponse.json(
+        { error: "La foto es demasiado grande. Usa una imagen más liviana." },
+        { status: 413 },
+      );
+    }
+  }
+
   try {
     const report = await addReport({
       type,
@@ -68,6 +89,7 @@ export async function POST(request: Request) {
       place,
       affected: Number(body.affected) || 0,
       needs: typeof body.needs === "string" ? body.needs : "",
+      photo,
     });
     return NextResponse.json({ report }, { status: 201 });
   } catch {
