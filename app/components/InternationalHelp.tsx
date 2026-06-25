@@ -271,6 +271,31 @@ const OFFICES: CountryOffice[] = [
     ],
   },
   {
+    country: "Bolivia",
+    countryCode: "BO",
+    organization: "Gobierno de Bolivia",
+    lines: [
+      {
+        type: "web",
+        label: "Bolivia ofreció ayuda a Venezuela",
+        href: "https://ticotimes.net/2026/06/25/venezuela-earthquake-death-toll-tops-160-as-costa-rica-pledges-aid",
+      },
+    ],
+    shareChannels: [
+      {
+        name: "Apoyo de Bolivia",
+        description:
+          "Bolivia fue reportada entre los gobiernos que ofrecieron ayuda tras los terremotos en Venezuela.",
+        href: "https://ticotimes.net/2026/06/25/venezuela-earthquake-death-toll-tops-160-as-costa-rica-pledges-aid",
+        source: "The Tico Times",
+        sourceHref:
+          "https://ticotimes.net/2026/06/25/venezuela-earthquake-death-toll-tops-160-as-costa-rica-pledges-aid",
+        updatedAt: "25 jun 2026",
+        status: "verified",
+      },
+    ],
+  },
+  {
     country: "Brasil",
     countryCode: "BR",
     organization: "Gobierno de Brasil / Itamaraty",
@@ -1724,6 +1749,7 @@ const TIME_ZONE_COUNTRY_CODES: Record<string, string> = {
   "America/Argentina/Buenos_Aires": "AR",
   "America/Aruba": "AW",
   "America/Barbados": "BB",
+  "America/La_Paz": "BO",
   "Australia/Sydney": "AU",
   "Australia/Melbourne": "AU",
   "Australia/Brisbane": "AU",
