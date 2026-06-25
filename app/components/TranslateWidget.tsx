@@ -143,7 +143,32 @@ export default function TranslateWidget({ floating = false }: TranslateWidgetPro
             <Languages aria-hidden className="h-4 w-4" strokeWidth={2.2} />
           )}
         </button>
-        {open && dropdown}
+        {open && (
+          <div className="absolute bottom-full right-0 mb-2 z-[2000] min-w-[10rem] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
+            {LANGS.map((lang) => (
+              <button
+                key={lang.code}
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  setActiveLang(lang.code);
+                  setGoogleTranslateLang(lang.code);
+                }}
+                className={`flex w-full items-center gap-2 px-3 py-2.5 text-sm font-medium transition hover:bg-slate-50 ${
+                  activeLang === lang.code
+                    ? "bg-slate-50 font-semibold text-slate-900"
+                    : "text-slate-700"
+                }`}
+              >
+                <span aria-hidden>{lang.flag}</span>
+                {lang.label}
+                {activeLang === lang.code && (
+                  <span className="ml-auto text-xs text-slate-400">✓</span>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     );
   }

@@ -94,7 +94,6 @@ export default function StickyHelpButton() {
       data-sticky-help-root
       className="fixed bottom-[calc(3.75rem+env(safe-area-inset-bottom))] right-3 z-[1840] flex flex-col items-end gap-3 md:bottom-[max(1rem,env(safe-area-inset-bottom))] md:right-4 md:z-[1900]"
     >
-      <TranslateWidget floating />
       <div
         id="sticky-help-menu"
         role="menu"
@@ -142,25 +141,28 @@ export default function StickyHelpButton() {
         </p>
       </div>
 
-      <button
-        type="button"
-        aria-expanded={open}
-        aria-haspopup="menu"
-        aria-controls="sticky-help-menu"
-        aria-label={
-          open ? "Cerrar menú de apoyo psicológico" : "Abrir menú de apoyo psicológico"
-        }
-        onClick={() => setOpen((value) => !value)}
-        data-track="psychology_menu_toggled"
-        className={`relative flex min-h-12 max-w-[calc(100vw-1.5rem)] items-center gap-2 rounded-full bg-violet-600 px-3 py-3 text-xs font-semibold text-white shadow-lg transition hover:bg-violet-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-400 sm:max-w-none sm:px-4 sm:text-sm ${
-          open ? "" : "animate-pulse-soft"
-        }`}
-      >
-        <span aria-hidden className="shrink-0 text-base">
-          {open ? "×" : "💜"}
-        </span>
-        <span className="truncate">{open ? "Cerrar" : "Apoyo psicológico"}</span>
-      </button>
+      <div className="flex items-center gap-2">
+        <TranslateWidget floating />
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-haspopup="menu"
+          aria-controls="sticky-help-menu"
+          aria-label={
+            open ? "Cerrar menú de apoyo psicológico" : "Abrir menú de apoyo psicológico"
+          }
+          onClick={() => setOpen((value) => !value)}
+          data-track="psychology_menu_toggled"
+          className={`relative flex min-h-12 max-w-[calc(100vw-1.5rem)] items-center gap-2 rounded-full bg-violet-600 px-3 py-3 text-xs font-semibold text-white shadow-lg transition hover:bg-violet-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-400 sm:max-w-none sm:px-4 sm:text-sm ${
+            open ? "" : "animate-pulse-soft"
+          }`}
+        >
+          <span aria-hidden className="shrink-0 text-base">
+            {open ? "×" : "💜"}
+          </span>
+          <span className="truncate">{open ? "Cerrar" : "Apoyo psicológico"}</span>
+        </button>
+      </div>
     </div>
   );
 }
