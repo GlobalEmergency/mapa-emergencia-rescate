@@ -1204,6 +1204,30 @@ const OFFICES: CountryOffice[] = [
     ],
   },
   {
+    country: "Perú",
+    countryCode: "PE",
+    organization: "Gobierno de Perú",
+    lines: [
+      {
+        type: "web",
+        label: "Perú comprometió personal de emergencia",
+        href: "https://www.telesurenglish.net/venezuela-thanks-global-solidarity/",
+      },
+    ],
+    shareChannels: [
+      {
+        name: "Apoyo de Perú",
+        description:
+          "Perú fue reportado entre los países que comprometieron personal de emergencia para apoyar a Venezuela tras los terremotos.",
+        href: "https://www.telesurenglish.net/venezuela-thanks-global-solidarity/",
+        source: "teleSUR English",
+        sourceHref: "https://www.telesurenglish.net/venezuela-thanks-global-solidarity/",
+        updatedAt: "25 jun 2026",
+        status: "verified",
+      },
+    ],
+  },
+  {
     country: "Nueva Zelanda",
     countryCode: "NZ",
     organization: "Save the Children New Zealand",
@@ -1261,6 +1285,31 @@ const OFFICES: CountryOffice[] = [
         source: "El Nuevo Día",
         sourceHref:
           "https://www.elnuevodia.com/noticias/locales/notas/casi-no-hemos-dormido-a-la-expectativa-venezolanos-en-puerto-rico-tras-los-terremotos-en-su-pais/",
+        updatedAt: "25 jun 2026",
+        status: "verified",
+      },
+    ],
+  },
+  {
+    country: "Qatar",
+    countryCode: "QA",
+    organization: "Gobierno de Qatar",
+    lines: [
+      {
+        type: "web",
+        label: "Qatar despacha equipos de rescate",
+        href: "https://www.dailysabah.com/world/americas/aid-pours-in-as-venezuela-reels-from-deadly-twin-earthquakes",
+      },
+    ],
+    shareChannels: [
+      {
+        name: "Equipos de rescate de Qatar",
+        description:
+          "Qatar despachó equipos de rescate para asistir a Venezuela tras los terremotos, según reporte internacional de ayuda movilizada.",
+        href: "https://www.dailysabah.com/world/americas/aid-pours-in-as-venezuela-reels-from-deadly-twin-earthquakes",
+        source: "Daily Sabah",
+        sourceHref:
+          "https://www.dailysabah.com/world/americas/aid-pours-in-as-venezuela-reels-from-deadly-twin-earthquakes",
         updatedAt: "25 jun 2026",
         status: "verified",
       },
@@ -1714,7 +1763,9 @@ const TIME_ZONE_COUNTRY_CODES: Record<string, string> = {
   "Europe/Amsterdam": "NL",
   "Pacific/Auckland": "NZ",
   "America/Panama": "PA",
+  "America/Lima": "PE",
   "America/Puerto_Rico": "PR",
+  "Asia/Qatar": "QA",
   "Europe/Istanbul": "TR",
   "Europe/London": "GB",
   "Europe/Stockholm": "SE",
