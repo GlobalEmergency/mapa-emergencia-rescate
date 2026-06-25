@@ -2,7 +2,6 @@
 
 import {
   Building2,
-  ChevronDown,
   Copy,
   Check,
   Clock,
@@ -13,8 +12,10 @@ import {
   Megaphone,
   MapPin,
   Phone,
+  Send,
   Share2,
 } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 interface ContactLine {
@@ -371,32 +372,17 @@ function ContactRow({ line }: { line: ContactLine }) {
 
 function OfficeCard({
   office,
-  featured = false,
 }: {
   office: CountryOffice;
-  featured?: boolean;
 }) {
   return (
-    <article
-      className={
-        featured
-          ? "rounded-xl border border-red-200 bg-red-50/70 p-4 shadow-sm"
-          : "rounded-xl border border-slate-200 bg-white p-4"
-      }
-    >
+    <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex items-start gap-3">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-white text-red-700 ring-1 ring-slate-200">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-red-50 text-red-700 ring-1 ring-red-100">
           <MapPin className="h-5 w-5" aria-hidden />
         </span>
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 className="font-bold text-slate-950">{office.country}</h3>
-            {featured ? (
-              <span className="rounded-full bg-red-700 px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-white">
-                Tu país
-              </span>
-            ) : null}
-          </div>
+          <h3 className="font-bold text-slate-950">{office.country}</h3>
           <p className="text-sm font-semibold text-red-700">
             {office.organization}
           </p>
@@ -581,6 +567,7 @@ export default function InternationalHelp() {
     : null;
 
   const shareText = useMemo(() => buildShareText(selectedOffice), [selectedOffice]);
+  const whatsappShareHref = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
 
   async function handleCopyShareText() {
     try {
@@ -617,8 +604,8 @@ export default function InternationalHelp() {
   return (
     <section id="ayuda-internacional" className="bg-slate-50">
       <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:py-12">
-        <div className="grid gap-6 lg:grid-cols-[0.92fr_1.08fr]">
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          <div className="grid gap-5 lg:grid-cols-[1fr_22rem] lg:items-end">
             <div className="flex items-start gap-4">
               <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-red-700 text-white">
                 <HeartHandshake className="h-6 w-6" aria-hidden />
@@ -637,41 +624,14 @@ export default function InternationalHelp() {
                 </p>
               </div>
             </div>
-
-            <div className="mt-6 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-950">
-              Esta plataforma funciona como nexo entre familiares, personas
-              afectadas y organizaciones. Verifica horarios y disponibilidad en
-              la fuente antes de trasladarte.
-            </div>
-
-            {detectedOffice ? (
-              <div className="mt-5">
-                <button
-                  type="button"
-                  onClick={() => setSelectedCountryCode(detectedOffice.countryCode)}
-                  className="inline-flex w-full items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-left transition hover:bg-red-100 sm:w-auto"
-                >
-                  <span>
-                    <span className="block text-xs font-bold uppercase tracking-wide text-red-700">
-                      Detectamos tu país
-                    </span>
-                    <span className="block font-bold text-slate-950">
-                      Ver apoyo en {detectedOffice.country}
-                    </span>
+            <label className="block">
+              <span className="flex items-center justify-between gap-3 text-sm font-semibold text-slate-800">
+                <span>País</span>
+                {detectedOffice ? (
+                  <span className="text-xs font-medium text-slate-500">
+                    Detectado: {detectedOffice.country}
                   </span>
-                  <ChevronDown className="h-5 w-5 text-red-700" aria-hidden />
-                </button>
-              </div>
-            ) : (
-              <p className="mt-5 text-sm text-slate-600">
-                No pudimos detectar un país con información local disponible.
-                Elige uno de la lista.
-              </p>
-            )}
-
-            <label className="mt-5 block">
-              <span className="text-sm font-semibold text-slate-800">
-                Ver otro país
+                ) : null}
               </span>
               <select
                 value={selectedCountryCode}
@@ -686,9 +646,11 @@ export default function InternationalHelp() {
               </select>
             </label>
           </div>
+        </div>
 
+        <div className="mt-6 grid gap-5 lg:grid-cols-[0.95fr_1.05fr]">
           <div className="space-y-4">
-            <OfficeCard office={selectedOffice} featured />
+            <OfficeCard office={selectedOffice} />
 
             {selectedOffice.donationPoints?.length ? (
               <div className="rounded-xl border border-slate-200 bg-white p-4">
@@ -716,29 +678,33 @@ export default function InternationalHelp() {
                 orientación local mientras se agregan nuevos puntos.
               </div>
             )}
+          </div>
 
-            <div className="rounded-xl border border-slate-200 bg-white p-4">
+          <div className="space-y-4">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
               <div className="flex items-start gap-3">
                 <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-slate-950 text-white">
                   <Share2 className="h-5 w-5" aria-hidden />
                 </span>
                 <div>
                   <h3 className="font-bold text-slate-950">
-                    ¿Qué compartir en redes?
+                    Compartir en redes
                   </h3>
                   <p className="mt-1 text-sm leading-relaxed text-slate-600">
-                    Texto corto con puntos y canales de {selectedOffice.country}.
-                    Úsalo para responder rápido a personas que preguntan desde
-                    dónde pueden ayudar.
+                    Copia un mensaje breve con los canales de{" "}
+                    {selectedOffice.country} o envíalo por WhatsApp.
                   </p>
                 </div>
               </div>
-              <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
-                <pre className="max-h-48 whitespace-pre-wrap break-words text-xs leading-relaxed text-slate-700">
+              <details className="mt-4 rounded-lg border border-slate-200 bg-slate-50">
+                <summary className="cursor-pointer px-3 py-2 text-sm font-semibold text-slate-700">
+                  Ver texto antes de compartir
+                </summary>
+                <p className="max-h-44 overflow-y-auto border-t border-slate-200 px-3 py-3 text-xs leading-relaxed text-slate-700 [overflow-wrap:anywhere]">
                   {shareText}
-                </pre>
-              </div>
-              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                </p>
+              </details>
+              <div className="mt-3 grid gap-2 sm:grid-cols-3">
                 <button
                   type="button"
                   onClick={handleCopyShareText}
@@ -749,15 +715,24 @@ export default function InternationalHelp() {
                   ) : (
                     <Copy className="h-4 w-4" aria-hidden />
                   )}
-                  {copiedShareText ? "Texto copiado" : "Copiar texto"}
+                  {copiedShareText ? "Copiado" : "Copiar"}
                 </button>
+                <a
+                  href={whatsappShareHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700"
+                >
+                  <Send className="h-4 w-4" aria-hidden />
+                  WhatsApp
+                </a>
                 <button
                   type="button"
                   onClick={handleNativeShare}
                   className="inline-flex items-center justify-center gap-2 rounded-lg bg-red-700 px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-red-800"
                 >
                   <Share2 className="h-4 w-4" aria-hidden />
-                  Compartir
+                  Más
                 </button>
               </div>
             </div>
@@ -782,19 +757,19 @@ export default function InternationalHelp() {
           </div>
         </div>
 
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-          <a
-            href="#desaparecidas"
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          <Link
+            href="/#desaparecidas"
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-red-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-red-800"
           >
             Buscar en la lista de desaparecidos
-          </a>
-          <a
-            href="#mapa"
+          </Link>
+          <Link
+            href="/#mapa"
             className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
           >
             Ver mapa de reportes
-          </a>
+          </Link>
         </div>
       </div>
     </section>
