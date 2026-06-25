@@ -253,8 +253,8 @@ export default function EmergencyApp() {
       {!persistent && (
         <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
           Modo demo: los reportes no se están guardando de forma permanente.
-          Conecta Upstash Redis en Vercel para compartirlos entre todos los
-          usuarios.
+          Conecta la base de datos (Neon) en Vercel para compartirlos entre
+          todos los usuarios.
         </p>
       )}
 

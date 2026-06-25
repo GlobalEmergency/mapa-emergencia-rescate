@@ -4,7 +4,7 @@ Plataforma de reporte ciudadano en tiempo real para coordinar rescates,
 identificar daños estructurales y organizar la entrega de ayuda humanitaria.
 
 Construida con **Next.js (App Router)**, **Leaflet + OpenStreetMap** (sin API key)
-y **Upstash Redis**. Pensada para alto tráfico y para funcionar bien en móvil.
+y **Neon Postgres**. Pensada para alto tráfico y para funcionar bien en móvil.
 
 ## Funcionalidad
 
@@ -18,16 +18,16 @@ y **Upstash Redis**. Pensada para alto tráfico y para funcionar bien en móvil.
 
 - **Caché de CDN** en `GET /api/reports` (`s-maxage=4, stale-while-revalidate=30`):
   miles de usuarios haciendo polling se sirven desde el edge de Vercel y no
-  golpean Redis en cada petición.
+  golpean la base de datos en cada petición.
 - **Actualizaciones optimistas**: el reporte propio aparece al instante aunque el
   CDN sirva una versión cacheada de la lista durante unos segundos.
-- **Rate limiting** por IP en `POST` y `DELETE` (8 req/min) con `@upstash/ratelimit`,
+- **Rate limiting** por IP en `POST` y `DELETE` (8 req/min) en memoria,
   para frenar spam y reportes falsos.
 - **Polling pausado** automáticamente cuando la pestaña está en segundo plano.
 
-> Si no configuras Upstash, la app funciona en "modo demo" con almacenamiento en
-> memoria (los reportes no se comparten entre usuarios ni persisten). El banner
-> amarillo te avisa de ello.
+> Si no configuras la base de datos (`DATABASE_URL`), la app funciona en "modo
+> demo" con almacenamiento en memoria (los reportes no se comparten entre
+> usuarios ni persisten). El banner amarillo te avisa de ello.
 
 ## Desarrollo local
 
@@ -42,15 +42,16 @@ Abre http://localhost:3000.
 
 1. Sube el repositorio a GitHub e **importa el proyecto en Vercel**
    (o ejecuta `vercel` con la CLI).
-2. Conecta **Upstash Redis** para que los reportes se compartan y persistan:
+2. Conecta **Neon Postgres** para que los reportes se compartan y persistan:
 
    ```bash
-   vercel integration add upstash
+   vercel integration add neon
    ```
 
-   Esto crea la base y agrega `UPSTASH_REDIS_REST_URL` y
-   `UPSTASH_REDIS_REST_TOKEN` al proyecto automáticamente. También puedes hacerlo
-   desde el dashboard: **Storage → Marketplace → Upstash**.
+   Esto crea la base, la conecta al proyecto y agrega `DATABASE_URL` (entre otras)
+   automáticamente. También puedes hacerlo desde el dashboard:
+   **Storage → Marketplace → Neon**. La tabla `reports` se crea sola en la primera
+   petición.
 3. Vuelve a desplegar (`vercel --prod`) para que las variables surtan efecto.
 
 Para desarrollo local con la misma base:
@@ -72,6 +73,6 @@ app/
   page.tsx                     # landing (títulos, pasos, leyenda, aviso)
 lib/
   types.ts                     # tipos y definición de marcadores
-  store.ts                     # Redis con fallback en memoria
-  ratelimit.ts                 # rate limiting con fallback en memoria
+  store.ts                     # Neon Postgres con fallback en memoria
+  ratelimit.ts                 # rate limiting en memoria
 ```

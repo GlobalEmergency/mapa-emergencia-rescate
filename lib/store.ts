@@ -1,18 +1,34 @@
-import { Redis } from "@upstash/redis";
+import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
 import type { EmergencyReport, NewReport, ReportType } from "./types";
 
-const REDIS_KEY = "emergency:reports";
-
-function hasRedisEnv(): boolean {
-  return Boolean(
-    process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN,
-  );
+function hasDbEnv(): boolean {
+  return Boolean(process.env.DATABASE_URL);
 }
 
-let _redis: Redis | null = null;
-function getRedis(): Redis {
-  if (!_redis) _redis = Redis.fromEnv();
-  return _redis;
+let _sql: NeonQueryFunction<false, false> | null = null;
+function getSql(): NeonQueryFunction<false, false> {
+  if (!_sql) _sql = neon(process.env.DATABASE_URL!);
+  return _sql;
+}
+
+let _schemaReady: Promise<void> | null = null;
+function ensureSchema(): Promise<void> {
+  if (!_schemaReady) {
+    const sql = getSql();
+    _schemaReady = sql`
+      CREATE TABLE IF NOT EXISTS reports (
+        id TEXT PRIMARY KEY,
+        type TEXT NOT NULL,
+        lat DOUBLE PRECISION NOT NULL,
+        lng DOUBLE PRECISION NOT NULL,
+        place TEXT NOT NULL,
+        affected INTEGER NOT NULL DEFAULT 0,
+        needs TEXT NOT NULL DEFAULT '',
+        created_at BIGINT NOT NULL
+      )
+    `.then(() => undefined);
+  }
+  return _schemaReady;
 }
 
 const memoryStore = new Map<string, EmergencyReport>();
@@ -33,21 +49,55 @@ function createReport(input: NewReport): EmergencyReport {
   };
 }
 
+type ReportRow = {
+  id: string;
+  type: string;
+  lat: number;
+  lng: number;
+  place: string;
+  affected: number;
+  needs: string;
+  created_at: string | number;
+};
+
+function rowToReport(row: ReportRow): EmergencyReport {
+  return {
+    id: row.id,
+    type: row.type as ReportType,
+    lat: Number(row.lat),
+    lng: Number(row.lng),
+    place: row.place,
+    affected: Number(row.affected),
+    needs: row.needs,
+    createdAt: Number(row.created_at),
+  };
+}
+
 export async function listReports(): Promise<EmergencyReport[]> {
-  if (hasRedisEnv()) {
-    const map = await getRedis().hgetall<Record<string, EmergencyReport>>(
-      REDIS_KEY,
-    );
-    const reports = map ? Object.values(map) : [];
-    return reports.sort((a, b) => b.createdAt - a.createdAt);
+  if (hasDbEnv()) {
+    await ensureSchema();
+    const rows = (await getSql()`
+      SELECT id, type, lat, lng, place, affected, needs, created_at
+      FROM reports
+      ORDER BY created_at DESC
+      LIMIT 2000
+    `) as ReportRow[];
+    return rows.map(rowToReport);
   }
   return [...memoryStore.values()].sort((a, b) => b.createdAt - a.createdAt);
 }
 
 export async function addReport(input: NewReport): Promise<EmergencyReport> {
   const report = createReport(input);
-  if (hasRedisEnv()) {
-    await getRedis().hset(REDIS_KEY, { [report.id]: report });
+  if (hasDbEnv()) {
+    await ensureSchema();
+    await getSql()`
+      INSERT INTO reports (id, type, lat, lng, place, affected, needs, created_at)
+      VALUES (
+        ${report.id}, ${report.type}, ${report.lat}, ${report.lng},
+        ${report.place}, ${report.affected}, ${report.needs}, ${report.createdAt}
+      )
+    `;
   } else {
     memoryStore.set(report.id, report);
   }
@@ -55,13 +105,16 @@ export async function addReport(input: NewReport): Promise<EmergencyReport> {
 }
 
 export async function removeReport(id: string): Promise<boolean> {
-  if (hasRedisEnv()) {
-    const removed = await getRedis().hdel(REDIS_KEY, id);
-    return removed > 0;
+  if (hasDbEnv()) {
+    await ensureSchema();
+    const rows = (await getSql()`
+      DELETE FROM reports WHERE id = ${id} RETURNING id
+    `) as { id: string }[];
+    return rows.length > 0;
   }
   return memoryStore.delete(id);
 }
 
 export function isPersistent(): boolean {
-  return hasRedisEnv();
+  return hasDbEnv();
 }

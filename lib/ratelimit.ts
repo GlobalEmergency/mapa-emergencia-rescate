@@ -1,54 +1,27 @@
-import { Redis } from "@upstash/redis";
-import { Ratelimit } from "@upstash/ratelimit";
-
-function hasRedisEnv(): boolean {
-  return Boolean(
-    process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN,
-  );
-}
-
-let _limiter: Ratelimit | null = null;
-
-function getLimiter(): Ratelimit | null {
-  if (!hasRedisEnv()) return null;
-  if (!_limiter) {
-    _limiter = new Ratelimit({
-      redis: Redis.fromEnv(),
-      limiter: Ratelimit.slidingWindow(8, "60 s"),
-      prefix: "ratelimit:emergency",
-      analytics: false,
-    });
-  }
-  return _limiter;
-}
-
 const memoryHits = new Map<string, number[]>();
-const MEMORY_LIMIT = 8;
-const MEMORY_WINDOW_MS = 60_000;
+const LIMIT = 8;
+const WINDOW_MS = 60_000;
 
-function memoryLimit(key: string): boolean {
+/**
+ * Límite de peticiones en memoria por identificador (normalmente la IP).
+ * Devuelve true si la petición está permitida dentro de la ventana actual.
+ *
+ * Nota: en serverless el contador es por instancia de función. Para frenar
+ * spam puntual es suficiente; la protección principal ante tráfico masivo es
+ * la caché de CDN sobre el endpoint de lectura.
+ */
+export async function checkRateLimit(identifier: string): Promise<boolean> {
   const now = Date.now();
-  const hits = (memoryHits.get(key) ?? []).filter(
-    (ts) => now - ts < MEMORY_WINDOW_MS,
+  const hits = (memoryHits.get(identifier) ?? []).filter(
+    (ts) => now - ts < WINDOW_MS,
   );
-  if (hits.length >= MEMORY_LIMIT) {
-    memoryHits.set(key, hits);
+  if (hits.length >= LIMIT) {
+    memoryHits.set(identifier, hits);
     return false;
   }
   hits.push(now);
-  memoryHits.set(key, hits);
+  memoryHits.set(identifier, hits);
   return true;
-}
-
-/**
- * Comprueba el límite de peticiones para un identificador (normalmente la IP).
- * Devuelve true si la petición está permitida.
- */
-export async function checkRateLimit(identifier: string): Promise<boolean> {
-  const limiter = getLimiter();
-  if (!limiter) return memoryLimit(identifier);
-  const { success } = await limiter.limit(identifier);
-  return success;
 }
 
 /**

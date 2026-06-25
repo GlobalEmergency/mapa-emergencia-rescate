@@ -6,8 +6,8 @@ import type { NewReport, ReportType } from "@/lib/types";
 export const dynamic = "force-dynamic";
 
 // La respuesta se cachea en el CDN de Vercel durante unos segundos para que
-// miles de usuarios haciendo polling se sirvan desde el edge y no golpeen Redis
-// en cada petición.
+// miles de usuarios haciendo polling se sirvan desde el edge y no golpeen la
+// base de datos en cada petición.
 const LIST_CACHE_HEADERS = {
   "Cache-Control": "public, max-age=0, s-maxage=4, stale-while-revalidate=30",
 };
