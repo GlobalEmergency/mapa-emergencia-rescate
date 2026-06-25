@@ -50,13 +50,13 @@ export const metadata: Metadata = {
     description: SITE_DESC,
     locale: "es_VE",
     url: SITE_URL,
-    images: [{ url: "/opengraph-image", width: 1200, height: 630 }],
+    // La imagen la aporta el archivo app/opengraph-image.png (file convention).
   },
   twitter: {
     card: "summary_large_image",
     title: SITE_TITLE,
     description: SITE_DESC,
-    images: ["/opengraph-image"],
+    // La imagen la aporta el archivo app/twitter-image.png (file convention).
   },
 };
 
