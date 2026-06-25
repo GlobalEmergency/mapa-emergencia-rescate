@@ -297,6 +297,44 @@ export default function Home() {
                     </span>
                   </span>
                 </a>
+                <a
+                  href="https://x.com/vickytorrss"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                >
+                  <span
+                    aria-hidden
+                    className="grid h-8 w-8 place-items-center rounded-full bg-slate-900 text-white"
+                  >
+                    𝕏
+                  </span>
+                  <span className="flex flex-col leading-tight">
+                    <span className="font-semibold">Vicky Torres</span>
+                    <span className="text-xs text-slate-500">
+                      @vickytorrss
+                    </span>
+                  </span>
+                </a>
+                <a
+                  href="https://x.com/andresg747"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                >
+                  <span
+                    aria-hidden
+                    className="grid h-8 w-8 place-items-center rounded-full bg-slate-900 text-white"
+                  >
+                    𝕏
+                  </span>
+                  <span className="flex flex-col leading-tight">
+                    <span className="font-semibold">Andrés G.</span>
+                    <span className="text-xs text-slate-500">
+                      @andresg747
+                    </span>
+                  </span>
+                </a>
               </div>
             </div>
 
