@@ -256,7 +256,7 @@ Resumen de estado:
 | **2** | **Upsert por lotes** (desbloquea el sync completo) | ✅ hecho (ADR 0002) |
 | **2.5** | Ejecución por chunks (cursor `sync_state`, freno por páginas+tiempo) | ✅ hecho |
 | **3** | Cron Vercel + observabilidad (`sync_runs`/`sync_state`) + panel admin | ✅ hecho |
-| **4** | Geocodificación automática acotada | pendiente |
+| **4** | Geocodificación automática acotada | ✅ hecho |
 | **5** | `PfifFeedAdapter` (consume el feed de la issue #1) | pendiente |
 | **6** | Dedup entre fuentes (`person_links` + revisión manual) | pendiente |
 
