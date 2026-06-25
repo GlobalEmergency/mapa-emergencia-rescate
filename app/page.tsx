@@ -3,6 +3,7 @@ import EmergencyApp from "./components/EmergencyApp";
 import ShareButton from "./components/ShareButton";
 import HeroPeopleLinks from "./components/HeroPeopleLinks";
 import EmergencyContacts from "./components/EmergencyContacts";
+import InternationalHelp from "./components/InternationalHelp";
 import SurvivalGuide from "./components/SurvivalGuide";
 import { REPORT_TYPES, type ReportType } from "@/lib/types";
 
@@ -94,6 +95,12 @@ export default function Home() {
               className="flex items-center justify-center rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
             >
               📞 Teléfonos de emergencia
+            </a>
+            <a
+              href="#ayuda-internacional"
+              className="flex items-center justify-center rounded-lg border border-sky-300 bg-sky-50 px-5 py-2.5 text-sm font-semibold text-sky-800 shadow-sm transition hover:bg-sky-100"
+            >
+              🌍 Ayuda internacional
             </a>
             <ShareButton />
           </div>
@@ -215,6 +222,8 @@ export default function Home() {
       <SurvivalGuide />
 
       <EmergencyContacts />
+
+      <InternationalHelp />
 
       <section className="mx-auto w-full max-w-7xl px-4 pb-14">
         <div className="grid gap-6 lg:grid-cols-2">
