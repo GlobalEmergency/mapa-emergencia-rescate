@@ -57,7 +57,7 @@ export interface SourceAdapter {
   /** Id estable de la fuente (también se usa como namespace del externalId). */
   readonly id: string;
   readonly label: string;
-  readonly kind: "json-api" | "pfif" | "html";
+  readonly kind: "json-api" | "pfif" | "html" | "remix-data";
   /** Trae los registros de la fuente, ya normalizados a `ExternalPerson`. */
   fetchAll(ctx: FetchCtx): Promise<ExternalPerson[]>;
   /**

@@ -8,9 +8,13 @@
 
 import type { SourceAdapter } from "../types";
 import { desaparecidosTerremotoAdapter } from "./desaparecidos-terremoto";
+import { venezuelaTeBuscaAdapter } from "./venezuela-te-busca";
 
 /** Todas las fuentes registradas (habilitadas o no). */
-export const ALL_SOURCES: SourceAdapter[] = [desaparecidosTerremotoAdapter];
+export const ALL_SOURCES: SourceAdapter[] = [
+  desaparecidosTerremotoAdapter,
+  venezuelaTeBuscaAdapter,
+];
 
 /** Adaptadores activos según `SYNC_SOURCES` (csv de ids); todas si no se define. */
 export function enabledSources(): SourceAdapter[] {

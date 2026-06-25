@@ -92,6 +92,7 @@ Adaptadores concretos:
 | Adaptador | kind | Fuente |
 | --- | --- | --- |
 | `DesaparecidosTerremotoAdapter` | `json-api` | `GET /api/personas` → `{items:[…]}` |
+| `VenezuelaTeBuscaAdapter` | `remix-data` | `GET /_root.data?page=N` (loader Remix, turbo-stream; con permiso) |
 | `PfifFeedAdapter` | `pfif` | Feed PFIF de este mapa (issue #1) y cualquier otro PFIF |
 | `HtmlScraperAdapter` | `html` | Sitios sin API, **solo con consentimiento** y respetando `robots.txt` |
 
