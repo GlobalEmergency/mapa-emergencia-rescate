@@ -194,25 +194,6 @@ export default function MissingPersonsCarousel() {
             className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-3 sm:gap-4 [scrollbar-width:thin]"
             role="list"
           >
-            <button
-              type="button"
-              onClick={() => setShowForm(true)}
-              className="group flex w-[160px] shrink-0 snap-start flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-red-300 bg-white p-4 text-center text-red-700 shadow-sm transition hover:border-red-400 hover:bg-red-50 sm:w-[180px]"
-              aria-label="Reportar una persona desaparecida"
-            >
-              <span className="grid h-12 w-12 place-items-center rounded-full bg-red-100 text-2xl text-red-700">
-                ＋
-              </span>
-              <span className="text-sm font-semibold leading-tight">
-                Agregar
-                <br />
-                desaparecida
-              </span>
-              <span className="text-[11px] text-red-600/80">
-                Toca para reportar
-              </span>
-            </button>
-
             {preview.length === 0 ? (
               <div
                 className="flex w-[260px] shrink-0 snap-start flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-slate-300 bg-white p-4 text-center text-slate-500"
