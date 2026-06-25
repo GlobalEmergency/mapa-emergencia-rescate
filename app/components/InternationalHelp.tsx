@@ -410,6 +410,31 @@ const OFFICES: CountryOffice[] = [
     ],
   },
   {
+    country: "China",
+    countryCode: "CN",
+    organization: "Ministerio de Relaciones Exteriores de China",
+    lines: [
+      {
+        type: "web",
+        label: "China lista para asistir a Venezuela",
+        href: "https://www.fmprc.gov.cn/mfa_eng/xw/fyrbt/202606/t20260625_11952387.html",
+      },
+    ],
+    shareChannels: [
+      {
+        name: "Apoyo de China",
+        description:
+          "China informó que está lista para evaluar ayuda adecuada según las necesidades de Venezuela tras los terremotos.",
+        href: "https://www.fmprc.gov.cn/mfa_eng/xw/fyrbt/202606/t20260625_11952387.html",
+        source: "Foreign Ministry of China",
+        sourceHref:
+          "https://www.fmprc.gov.cn/mfa_eng/xw/fyrbt/202606/t20260625_11952387.html",
+        updatedAt: "25 jun 2026",
+        status: "verified",
+      },
+    ],
+  },
+  {
     country: "Chile",
     countryCode: "CL",
     organization: "Gobierno de Chile / Venezolanos en Chile",
@@ -1760,6 +1785,11 @@ const TIME_ZONE_COUNTRY_CODES: Record<string, string> = {
   "America/Boa_Vista": "BR",
   "America/Recife": "BR",
   "Europe/Zurich": "CH",
+  "Asia/Shanghai": "CN",
+  "Asia/Chongqing": "CN",
+  "Asia/Urumqi": "CN",
+  "Asia/Hong_Kong": "CN",
+  "Asia/Macau": "CN",
   "America/Santiago": "CL",
   "Pacific/Easter": "CL",
   "America/Bogota": "CO",
