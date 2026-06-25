@@ -12,52 +12,10 @@ function psychologyClickLabel(count: number): string {
 export default function StickyHelpButton() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const [visible, setVisible] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
   const [clickCount, setClickCount] = useState<number | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const psychologyUrl = psychologyHelpUrl();
   const psychologyIsExternal = !psychologyUrl.startsWith("mailto:");
-
-  useEffect(() => {
-    const mobileQuery = window.matchMedia("(max-width: 767px)");
-    setIsMobile(mobileQuery.matches);
-    if (mobileQuery.matches) {
-      setVisible(true);
-      return;
-    }
-
-    let scrolled = false;
-    let timerDone = false;
-    let cancelled = false;
-
-    const reveal = () => {
-      if (!cancelled && scrolled && timerDone) {
-        setVisible(true);
-      }
-    };
-
-    const onScroll = () => {
-      if (window.scrollY > 48) {
-        scrolled = true;
-        reveal();
-      }
-    };
-
-    const timer = window.setTimeout(() => {
-      timerDone = true;
-      reveal();
-    }, 5000);
-
-    window.addEventListener("scroll", onScroll, { passive: true });
-    onScroll();
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-      window.removeEventListener("scroll", onScroll);
-    };
-  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -113,13 +71,7 @@ export default function StickyHelpButton() {
   return (
     <div
       ref={rootRef}
-      aria-hidden={!visible && !isMobile}
-      inert={!visible && !isMobile ? true : undefined}
-      className={`fixed bottom-[calc(3.75rem+env(safe-area-inset-bottom))] right-3 z-[1900] flex flex-col items-end gap-3 transition-all duration-500 ease-out md:bottom-[max(1rem,env(safe-area-inset-bottom))] md:right-4 max-md:pointer-events-auto max-md:translate-y-0 max-md:scale-100 max-md:opacity-100 ${
-        visible
-          ? "pointer-events-auto translate-y-0 scale-100 opacity-100"
-          : "pointer-events-none translate-y-3 scale-95 opacity-0 md:pointer-events-none md:translate-y-3 md:scale-95 md:opacity-0"
-      }`}
+      className="fixed bottom-[calc(3.75rem+env(safe-area-inset-bottom))] right-3 z-[1900] flex flex-col items-end gap-3 md:bottom-[max(1rem,env(safe-area-inset-bottom))] md:right-4"
     >
       <div
         id="sticky-help-menu"
