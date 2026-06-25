@@ -296,7 +296,7 @@ export default function EmergencyApp() {
             )}
           </div>
 
-          <div className="max-h-[55vh] flex-1 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-sm lg:max-h-full">
+          <div className="max-h-[55vh] flex-1 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-sm lg:max-h-[520px]">
             {visibleReports.length === 0 ? (
               <p className="p-4 text-sm text-slate-500">
                 {query.trim()
