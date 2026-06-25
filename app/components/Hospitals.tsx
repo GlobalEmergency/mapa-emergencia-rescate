@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   FACILITY_TYPE_META,
@@ -14,6 +14,7 @@ import {
 import HospitalForm, { type HospitalPayload } from "./HospitalForm";
 
 type Tab = "hospitals" | "patients";
+const PAGE_SIZE = 20;
 
 interface PatientSearchResult {
   patient: HospitalPatient;
@@ -45,7 +46,9 @@ export default function Hospitals() {
   const [tab, setTab] = useState<Tab>("hospitals");
   const [patientQuery, setPatientQuery] = useState("");
   const [debouncedPatientQuery, setDebouncedPatientQuery] = useState("");
+  const [patientLimit, setPatientLimit] = useState(PAGE_SIZE);
   const [patientResults, setPatientResults] = useState<PatientSearchResult[]>([]);
+  const [patientHasMore, setPatientHasMore] = useState(false);
   const [patientLoading, setPatientLoading] = useState(false);
   const [patientError, setPatientError] = useState<string | null>(null);
 
@@ -68,7 +71,10 @@ export default function Hospitals() {
   }, []);
 
   useEffect(() => {
-    load();
+    const id = window.setTimeout(() => {
+      load();
+    }, 0);
+    return () => window.clearTimeout(id);
   }, [load]);
 
   useEffect(() => {
@@ -78,29 +84,35 @@ export default function Hospitals() {
 
   useEffect(() => {
     const q = debouncedPatientQuery.trim();
-    if (q.length < 2) {
-      setPatientResults([]);
-      setPatientError(null);
+    if (q.length === 1) {
       return;
     }
     let cancelled = false;
-    setPatientLoading(true);
-    setPatientError(null);
-    fetch(`/api/patients/search?q=${encodeURIComponent(q)}`)
-      .then((res) => (res.ok ? res.json() : Promise.reject(new Error("Error"))))
-      .then((data: { results?: PatientSearchResult[] }) => {
-        if (!cancelled) setPatientResults(data.results ?? []);
-      })
-      .catch(() => {
-        if (!cancelled) setPatientError("No se pudo realizar la búsqueda.");
-      })
-      .finally(() => {
-        if (!cancelled) setPatientLoading(false);
-      });
+    const id = window.setTimeout(() => {
+      setPatientLoading(true);
+      setPatientError(null);
+      fetch(
+        `/api/patients/search?q=${encodeURIComponent(q)}&limit=${patientLimit}`,
+      )
+        .then((res) => (res.ok ? res.json() : Promise.reject(new Error("Error"))))
+        .then((data: { results?: PatientSearchResult[]; hasMore?: boolean }) => {
+          if (!cancelled) {
+            setPatientResults(data.results ?? []);
+            setPatientHasMore(Boolean(data.hasMore));
+          }
+        })
+        .catch(() => {
+          if (!cancelled) setPatientError("No se pudo realizar la búsqueda.");
+        })
+        .finally(() => {
+          if (!cancelled) setPatientLoading(false);
+        });
+    }, 0);
     return () => {
       cancelled = true;
+      window.clearTimeout(id);
     };
-  }, [debouncedPatientQuery]);
+  }, [debouncedPatientQuery, patientLimit]);
 
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -208,10 +220,15 @@ export default function Hospitals() {
       {tab === "patients" ? (
         <PatientsSearchView
           query={patientQuery}
-          onQueryChange={setPatientQuery}
+          onQueryChange={(value) => {
+            setPatientQuery(value);
+            setPatientLimit(PAGE_SIZE);
+          }}
           results={patientResults}
+          hasMore={patientHasMore}
           loading={patientLoading}
           error={patientError}
+          onLoadMore={() => setPatientLimit((limit) => limit + PAGE_SIZE)}
         />
       ) : (
         <HospitalsListView
@@ -342,20 +359,25 @@ interface PatientsSearchViewProps {
   query: string;
   onQueryChange: (value: string) => void;
   results: PatientSearchResult[];
+  hasMore: boolean;
   loading: boolean;
   error: string | null;
+  onLoadMore: () => void;
 }
 
 function PatientsSearchView({
   query,
   onQueryChange,
   results,
+  hasMore,
   loading,
   error,
+  onLoadMore,
 }: PatientsSearchViewProps) {
+  const [selected, setSelected] = useState<PatientSearchResult | null>(null);
   const trimmed = query.trim();
   const empty = trimmed.length === 0;
-  const tooShort = !empty && trimmed.length < 2;
+  const tooShort = trimmed.length === 1;
 
   return (
     <div className="mt-4">
@@ -382,61 +404,86 @@ function PatientsSearchView({
       </div>
 
       <div className="mt-4">
-        {empty ? (
-          <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-5 py-10 text-center">
-            <p className="text-2xl" aria-hidden>
-              🔎
-            </p>
-            <p className="mt-2 text-sm font-medium text-slate-700">
-              Escribe el nombre o la cédula para buscar.
-            </p>
-          </div>
-        ) : tooShort ? (
+        {tooShort ? (
           <p className="text-center text-xs text-slate-500">
             Escribe al menos 2 caracteres.
           </p>
         ) : error ? (
           <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
-        ) : loading ? (
+        ) : loading && results.length === 0 ? (
           <p className="text-center text-sm text-slate-500">Buscando…</p>
         ) : results.length === 0 ? (
           <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-5 py-8 text-center">
             <p className="text-sm font-medium text-slate-700">
-              No se encontró ningún paciente con “{trimmed}”.
+              {empty
+                ? "Todavía no hay pacientes registrados."
+                : `No se encontró ningún paciente con “${trimmed}”.`}
             </p>
-            <p className="mt-1 text-xs text-slate-500">
-              Verifica el nombre o intenta con la cédula.
-            </p>
+            {!empty && (
+              <p className="mt-1 text-xs text-slate-500">
+                Verifica el nombre o intenta con la cédula.
+              </p>
+            )}
           </div>
         ) : (
           <>
             <p className="mb-2 text-xs text-slate-500">
-              {results.length} resultado{results.length === 1 ? "" : "s"}
+              {empty
+                ? `Últimos ${results.length} pacientes registrados`
+                : `${results.length} resultado${results.length === 1 ? "" : "s"}`}
             </p>
             <ul className="space-y-2">
               {results.map((r) => (
                 <li key={r.patient.id}>
-                  <PatientResultCard result={r} />
+                  <PatientResultCard
+                    result={r}
+                    onOpen={() => setSelected(r)}
+                  />
                 </li>
               ))}
             </ul>
+            {hasMore && (
+              <div className="mt-4 flex justify-center">
+                <button
+                  type="button"
+                  onClick={onLoadMore}
+                  disabled={loading}
+                  className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {loading ? "Cargando…" : "Mostrar 20 más"}
+                </button>
+              </div>
+            )}
           </>
         )}
       </div>
+
+      {selected && (
+        <PatientDetailOverlay
+          result={selected}
+          onClose={() => setSelected(null)}
+        />
+      )}
     </div>
   );
 }
 
-function PatientResultCard({ result }: { result: PatientSearchResult }) {
+function PatientResultCard({
+  result,
+  onOpen,
+}: {
+  result: PatientSearchResult;
+  onOpen: () => void;
+}) {
   const { patient, hospital } = result;
   const condition = PATIENT_CONDITION_META[patient.condition];
   const status = PATIENT_STATUS_META[patient.status];
 
   return (
-    <Link
-      href={`/hospitales/${hospital.id}#paciente-${patient.id}`}
-      prefetch={false}
-      className="block rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
+    <button
+      type="button"
+      onClick={onOpen}
+      className="block w-full rounded-xl border border-slate-200 bg-white p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
     >
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
@@ -463,7 +510,7 @@ function PatientResultCard({ result }: { result: PatientSearchResult }) {
             </span>
           </div>
         </div>
-        <span className="text-xs font-semibold text-red-600">Ver →</span>
+        <span className="text-xs font-semibold text-red-600">Ver detalles</span>
       </div>
       <p className="mt-2 truncate text-xs text-slate-600">
         🏥 <span className="font-medium text-slate-800">{hospital.name}</span>
@@ -474,7 +521,153 @@ function PatientResultCard({ result }: { result: PatientSearchResult }) {
       {patient.notes && (
         <p className="mt-1 line-clamp-2 text-xs text-slate-500">{patient.notes}</p>
       )}
-    </Link>
+    </button>
+  );
+}
+
+function PatientDetailOverlay({
+  result,
+  onClose,
+}: {
+  result: PatientSearchResult;
+  onClose: () => void;
+}) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const { patient, hospital } = result;
+  const condition = PATIENT_CONDITION_META[patient.condition];
+  const status = PATIENT_STATUS_META[patient.status];
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    const onPointerDown = (event: PointerEvent) => {
+      if (
+        panelRef.current &&
+        !panelRef.current.contains(event.target as Node)
+      ) {
+        onClose();
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
+  }, [onClose]);
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Detalle de paciente ${patient.name}`}
+      className="fixed inset-0 z-[2100] flex items-center justify-center bg-slate-950/45 px-4 py-6 backdrop-blur-sm"
+    >
+      <div
+        ref={panelRef}
+        className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl"
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Paciente registrado
+            </p>
+            <h3 className="mt-1 text-xl font-bold text-slate-900">
+              {patient.name}
+            </h3>
+            {patient.age !== null && (
+              <p className="mt-0.5 text-sm text-slate-500">
+                {patient.age} años
+              </p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Cerrar detalle"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-slate-100 text-xl leading-none text-slate-600 transition hover:bg-slate-200"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          <span
+            className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-white"
+            style={{ background: status.color }}
+          >
+            {status.label}
+          </span>
+          <span
+            className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-white"
+            style={{ background: condition.color }}
+          >
+            {condition.label}
+          </span>
+        </div>
+
+        <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-2">
+          <DetailRow label="Hospital" value={hospital.name} />
+          <DetailRow
+            label="Ubicación"
+            value={[hospital.state, hospital.municipality]
+              .filter(Boolean)
+              .join(" · ")}
+          />
+          <DetailRow
+            label="Registrado"
+            value={new Date(patient.admittedAt).toLocaleString("es-VE")}
+          />
+          <DetailRow
+            label="Actualizado"
+            value={new Date(patient.updatedAt).toLocaleString("es-VE")}
+          />
+          {patient.contact && <DetailRow label="Contacto" value={patient.contact} />}
+        </dl>
+
+        {patient.notes && (
+          <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Notas
+            </p>
+            <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-slate-700">
+              {patient.notes}
+            </p>
+          </div>
+        )}
+
+        <div className="mt-5 flex flex-wrap justify-end gap-2">
+          <Link
+            href={`/hospitales/${hospital.id}#paciente-${patient.id}`}
+            prefetch={false}
+            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
+          >
+            Abrir hospital
+          </Link>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-red-700"
+          >
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  if (!value) return null;
+  return (
+    <div>
+      <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        {label}
+      </dt>
+      <dd className="mt-0.5 text-slate-800">{value}</dd>
+    </div>
   );
 }
 
