@@ -384,6 +384,78 @@ export default function Home() {
             </div>
           </div>
 
+          <div className="mt-10 border-t border-slate-100 pt-8">
+            <h3 className="text-base font-bold text-slate-900">
+              🔗 Sitios aliados
+            </h3>
+            <p className="mt-1 text-sm text-slate-600">
+              Otras plataformas ciudadanas que ayudan ante el terremoto.
+              Compártelas para llegar a más personas.
+            </p>
+            <div className="mt-4 grid gap-6 sm:grid-cols-2">
+              <div>
+                <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  🗺️ Mapas y daños
+                </h4>
+                <ul className="mt-2 space-y-2">
+                  <li>
+                    <a
+                      href="https://terremotovenezuela.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm transition hover:border-slate-300 hover:bg-slate-50"
+                    >
+                      <span className="font-semibold text-slate-900">
+                        Terremoto Venezuela
+                      </span>
+                      <span className="block text-xs text-slate-500">
+                        Mapa colaborativo de daños en edificaciones
+                      </span>
+                    </a>
+                  </li>
+                </ul>
+              </div>
+
+              <div>
+                <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  🔍 Búsqueda de personas
+                </h4>
+                <ul className="mt-2 space-y-2">
+                  <li>
+                    <a
+                      href="https://venezuelatebusca.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm transition hover:border-slate-300 hover:bg-slate-50"
+                    >
+                      <span className="font-semibold text-slate-900">
+                        Venezuela Te Busca
+                      </span>
+                      <span className="block text-xs text-slate-500">
+                        Registro centralizado de personas desaparecidas
+                      </span>
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href="https://venezuelareporta.org"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm transition hover:border-slate-300 hover:bg-slate-50"
+                    >
+                      <span className="font-semibold text-slate-900">
+                        Venezuela Reporta
+                      </span>
+                      <span className="block text-xs text-slate-500">
+                        Reporta desaparecidos, confirma a salvo o avistamientos
+                      </span>
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
           <div className="mt-8 flex flex-col items-center justify-between gap-2 border-t border-slate-100 pt-6 text-center text-xs text-slate-500 sm:flex-row sm:text-left">
             <p>
               Plataforma de reporte ciudadano. Datos de mapas ©{" "}
