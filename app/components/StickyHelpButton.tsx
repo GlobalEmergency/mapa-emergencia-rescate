@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import { CONTACT_EMAIL, contactMailto, psychologyHelpUrl } from "@/lib/site";
+import { psychologyHelpUrl } from "@/lib/site";
 
 function psychologyClickLabel(count: number): string {
   const n = count.toLocaleString("es-VE");
@@ -13,12 +13,20 @@ export default function StickyHelpButton() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [visible, setVisible] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const [clickCount, setClickCount] = useState<number | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const psychologyUrl = psychologyHelpUrl();
   const psychologyIsExternal = !psychologyUrl.startsWith("mailto:");
 
   useEffect(() => {
+    const mobileQuery = window.matchMedia("(max-width: 767px)");
+    setIsMobile(mobileQuery.matches);
+    if (mobileQuery.matches) {
+      setVisible(true);
+      return;
+    }
+
     let scrolled = false;
     let timerDone = false;
     let cancelled = false;
@@ -105,12 +113,12 @@ export default function StickyHelpButton() {
   return (
     <div
       ref={rootRef}
-      aria-hidden={!visible}
-      inert={!visible ? true : undefined}
-      className={`fixed bottom-[calc(3.75rem+env(safe-area-inset-bottom))] right-3 z-[1900] flex flex-col items-end gap-3 transition-all duration-500 ease-out md:bottom-[max(1rem,env(safe-area-inset-bottom))] md:right-4 ${
+      aria-hidden={!visible && !isMobile}
+      inert={!visible && !isMobile ? true : undefined}
+      className={`fixed bottom-[calc(3.75rem+env(safe-area-inset-bottom))] right-3 z-[1900] flex flex-col items-end gap-3 transition-all duration-500 ease-out md:bottom-[max(1rem,env(safe-area-inset-bottom))] md:right-4 max-md:pointer-events-auto max-md:translate-y-0 max-md:scale-100 max-md:opacity-100 ${
         visible
           ? "pointer-events-auto translate-y-0 scale-100 opacity-100"
-          : "pointer-events-none translate-y-3 scale-95 opacity-0"
+          : "pointer-events-none translate-y-3 scale-95 opacity-0 md:pointer-events-none md:translate-y-3 md:scale-95 md:opacity-0"
       }`}
     >
       <div
@@ -153,16 +161,6 @@ export default function StickyHelpButton() {
           ) : null}
         </a>
 
-        <a
-          role="menuitem"
-          href={contactMailto()}
-          onClick={() => setOpen(false)}
-          className="mt-2 flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-100"
-        >
-          <span aria-hidden>✉️</span>
-          {CONTACT_EMAIL}
-        </a>
-
         <p className="mt-3 text-[11px] leading-relaxed text-slate-400">
           Si estás en peligro inmediato, llama a los servicios de emergencia
           (171 / 911).
@@ -174,16 +172,18 @@ export default function StickyHelpButton() {
         aria-expanded={open}
         aria-haspopup="menu"
         aria-controls="sticky-help-menu"
-        aria-label={open ? "Cerrar menú de ayuda" : "Abrir menú de ayuda"}
+        aria-label={
+          open ? "Cerrar menú de apoyo psicológico" : "Abrir menú de apoyo psicológico"
+        }
         onClick={() => setOpen((value) => !value)}
-        className={`relative flex min-h-12 items-center gap-2 rounded-full bg-violet-600 px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-violet-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-400 ${
+        className={`relative flex min-h-12 max-w-[calc(100vw-1.5rem)] items-center gap-2 rounded-full bg-violet-600 px-3 py-3 text-xs font-semibold text-white shadow-lg transition hover:bg-violet-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-400 sm:max-w-none sm:px-4 sm:text-sm ${
           open ? "" : "animate-pulse-soft"
         }`}
       >
-        <span aria-hidden className="text-base">
-          {open ? "×" : "🆘"}
+        <span aria-hidden className="shrink-0 text-base">
+          {open ? "×" : "💜"}
         </span>
-        {open ? "Cerrar" : "Ayuda"}
+        <span className="truncate">{open ? "Cerrar" : "Apoyo psicológico"}</span>
       </button>
     </div>
   );
