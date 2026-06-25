@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import PwaRegister from "./components/PwaRegister";
+import MourningRibbon from "./components/MourningRibbon";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -115,23 +116,8 @@ export default function RootLayout({
           }}
         />
 
-        {/* Cinta de luto en memoria de las víctimas del terremoto */}
-        <span
-          title="En memoria de las víctimas del terremoto"
-          aria-label="En memoria de las víctimas del terremoto"
-          className="fixed right-3 top-3.5 z-[1500] block h-8 w-7 drop-shadow-sm"
-        >
-          <span
-            aria-hidden
-            style={{ transformOrigin: "center 28%" }}
-            className="absolute left-1/2 top-0 h-8 w-[5px] -translate-x-1/2 rotate-[24deg] rounded-full bg-neutral-900"
-          />
-          <span
-            aria-hidden
-            style={{ transformOrigin: "center 28%" }}
-            className="absolute left-1/2 top-0 h-8 w-[5px] -translate-x-1/2 -rotate-[24deg] rounded-full bg-neutral-900"
-          />
-        </span>
+        {/* Cinta de luto: solo en páginas de cara al público, no en /admin */}
+        <MourningRibbon />
 
         {children}
         <PwaRegister />
