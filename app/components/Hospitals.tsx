@@ -23,6 +23,7 @@ interface PatientSearchResult {
     name: string;
     state: string;
     municipality: string;
+    address: string;
   };
 }
 
@@ -536,6 +537,10 @@ function PatientDetailOverlay({
   const { patient, hospital } = result;
   const condition = PATIENT_CONDITION_META[patient.condition];
   const status = PATIENT_STATUS_META[patient.status];
+  const hospitalLocation = [hospital.state, hospital.municipality]
+    .filter(Boolean)
+    .join(" · ");
+  const directionsHref = getDirectionsHref(hospital);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -610,12 +615,7 @@ function PatientDetailOverlay({
 
         <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-2">
           <DetailRow label="Hospital" value={hospital.name} />
-          <DetailRow
-            label="Ubicación"
-            value={[hospital.state, hospital.municipality]
-              .filter(Boolean)
-              .join(" · ")}
-          />
+          <DetailRow label="Ubicación" value={hospitalLocation} />
           <DetailRow
             label="Registrado"
             value={new Date(patient.admittedAt).toLocaleString("es-VE")}
@@ -626,6 +626,30 @@ function PatientDetailOverlay({
           />
           {patient.contact && <DetailRow label="Contacto" value={patient.contact} />}
         </dl>
+
+        <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50/70 p-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-wide text-blue-800">
+                Dirección del hospital
+              </p>
+              <p className="mt-1 text-sm font-medium leading-relaxed text-slate-900">
+                {hospital.address || hospitalLocation || hospital.name}
+              </p>
+              {hospital.address && hospitalLocation && (
+                <p className="mt-1 text-xs text-slate-600">{hospitalLocation}</p>
+              )}
+            </div>
+            <a
+              href={directionsHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex shrink-0 items-center justify-center rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+            >
+              Cómo llegar
+            </a>
+          </div>
+        </div>
 
         {patient.notes && (
           <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
@@ -657,6 +681,20 @@ function PatientDetailOverlay({
       </div>
     </div>
   );
+}
+
+function getDirectionsHref(hospital: PatientSearchResult["hospital"]) {
+  const query = [
+    hospital.name,
+    hospital.address,
+    hospital.municipality,
+    hospital.state,
+    "Venezuela",
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 }
 
 function DetailRow({ label, value }: { label: string; value: string }) {

@@ -382,6 +382,7 @@ export interface PatientSearchResult {
     name: string;
     state: string;
     municipality: string;
+    address: string;
   };
 }
 
@@ -405,7 +406,8 @@ export async function searchPatients(
         p.notes, p.contact, p.admitted_at, p.updated_at,
         h.name AS hospital_name,
         h.state AS hospital_state,
-        h.municipality AS hospital_municipality
+        h.municipality AS hospital_municipality,
+        h.address AS hospital_address
       FROM hospital_patients p
       INNER JOIN hospitals h ON h.id = p.hospital_id
     `;
@@ -424,6 +426,7 @@ export async function searchPatients(
         hospital_name: string;
         hospital_state: string;
         hospital_municipality: string;
+        hospital_address: string;
       })[];
 
       return rows.map((r) => ({
@@ -433,6 +436,7 @@ export async function searchPatients(
           name: r.hospital_name,
           state: r.hospital_state,
           municipality: r.hospital_municipality,
+          address: r.hospital_address,
         },
       }));
     }
@@ -464,6 +468,7 @@ export async function searchPatients(
       hospital_name: string;
       hospital_state: string;
       hospital_municipality: string;
+      hospital_address: string;
     })[];
 
     return rows.map((r) => ({
@@ -473,6 +478,7 @@ export async function searchPatients(
         name: r.hospital_name,
         state: r.hospital_state,
         municipality: r.hospital_municipality,
+        address: r.hospital_address,
       },
     }));
   }
@@ -490,6 +496,7 @@ export async function searchPatients(
             name: h.name,
             state: h.state,
             municipality: h.municipality,
+            address: h.address,
           },
         };
       })
@@ -519,6 +526,7 @@ export async function searchPatients(
         name: h.name,
         state: h.state,
         municipality: h.municipality,
+        address: h.address,
       },
     });
   }
