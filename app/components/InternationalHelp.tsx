@@ -55,6 +55,47 @@ interface CountryOffice {
 
 const OFFICES: CountryOffice[] = [
   {
+    country: "Alemania",
+    countryCode: "DE",
+    organization: "Deutsches Rotes Kreuz / Aktion Deutschland Hilft",
+    lines: [
+      {
+        type: "web",
+        label: "DRK - Venezuela: Erdbebenhilfe",
+        href: "https://www.drk.de/hilfe-weltweit/wo-wir-helfen/lateinamerika/venezuela-erdbebenhilfe/",
+      },
+      {
+        type: "web",
+        label: "Aktion Deutschland Hilft - Erdbeben Venezuela",
+        href: "https://www.aktion-deutschland-hilft.de/de/hilfseinsaetze/erdbeben-venezuela-spenden-sie-jetzt/",
+      },
+    ],
+    shareChannels: [
+      {
+        name: "Deutsches Rotes Kreuz",
+        description:
+          "Cruz Roja Alemana recaudando fondos para apoyar a las personas afectadas por los terremotos en Venezuela.",
+        href: "https://www.drk.de/hilfe-weltweit/wo-wir-helfen/lateinamerika/venezuela-erdbebenhilfe/",
+        source: "Deutsches Rotes Kreuz",
+        sourceHref:
+          "https://www.drk.de/hilfe-weltweit/wo-wir-helfen/lateinamerika/venezuela-erdbebenhilfe/",
+        updatedAt: "25 jun 2026",
+        status: "verified",
+      },
+      {
+        name: "Aktion Deutschland Hilft",
+        description:
+          "Alianza alemana de organizaciones humanitarias con cuenta de donación específica para Erdbeben Venezuela.",
+        href: "https://www.aktion-deutschland-hilft.de/de/hilfseinsaetze/erdbeben-venezuela-spenden-sie-jetzt/",
+        source: "Aktion Deutschland Hilft",
+        sourceHref:
+          "https://www.aktion-deutschland-hilft.de/de/hilfseinsaetze/erdbeben-venezuela-spenden-sie-jetzt/",
+        updatedAt: "25 jun 2026",
+        status: "verified",
+      },
+    ],
+  },
+  {
     country: "Argentina",
     countryCode: "AR",
     organization: "Cruz Roja Argentina",
@@ -689,6 +730,57 @@ const OFFICES: CountryOffice[] = [
     ],
   },
   {
+    country: "Italia",
+    countryCode: "IT",
+    organization: "Croce Rossa Italiana / Save the Children Italia",
+    lines: [
+      {
+        type: "web",
+        label: "Croce Rossa Italiana - raccolta fondi",
+        href: "https://cri.it/",
+      },
+      {
+        type: "web",
+        label: "Save the Children Italia - Terremoto Venezuela",
+        href: "https://www.savethechildren.it/blog-notizie/terremoto-venezuela-bambini-e-famiglie-emergenza",
+      },
+    ],
+    shareChannels: [
+      {
+        name: "Croce Rossa Italiana",
+        description:
+          "Raccolta fondi de Cruz Roja Italiana para apoyar a la población golpeada por los terremotos.",
+        href: "https://cri.it/",
+        source: "Croce Rossa Italiana",
+        sourceHref: "https://cri.it/",
+        updatedAt: "25 jun 2026",
+        status: "verified",
+      },
+      {
+        name: "Save the Children Italia",
+        description:
+          "Canal italiano de Save the Children para apoyo a niños y familias afectadas.",
+        href: "https://www.savethechildren.it/blog-notizie/terremoto-venezuela-bambini-e-famiglie-emergenza",
+        source: "Save the Children Italia",
+        sourceHref:
+          "https://www.savethechildren.it/blog-notizie/terremoto-venezuela-bambini-e-famiglie-emergenza",
+        updatedAt: "25 jun 2026",
+        status: "verified",
+      },
+      {
+        name: "Caritas Ambrosiana",
+        description:
+          "Raccolta fondi italiana con causale Emergenza terremoto Venezuela, coordinada con la red Caritas.",
+        href: "https://www.chiesadimilano.it/news/attualita/venezuela-terremoto-aiuti-caritas-2876946.html",
+        source: "Chiesa di Milano",
+        sourceHref:
+          "https://www.chiesadimilano.it/news/attualita/venezuela-terremoto-aiuti-caritas-2876946.html",
+        updatedAt: "25 jun 2026",
+        status: "verified",
+      },
+    ],
+  },
+  {
     country: "México",
     countryCode: "MX",
     organization: "Cruz Roja Mexicana",
@@ -1135,6 +1227,7 @@ const CONTACT_ICON = {
 } satisfies Record<ContactLine["type"], typeof Phone>;
 
 const TIME_ZONE_COUNTRY_CODES: Record<string, string> = {
+  "Europe/Berlin": "DE",
   "America/Argentina/Buenos_Aires": "AR",
   "America/Aruba": "AW",
   "Australia/Sydney": "AU",
@@ -1156,6 +1249,7 @@ const TIME_ZONE_COUNTRY_CODES: Record<string, string> = {
   "Europe/Paris": "FR",
   "America/Tegucigalpa": "HN",
   "Europe/Dublin": "IE",
+  "Europe/Rome": "IT",
   "America/Mexico_City": "MX",
   "Pacific/Auckland": "NZ",
   "America/Panama": "PA",
