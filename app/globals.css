@@ -21,6 +21,17 @@ body.has-mobile-nav {
   padding-bottom: calc(3.75rem + env(safe-area-inset-bottom));
 }
 
+@media (max-width: 767px) {
+  main [id] {
+    scroll-margin-bottom: calc(4rem + env(safe-area-inset-bottom));
+  }
+}
+
+body.mobile-sheet-open {
+  overflow: hidden;
+  touch-action: none;
+}
+
 @media (min-width: 768px) {
   body.has-mobile-nav {
     padding-bottom: 0;

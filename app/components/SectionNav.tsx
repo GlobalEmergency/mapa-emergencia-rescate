@@ -11,6 +11,47 @@ import {
 const SHARE_TEXT =
   "Mapa de Emergencia y Rescate: Terremoto en Venezuela. Reporta y consulta el estado de las zonas en tiempo real.";
 
+const MOBILE_NAV_BOTTOM = "calc(3.25rem + env(safe-area-inset-bottom))";
+
+/** Navegación por ancla compatible con iOS Safari y barra inferior fija. */
+function scrollToSection(href: string) {
+  const id = href.replace(/^#/, "");
+  if (!id) return;
+
+  const target = document.getElementById(id);
+  if (target) {
+    target.scrollIntoView({ behavior: "smooth", block: "start" });
+    window.history.replaceState(null, "", `#${id}`);
+    return;
+  }
+
+  window.location.hash = id;
+}
+
+function useIosScrollLock(active: boolean) {
+  useEffect(() => {
+    if (!active) return;
+
+    const scrollY = window.scrollY;
+    document.body.classList.add("mobile-sheet-open");
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.left = "0";
+    document.body.style.right = "0";
+    document.body.style.width = "100%";
+
+    return () => {
+      document.body.classList.remove("mobile-sheet-open");
+      document.body.style.position = "";
+      document.body.style.top = "";
+      document.body.style.left = "";
+      document.body.style.right = "";
+      document.body.style.width = "";
+      window.scrollTo(0, scrollY);
+    };
+  }, [active]);
+}
+
 function usePeopleTotals() {
   const [missing, setMissing] = useState<number | null>(null);
   const [found, setFound] = useState<number | null>(null);
@@ -153,10 +194,17 @@ export function HeroDesktopNav() {
   );
 }
 
-function ShareNavButton({ variant }: { variant: "desktop" | "sheet" }) {
+function ShareNavButton({
+  variant,
+  onAfterShare,
+}: {
+  variant: "desktop" | "sheet";
+  onAfterShare?: () => void;
+}) {
   const [copied, setCopied] = useState(false);
 
   const handleShare = useCallback(async () => {
+    onAfterShare?.();
     const url = window.location.href;
     if (navigator.share) {
       try {
@@ -177,7 +225,7 @@ function ShareNavButton({ variant }: { variant: "desktop" | "sheet" }) {
     } catch {
       /* sin permisos */
     }
-  }, []);
+  }, [onAfterShare]);
 
   if (variant === "desktop") {
     return (
@@ -214,21 +262,33 @@ export function MobileStickyNav() {
     return () => document.body.classList.remove("has-mobile-nav");
   }, []);
 
+  useIosScrollLock(sheetOpen);
+
   useEffect(() => {
     if (!sheetOpen) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setSheetOpen(false);
     };
     document.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
-    };
+    return () => document.removeEventListener("keydown", onKey);
   }, [sheetOpen]);
 
   const sheetLinks = SECTION_LINKS.filter((link) => !link.mobileBar);
+
+  const closeSheet = useCallback(() => setSheetOpen(false), []);
+
+  const navigateFromSheet = useCallback((href: string) => {
+    setSheetOpen(false);
+    window.setTimeout(() => scrollToSection(href), 50);
+  }, []);
+
+  const navigateFromBar = useCallback(
+    (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+      e.preventDefault();
+      scrollToSection(href);
+    },
+    [],
+  );
 
   return (
     <>
@@ -243,7 +303,8 @@ export function MobileStickyNav() {
               <a
                 key={link.href}
                 href={link.href}
-                className="flex min-h-[3.25rem] flex-col items-center justify-center gap-0.5 px-1 py-2 text-[10px] font-semibold text-slate-700 transition active:bg-slate-100"
+                onClick={(e) => navigateFromBar(e, link.href)}
+                className="flex min-h-[3.25rem] touch-manipulation flex-col items-center justify-center gap-0.5 px-1 py-2 text-[10px] font-semibold text-slate-700 transition active:bg-slate-100"
               >
                 <span className="relative text-lg leading-none" aria-hidden>
                   {link.icon}
@@ -261,75 +322,76 @@ export function MobileStickyNav() {
             type="button"
             aria-expanded={sheetOpen}
             aria-controls="mobile-section-sheet"
-            onClick={() => setSheetOpen(true)}
-            className="flex min-h-[3.25rem] flex-col items-center justify-center gap-0.5 px-1 py-2 text-[10px] font-semibold text-slate-700 transition active:bg-slate-100"
+            onClick={() => setSheetOpen((open) => !open)}
+            className="flex min-h-[3.25rem] touch-manipulation flex-col items-center justify-center gap-0.5 px-1 py-2 text-[10px] font-semibold text-slate-700 transition active:bg-slate-100"
           >
             <span className="text-lg leading-none" aria-hidden>
-              ☰
+              {sheetOpen ? "×" : "☰"}
             </span>
-            Más
+            {sheetOpen ? "Cerrar" : "Más"}
           </button>
         </div>
       </nav>
 
       {sheetOpen && (
-        <div
-          className="fixed inset-0 z-[1860] bg-slate-900/50 md:hidden"
-          aria-hidden
-          onClick={() => setSheetOpen(false)}
-        />
-      )}
-
-      <div
-        id="mobile-section-sheet"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Más secciones"
-        aria-hidden={!sheetOpen}
-        inert={!sheetOpen ? true : undefined}
-        className={`fixed inset-x-0 bottom-0 z-[1870] max-h-[min(70vh,28rem)] overflow-y-auto rounded-t-2xl border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] shadow-2xl transition-transform duration-300 ease-out md:hidden ${
-          sheetOpen ? "translate-y-0" : "translate-y-full pointer-events-none"
-        }`}
-      >
-        <div className="sticky top-0 flex items-center justify-between border-b border-slate-100 bg-white px-4 py-3">
-          <p className="text-sm font-bold text-slate-900">Más secciones</p>
+        <>
           <button
             type="button"
-            onClick={() => setSheetOpen(false)}
-            aria-label="Cerrar menú"
-            className="grid h-9 w-9 place-items-center rounded-full bg-slate-100 text-lg text-slate-600"
+            aria-label="Cerrar menú de secciones"
+            style={{ bottom: MOBILE_NAV_BOTTOM }}
+            className="fixed inset-x-0 top-0 z-[1860] touch-manipulation bg-slate-900/50 md:hidden"
+            onClick={closeSheet}
+          />
+
+          <div
+            id="mobile-section-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Más secciones"
+            style={{ bottom: MOBILE_NAV_BOTTOM }}
+            className="fixed inset-x-0 z-[1870] flex max-h-[min(60vh,24rem)] flex-col rounded-t-2xl border-t border-slate-200 bg-white shadow-2xl md:hidden"
           >
-            ×
-          </button>
-        </div>
-        <ul className="grid gap-1 p-3">
-          {sheetLinks.map((link) => {
-            const badge = badgeValue(link, missing, found);
-            return (
-              <li key={link.href}>
-                <a
-                  href={link.href}
-                  onClick={() => setSheetOpen(false)}
-                  className="flex min-h-12 items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold text-slate-800 transition hover:bg-slate-50 active:bg-slate-100"
-                >
-                  <span className="text-xl" aria-hidden>
-                    {link.icon}
-                  </span>
-                  <span className="flex-1">{link.label}</span>
-                  {badge && (
-                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-700">
-                      {badge}
-                    </span>
-                  )}
-                </a>
+            <div className="flex shrink-0 items-center justify-between border-b border-slate-100 px-4 py-3">
+              <p className="text-sm font-bold text-slate-900">Más secciones</p>
+              <button
+                type="button"
+                onClick={closeSheet}
+                aria-label="Cerrar menú"
+                className="grid h-10 w-10 touch-manipulation place-items-center rounded-full bg-slate-100 text-lg text-slate-600"
+              >
+                ×
+              </button>
+            </div>
+            <ul className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 [-webkit-overflow-scrolling:touch]">
+              {sheetLinks.map((link) => {
+                const badge = badgeValue(link, missing, found);
+                return (
+                  <li key={link.href}>
+                    <button
+                      type="button"
+                      onClick={() => navigateFromSheet(link.href)}
+                      className="flex min-h-12 w-full touch-manipulation items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-semibold text-slate-800 transition active:bg-slate-100"
+                    >
+                      <span className="text-xl" aria-hidden>
+                        {link.icon}
+                      </span>
+                      <span className="flex-1">{link.label}</span>
+                      {badge && (
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-700">
+                          {badge}
+                        </span>
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
+              <li className="pt-2">
+                <ShareNavButton variant="sheet" onAfterShare={closeSheet} />
               </li>
-            );
-          })}
-          <li className="pt-2">
-            <ShareNavButton variant="sheet" />
-          </li>
-        </ul>
-      </div>
+            </ul>
+          </div>
+        </>
+      )}
     </>
   );
 }
@@ -339,7 +401,13 @@ export function HeroMobileCta() {
   return (
     <a
       href={PRIMARY_MAP_LINK.href}
-      className="mt-5 inline-flex min-h-12 w-full max-w-sm items-center justify-center gap-2 rounded-xl bg-red-600 px-6 py-3 text-sm font-bold text-white shadow-lg transition hover:bg-red-500 md:hidden"
+      onClick={(e) => {
+        if (window.matchMedia("(max-width: 767px)").matches) {
+          e.preventDefault();
+          scrollToSection(PRIMARY_MAP_LINK.href);
+        }
+      }}
+      className="mt-5 inline-flex min-h-12 w-full max-w-sm touch-manipulation items-center justify-center gap-2 rounded-xl bg-red-600 px-6 py-3 text-sm font-bold text-white shadow-lg transition hover:bg-red-500 md:hidden"
     >
       <span aria-hidden>{PRIMARY_MAP_LINK.icon}</span>
       {PRIMARY_MAP_LINK.label}
