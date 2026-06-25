@@ -8,6 +8,7 @@ import {
   type ReportType,
 } from "@/lib/types";
 import AdminLogin from "../components/AdminLogin";
+import { formatDonationUsd } from "@/lib/donation-shared";
 
 const ADMIN_STORAGE_KEY = "emergency:adminToken";
 const POLL_INTERVAL_MS = 7000;
@@ -38,20 +39,6 @@ interface Message {
   text: string;
   createdAt: number;
 }
-interface Person {
-  id: string;
-  name: string;
-  age: number | null;
-  description: string;
-  lastSeen: string;
-  contact: string;
-  photoUrl: string | null;
-  status?: "active" | "found";
-  resolutionNote?: string | null;
-  resolutionPhotoUrl?: string | null;
-  resolvedAt?: number | null;
-  createdAt: number;
-}
 interface AdminData {
   generatedAt: number;
   persistent: boolean;
@@ -77,7 +64,41 @@ interface AdminData {
   people: Person[];
 }
 
-type Tab = "analytics" | "reports" | "chat" | "missing";
+interface Person {
+  id: string;
+  name: string;
+  age: number | null;
+  description: string;
+  lastSeen: string;
+  contact: string;
+  photoUrl: string | null;
+  status?: "active" | "found";
+  resolutionNote?: string | null;
+  resolutionPhotoUrl?: string | null;
+  resolvedAt?: number | null;
+  createdAt: number;
+}
+
+interface DonationRow {
+  id: string;
+  name: string;
+  amountCents: number;
+  createdAt: number;
+}
+
+interface AdminDonationsData {
+  generatedAt: number;
+  stats: {
+    count: number;
+    totalCents: number;
+    last24hCount: number;
+    last24hCents: number;
+  };
+  donations: DonationRow[];
+}
+
+type Tab = "analytics" | "reports" | "chat" | "missing" | "donations";
+type RemovableTab = "reports" | "chat" | "missing";
 
 function timeAgo(ts: number): string {
   const s = Math.max(0, Math.round((Date.now() - ts) / 1000));
@@ -136,6 +157,9 @@ export default function AdminDashboard() {
   const [token, setToken] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [data, setData] = useState<AdminData | null>(null);
+  const [donationsData, setDonationsData] = useState<AdminDonationsData | null>(
+    null,
+  );
   const [tab, setTab] = useState<Tab>("analytics");
   const [query, setQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -177,6 +201,27 @@ export default function AdminDashboard() {
     }
   }, [logout]);
 
+  const fetchDonations = useCallback(async () => {
+    const current = sessionStorage.getItem(ADMIN_STORAGE_KEY);
+    if (!current) return;
+    try {
+      const res = await fetch("/api/admin/donations", {
+        headers: { "x-admin-token": current },
+        cache: "no-store",
+      });
+      if (res.status === 401) {
+        logout();
+        setError("Tu sesión expiró. Vuelve a iniciar sesión.");
+        return;
+      }
+      if (!res.ok) return;
+      setDonationsData(await res.json());
+      setError(null);
+    } catch {
+      // se reintenta en el siguiente ciclo
+    }
+  }, [logout]);
+
   useEffect(() => {
     if (!token) return;
     let interval: ReturnType<typeof setInterval> | null = null;
@@ -201,8 +246,32 @@ export default function AdminDashboard() {
     };
   }, [token, fetchData]);
 
+  useEffect(() => {
+    if (!token || tab !== "donations") return;
+    let interval: ReturnType<typeof setInterval> | null = null;
+    const start = () => {
+      if (interval) return;
+      fetchDonations();
+      interval = setInterval(fetchDonations, POLL_INTERVAL_MS);
+    };
+    const stop = () => {
+      if (interval) clearInterval(interval);
+      interval = null;
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") start();
+      else stop();
+    };
+    onVisibility();
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      stop();
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [token, tab, fetchDonations]);
+
   const remove = useCallback(
-    async (kind: Tab, id: string) => {
+    async (kind: RemovableTab, id: string) => {
       if (!token) return;
       const endpoint =
         kind === "reports"
@@ -255,6 +324,40 @@ export default function AdminDashboard() {
       return terms.every((t) => hay.includes(t));
     });
   }, [data, query]);
+
+  const filteredDonations = useMemo(() => {
+    if (!donationsData) return [];
+    const terms = normalize(query).split(/\s+/).filter(Boolean);
+    return donationsData.donations.filter((donation) => {
+      if (terms.length === 0) return true;
+      const hay = normalize(`${donation.name} ${formatDonationUsd(donation.amountCents)}`);
+      return terms.every((t) => hay.includes(t));
+    });
+  }, [donationsData, query]);
+
+  const exportDonationsCsv = useCallback(() => {
+    if (!filteredDonations.length) return;
+    const rows = [
+      ["nombre", "monto_usd", "fecha"],
+      ...filteredDonations.map((donation) => [
+        donation.name,
+        (donation.amountCents / 100).toFixed(2),
+        new Date(donation.createdAt).toISOString(),
+      ]),
+    ];
+    const csv = rows
+      .map((row) =>
+        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","),
+      )
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `donaciones-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }, [filteredDonations]);
 
   if (!ready) return null;
 
@@ -384,6 +487,10 @@ export default function AdminDashboard() {
               ["reports", `Reportes (${data?.reports.length ?? 0})`],
               ["missing", `Desaparecidas (${data?.people.length ?? 0})`],
               ["chat", `Chat (${data?.messages.length ?? 0})`],
+              [
+                "donations",
+                `Donaciones (${donationsData?.stats.count ?? 0})`,
+              ],
             ] as [Tab, string][]
           ).map(([key, label]) => (
             <button
@@ -700,6 +807,99 @@ export default function AdminDashboard() {
                   ))
               )}
             </ul>
+          )}
+
+          {tab === "donations" && (
+            <section>
+              <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-100 p-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">
+                    Donaciones
+                  </p>
+                  <h2 className="mt-1 text-lg font-bold text-slate-900">
+                    Intenciones registradas
+                  </h2>
+                  <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600">
+                    Lista de personas que iniciaron una donación desde el sitio.
+                    Los montos reflejan lo declarado antes de ir a PayPal.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={exportDonationsCsv}
+                  disabled={filteredDonations.length === 0}
+                  className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                >
+                  Exportar CSV
+                </button>
+              </div>
+
+              <div className="grid gap-3 border-b border-slate-100 bg-slate-50 p-4 sm:grid-cols-3">
+                <MetricCard
+                  label="Total recaudado"
+                  value={
+                    donationsData
+                      ? formatDonationUsd(donationsData.stats.totalCents)
+                      : "—"
+                  }
+                  sub="Suma de montos declarados"
+                  accent="#d97706"
+                />
+                <MetricCard
+                  label="Donantes"
+                  value={donationsData?.stats.count ?? "—"}
+                  sub="Personas que iniciaron donación"
+                />
+                <MetricCard
+                  label="Últimas 24 h"
+                  value={
+                    donationsData
+                      ? `${donationsData.stats.last24hCount} · ${formatDonationUsd(donationsData.stats.last24hCents)}`
+                      : "—"
+                  }
+                  sub="Cantidad y monto del último día"
+                  accent="#9333ea"
+                />
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-left text-sm">
+                  <thead className="border-b border-slate-100 bg-white text-xs uppercase tracking-wide text-slate-500">
+                    <tr>
+                      <th className="px-4 py-3 font-semibold">Nombre</th>
+                      <th className="px-4 py-3 font-semibold">Monto</th>
+                      <th className="px-4 py-3 font-semibold">Fecha</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {filteredDonations.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={3}
+                          className="px-4 py-8 text-center text-slate-500"
+                        >
+                          {donationsData ? "Sin donaciones." : "Cargando donaciones…"}
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredDonations.map((donation) => (
+                        <tr key={donation.id} className="bg-white">
+                          <td className="px-4 py-3 font-medium text-slate-900">
+                            {donation.name}
+                          </td>
+                          <td className="px-4 py-3 text-slate-700">
+                            {formatDonationUsd(donation.amountCents)}
+                          </td>
+                          <td className="px-4 py-3 text-slate-500">
+                            {fmt(donation.createdAt)}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
           )}
         </div>
       </div>

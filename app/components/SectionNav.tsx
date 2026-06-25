@@ -18,6 +18,7 @@ import {
   Share2,
 } from "lucide-react";
 import TranslateWidget from "./TranslateWidget";
+import { DonateNavButton } from "./DonateButton";
 import {
   DESKTOP_NAV_GROUPS,
   MOBILE_BAR_LINKS,
@@ -364,7 +365,7 @@ export function HeroDesktopNav() {
           />
         ))}
         <PsychologyHelpNavButton />
-        <ShareNavButton variant="desktop" />
+        <DonateNavButton variant="desktop" />
       </div>
     </nav>
   );
@@ -611,6 +612,9 @@ export function MobileStickyNav() {
                   </li>
                 );
               })}
+              <li className="pt-2">
+                <DonateNavButton variant="sheet" onAfterDonate={closeSheet} />
+              </li>
               <li className="pt-2">
                 <div className="flex gap-2 px-1">
                   <div className="flex-1">

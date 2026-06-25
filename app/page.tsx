@@ -20,6 +20,10 @@ const MissingPersonsCarousel = dynamic(
   },
 );
 
+const DonationsTicker = dynamic(() => import("./components/DonationsTicker"), {
+  loading: () => null,
+});
+
 const MissingPersons = dynamic(() => import("./components/MissingPersons"), {
   loading: () => (
     <section className="mx-auto w-full max-w-7xl px-4 pb-14 text-sm text-slate-500">
@@ -97,6 +101,8 @@ export default function Home() {
       <MobileStickyNav />
 
       <MissingPersonsCarousel />
+
+      <DonationsTicker />
 
       <section id="tutorial" className="mx-auto w-full max-w-7xl px-4 py-10">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">

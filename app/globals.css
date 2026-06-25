@@ -149,3 +149,26 @@ summary {
 .animate-pulse-soft {
   animation: pulse-soft 2.4s ease-in-out infinite;
 }
+
+@keyframes donations-marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.donations-marquee__track {
+  animation: donations-marquee 40s linear infinite;
+}
+
+.donations-marquee:hover .donations-marquee__track {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .donations-marquee__track {
+    animation: none;
+  }
+}
