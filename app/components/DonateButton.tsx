@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useId, useState } from "react";
+import { createPortal } from "react-dom";
 import { HandCoins } from "lucide-react";
 import {
   MAX_DONATION_CENTS,
@@ -26,6 +27,7 @@ function DonateModal({
   onSuccess: () => void;
 }) {
   const titleId = useId();
+  const [mounted, setMounted] = useState(false);
   const [name, setName] = useState("");
   const [selectedCents, setSelectedCents] = useState<number>(2500);
   const [customMode, setCustomMode] = useState(false);
@@ -33,6 +35,18 @@ function DonateModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -108,11 +122,11 @@ function DonateModal({
     }
   };
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
   const previewCents = resolveAmountCents();
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-[2000] flex items-end justify-center bg-slate-900/60 p-4 sm:items-center"
       role="dialog"
@@ -256,7 +270,8 @@ function DonateModal({
           </button>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
