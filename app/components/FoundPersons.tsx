@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import MissingPersonDetail from "./MissingPersonDetail";
+import { useLowBandwidthMode } from "./useLowBandwidthMode";
 
 interface MissingPerson {
   id: string;
@@ -19,6 +20,7 @@ interface MissingPerson {
 }
 
 const POLL_INTERVAL_MS = 20_000;
+const LOW_BANDWIDTH_POLL_INTERVAL_MS = 60_000;
 
 function formatDate(ts: number | null | undefined): string {
   if (!ts) return "";
@@ -33,6 +35,10 @@ function formatDate(ts: number | null | undefined): string {
 export default function FoundPersons() {
   const [people, setPeople] = useState<MissingPerson[]>([]);
   const [selected, setSelected] = useState<MissingPerson | null>(null);
+  const network = useLowBandwidthMode(
+    POLL_INTERVAL_MS,
+    LOW_BANDWIDTH_POLL_INTERVAL_MS,
+  );
 
   const fetchFound = useCallback(async () => {
     try {
@@ -52,7 +58,7 @@ export default function FoundPersons() {
     const start = () => {
       if (interval) return;
       fetchFound();
-      interval = setInterval(fetchFound, POLL_INTERVAL_MS);
+      interval = setInterval(fetchFound, network.pollIntervalMs);
     };
     const stop = () => {
       if (interval) clearInterval(interval);
@@ -68,7 +74,7 @@ export default function FoundPersons() {
       stop();
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [fetchFound]);
+  }, [fetchFound, network.pollIntervalMs]);
 
   const sorted = useMemo(() => {
     // Más recientes primero según cuándo fueron localizadas.

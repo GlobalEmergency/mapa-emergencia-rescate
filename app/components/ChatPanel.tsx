@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useLowBandwidthMode } from "./useLowBandwidthMode";
 
 interface ChatMessage {
   id: string;
@@ -10,17 +11,26 @@ interface ChatMessage {
 }
 
 const POLL_INTERVAL_MS = 5000;
+const LOW_BANDWIDTH_POLL_INTERVAL_MS = 30_000;
 const ADMIN_STORAGE_KEY = "emergency:adminToken";
 const NAME_STORAGE_KEY = "emergency:chatName";
 const MAX_TEXT = 500;
 
 export default function ChatPanel() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [name, setName] = useState("");
+  const [name, setName] = useState(() =>
+    typeof window === "undefined"
+      ? ""
+      : (localStorage.getItem(NAME_STORAGE_KEY) ?? ""),
+  );
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [adminToken, setAdminToken] = useState<string | null>(null);
+  const network = useLowBandwidthMode(
+    POLL_INTERVAL_MS,
+    LOW_BANDWIDTH_POLL_INTERVAL_MS,
+  );
 
   const listRef = useRef<HTMLDivElement>(null);
   const atBottomRef = useRef(true);
@@ -38,15 +48,11 @@ export default function ChatPanel() {
   }, []);
 
   useEffect(() => {
-    setName(localStorage.getItem(NAME_STORAGE_KEY) ?? "");
-  }, []);
-
-  useEffect(() => {
     let interval: ReturnType<typeof setInterval> | null = null;
     const start = () => {
       if (interval) return;
       fetchMessages();
-      interval = setInterval(fetchMessages, POLL_INTERVAL_MS);
+      interval = setInterval(fetchMessages, network.pollIntervalMs);
     };
     const stop = () => {
       if (interval) clearInterval(interval);
@@ -62,7 +68,7 @@ export default function ChatPanel() {
       stop();
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [fetchMessages]);
+  }, [fetchMessages, network.pollIntervalMs]);
 
   useEffect(() => {
     if (atBottomRef.current && listRef.current) {

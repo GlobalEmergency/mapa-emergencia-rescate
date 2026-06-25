@@ -66,8 +66,8 @@ function copyFor(type: ReportType): FieldCopy {
   return { ...DEFAULT_COPY, ...COPY_BY_TYPE[type] };
 }
 
-const MAX_DIM = 1280;
-const JPEG_QUALITY = 0.7;
+const MAX_DIM = 960;
+const JPEG_QUALITY = 0.62;
 
 /** Redimensiona la imagen del usuario para reducir su peso antes de subirla. */
 async function fileToResizedDataUrl(file: File): Promise<string> {

@@ -11,6 +11,7 @@ import MissingPersonForm, {
   type MissingPersonPayload,
 } from "./MissingPersonForm";
 import MissingPersonDetail from "./MissingPersonDetail";
+import { useLowBandwidthMode } from "./useLowBandwidthMode";
 
 interface MissingPerson {
   id: string;
@@ -28,12 +29,17 @@ interface MissingPerson {
 }
 
 const POLL_INTERVAL_MS = 8000;
+const LOW_BANDWIDTH_POLL_INTERVAL_MS = 45_000;
 const MAX_PREVIEW = 24;
 
 export default function MissingPersonsCarousel() {
   const [people, setPeople] = useState<MissingPerson[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [selected, setSelected] = useState<MissingPerson | null>(null);
+  const network = useLowBandwidthMode(
+    POLL_INTERVAL_MS,
+    LOW_BANDWIDTH_POLL_INTERVAL_MS,
+  );
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -54,7 +60,7 @@ export default function MissingPersonsCarousel() {
     const start = () => {
       if (interval) return;
       fetchPeople();
-      interval = setInterval(fetchPeople, POLL_INTERVAL_MS);
+      interval = setInterval(fetchPeople, network.pollIntervalMs);
     };
     const stop = () => {
       if (interval) clearInterval(interval);
@@ -70,7 +76,7 @@ export default function MissingPersonsCarousel() {
       stop();
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [fetchPeople]);
+  }, [fetchPeople, network.pollIntervalMs]);
 
   const updateArrows = useCallback(() => {
     const node = scrollerRef.current;

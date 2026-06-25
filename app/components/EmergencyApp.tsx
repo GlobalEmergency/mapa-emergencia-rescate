@@ -11,6 +11,7 @@ import {
 import ReportForm from "./ReportForm";
 import AdminLogin from "./AdminLogin";
 import AddressSearch, { type GeocodeResult } from "./AddressSearch";
+import { useLowBandwidthMode } from "./useLowBandwidthMode";
 import { distanceMeters, freshnessClass, timeAgo } from "@/lib/format";
 
 const DUPLICATE_RADIUS_M = 50;
@@ -47,6 +48,7 @@ const AFFECTED_CENTER: { lat: number; lng: number } = {
   lng: CARACAS[1],
 };
 const POLL_INTERVAL_MS = 5000;
+const LOW_BANDWIDTH_POLL_INTERVAL_MS = 30_000;
 const ADMIN_STORAGE_KEY = "emergency:adminToken";
 
 /** Etiquetas cortas para el grid de contadores; el label completo va en
@@ -62,14 +64,31 @@ const REPORT_TYPE_SHORT: Record<ReportType, string> = {
 
 export default function EmergencyApp() {
   const [reports, setReports] = useState<EmergencyReport[]>([]);
+  const network = useLowBandwidthMode(
+    POLL_INTERVAL_MS,
+    LOW_BANDWIDTH_POLL_INTERVAL_MS,
+  );
+  const [interactiveMapEnabled, setInteractiveMapEnabled] = useState(false);
   const [draft, setDraft] = useState<{ lat: number; lng: number } | null>(null);
   const [persistent, setPersistent] = useState(true);
   const [filter, setFilter] = useState<ReportType | "all">("all");
-  const [confirmed, setConfirmed] = useState<Set<string>>(() => new Set());
+  const [confirmed, setConfirmed] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set();
+    try {
+      const stored = localStorage.getItem("emergency:confirmed");
+      return stored ? new Set(JSON.parse(stored)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("all");
   const [now, setNow] = useState<number>(() => Date.now());
   const [query, setQuery] = useState("");
-  const [adminToken, setAdminToken] = useState<string | null>(null);
+  const [adminToken, setAdminToken] = useState<string | null>(() =>
+    typeof window === "undefined"
+      ? null
+      : sessionStorage.getItem(ADMIN_STORAGE_KEY),
+  );
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [focus, setFocus] = useState<{
     lat: number;
@@ -81,14 +100,10 @@ export default function EmergencyApp() {
   const isAdmin = Boolean(adminToken);
 
   useEffect(() => {
-    setAdminToken(sessionStorage.getItem(ADMIN_STORAGE_KEY));
-    try {
-      const stored = localStorage.getItem("emergency:confirmed");
-      if (stored) setConfirmed(new Set(JSON.parse(stored)));
-    } catch {
-      // localStorage puede no estar disponible (modo privado de Safari, etc.)
-    }
-  }, []);
+    if (network.isConstrained) return;
+    const id = setTimeout(() => setInteractiveMapEnabled(true), 0);
+    return () => clearTimeout(id);
+  }, [network.isConstrained]);
 
   // Refresca el reloj cada 30 s para que las etiquetas "hace X min" se mantengan
   // al día sin tener que recargar los reportes desde el servidor.
@@ -158,7 +173,7 @@ export default function EmergencyApp() {
     const start = () => {
       if (interval) return;
       fetchReports();
-      interval = setInterval(fetchReports, POLL_INTERVAL_MS);
+      interval = setInterval(fetchReports, network.pollIntervalMs);
     };
     const stop = () => {
       if (interval) clearInterval(interval);
@@ -177,10 +192,27 @@ export default function EmergencyApp() {
       stop();
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [fetchReports]);
+  }, [fetchReports, network.pollIntervalMs]);
 
   const handlePick = useCallback((lat: number, lng: number) => {
     setDraft({ lat, lng });
+  }, []);
+
+  const handleReportFromLocation = useCallback(() => {
+    if (!("geolocation" in navigator)) {
+      setDraft({ lat: CARACAS[0], lng: CARACAS[1] });
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) =>
+        setDraft({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        }),
+      () => setDraft({ lat: CARACAS[0], lng: CARACAS[1] }),
+      { enableHighAccuracy: false, timeout: 8_000, maximumAge: 300_000 },
+    );
   }, []);
 
   const handleAddressSelect = useCallback((result: GeocodeResult) => {
@@ -316,26 +348,79 @@ export default function EmergencyApp() {
     <section id="mapa" className="mx-auto w-full max-w-7xl px-4 py-10">
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <div className="flex flex-col gap-3">
+          {network.isConstrained && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+              {network.isOnline
+                ? `Conexión lenta: actualizando cada ${Math.round(
+                    network.pollIntervalMs / 1000,
+                  )} s para ahorrar datos.`
+                : "Sin conexión: mostrando datos guardados cuando estén disponibles."}
+            </div>
+          )}
           <AddressSearch
             onSelect={handleAddressSelect}
             bias={focus ? { lat: focus.lat, lng: focus.lng } : AFFECTED_CENTER}
           />
           <div className="relative h-[520px] overflow-hidden rounded-2xl border border-slate-200 shadow-sm lg:h-[640px]">
-          <MapView
-            reports={reports}
-            draft={draft}
-            onPick={handlePick}
-            onResolve={handleResolve}
-            onConfirm={handleConfirm}
-            confirmed={confirmed}
-            isAdmin={isAdmin}
-            focus={focus}
-            center={CARACAS}
-            zoom={12}
-          />
-          <div className="pointer-events-none absolute left-1/2 top-3 z-[1000] -translate-x-1/2 rounded-full bg-slate-900/85 px-4 py-1.5 text-center text-xs font-medium text-white shadow">
-            Toca un punto del mapa para reportar
-          </div>
+            {interactiveMapEnabled ? (
+              <>
+                <MapView
+                  reports={reports}
+                  draft={draft}
+                  onPick={handlePick}
+                  onResolve={handleResolve}
+                  onConfirm={handleConfirm}
+                  confirmed={confirmed}
+                  isAdmin={isAdmin}
+                  focus={focus}
+                  center={CARACAS}
+                  zoom={12}
+                />
+                <div className="pointer-events-none absolute left-1/2 top-3 z-[1000] -translate-x-1/2 rounded-full bg-slate-900/85 px-4 py-1.5 text-center text-xs font-medium text-white shadow">
+                  Toca un punto del mapa para reportar
+                </div>
+              </>
+            ) : (
+              <div className="flex h-full flex-col justify-between bg-slate-50 p-5">
+                <div>
+                  <p className="inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900">
+                    Modo bajo consumo
+                  </p>
+                  <h3 className="mt-4 text-xl font-bold text-slate-900">
+                    El mapa interactivo está pausado para cargar más rápido.
+                  </h3>
+                  <p className="mt-2 max-w-xl text-sm text-slate-600">
+                    Puedes reportar usando tu ubicación sin descargar el mapa ni
+                    los mosaicos. Si necesitas ver marcadores, carga el mapa
+                    manualmente.
+                  </p>
+                </div>
+
+                <div className="grid gap-2 sm:grid-cols-3">
+                  <button
+                    type="button"
+                    onClick={handleReportFromLocation}
+                    className="rounded-lg bg-red-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-red-700"
+                  >
+                    Reportar con mi ubicación
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDraft({ lat: CARACAS[0], lng: CARACAS[1] })}
+                    className="rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                  >
+                    Reportar sin GPS
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setInteractiveMapEnabled(true)}
+                    className="rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                  >
+                    Cargar mapa
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

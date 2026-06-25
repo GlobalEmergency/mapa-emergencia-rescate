@@ -13,8 +13,8 @@ interface Props {
   onSubmit: (payload: MissingFoundPayload) => Promise<void>;
 }
 
-const MAX_DIM = 1280;
-const JPEG_QUALITY = 0.7;
+const MAX_DIM = 960;
+const JPEG_QUALITY = 0.62;
 
 async function fileToResizedDataUrl(file: File): Promise<string> {
   const bitmap = await createImageBitmap(file);

@@ -1,12 +1,31 @@
+import dynamic from "next/dynamic";
 import EmergencyApp from "./components/EmergencyApp";
 import ShareButton from "./components/ShareButton";
-import ChatPanel from "./components/ChatPanel";
 import EmergencyContacts from "./components/EmergencyContacts";
-import FoundPersons from "./components/FoundPersons";
-import MissingPersons from "./components/MissingPersons";
-import MissingPersonsCarousel from "./components/MissingPersonsCarousel";
 import SurvivalGuide from "./components/SurvivalGuide";
 import { REPORT_TYPES, type ReportType } from "@/lib/types";
+
+const MissingPersonsCarousel = dynamic(
+  () => import("./components/MissingPersonsCarousel"),
+  {
+    loading: () => (
+      <section className="border-b border-slate-200 bg-white px-4 py-6 text-center text-sm text-slate-500">
+        Cargando personas desaparecidas…
+      </section>
+    ),
+  },
+);
+
+const MissingPersons = dynamic(() => import("./components/MissingPersons"), {
+  loading: () => (
+    <section className="mx-auto w-full max-w-7xl px-4 pb-14 text-sm text-slate-500">
+      Cargando lista de personas…
+    </section>
+  ),
+});
+
+const FoundPersons = dynamic(() => import("./components/FoundPersons"));
+const ChatPanel = dynamic(() => import("./components/ChatPanel"));
 
 const STEPS: {
   icon: string;

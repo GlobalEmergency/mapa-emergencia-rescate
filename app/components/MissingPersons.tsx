@@ -5,6 +5,7 @@ import MissingPersonForm, {
   type MissingPersonPayload,
 } from "./MissingPersonForm";
 import MissingPersonDetail from "./MissingPersonDetail";
+import { useLowBandwidthMode } from "./useLowBandwidthMode";
 import { timeAgo } from "@/lib/format";
 
 interface MissingPerson {
@@ -23,6 +24,7 @@ interface MissingPerson {
 }
 
 const POLL_INTERVAL_MS = 8000;
+const LOW_BANDWIDTH_POLL_INTERVAL_MS = 45_000;
 const ADMIN_STORAGE_KEY = "emergency:adminToken";
 
 function extractPhone(contact: string): string | null {
@@ -47,6 +49,10 @@ export default function MissingPersons() {
   const [lastFetchAt, setLastFetchAt] = useState<number | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [now, setNow] = useState<number>(() => Date.now());
+  const network = useLowBandwidthMode(
+    POLL_INTERVAL_MS,
+    LOW_BANDWIDTH_POLL_INTERVAL_MS,
+  );
 
   const fetchPeople = useCallback(async (manual = false) => {
     setAdminToken(sessionStorage.getItem(ADMIN_STORAGE_KEY));
@@ -81,7 +87,7 @@ export default function MissingPersons() {
     const start = () => {
       if (interval) return;
       fetchPeople();
-      interval = setInterval(() => fetchPeople(), POLL_INTERVAL_MS);
+      interval = setInterval(() => fetchPeople(), network.pollIntervalMs);
     };
     const stop = () => {
       if (interval) clearInterval(interval);
@@ -97,7 +103,7 @@ export default function MissingPersons() {
       stop();
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [fetchPeople]);
+  }, [fetchPeople, network.pollIntervalMs]);
 
   const handleSubmit = useCallback(async (payload: MissingPersonPayload) => {
     const res = await fetch("/api/missing", {

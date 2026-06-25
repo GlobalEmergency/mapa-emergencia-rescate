@@ -17,7 +17,7 @@ interface Props {
 }
 
 const MAX_DIM = 800;
-const JPEG_QUALITY = 0.7;
+const JPEG_QUALITY = 0.62;
 
 /**
  * Redimensiona una imagen del usuario a un tamaño razonable y la convierte en
