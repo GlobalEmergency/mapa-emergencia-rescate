@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { REPORT_TYPES, type EmergencyReport, type ReportType } from "@/lib/types";
 import ReportForm from "./ReportForm";
+import AdminLogin from "./AdminLogin";
 
 const MapView = dynamic(() => import("./MapView"), {
   ssr: false,
@@ -16,6 +17,7 @@ const MapView = dynamic(() => import("./MapView"), {
 
 const CARACAS: [number, number] = [10.4806, -66.9036];
 const POLL_INTERVAL_MS = 5000;
+const ADMIN_STORAGE_KEY = "emergency:adminToken";
 
 export default function EmergencyApp() {
   const [reports, setReports] = useState<EmergencyReport[]>([]);
@@ -23,6 +25,25 @@ export default function EmergencyApp() {
   const [persistent, setPersistent] = useState(true);
   const [filter, setFilter] = useState<ReportType | "all">("all");
   const [query, setQuery] = useState("");
+  const [adminToken, setAdminToken] = useState<string | null>(null);
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
+
+  const isAdmin = Boolean(adminToken);
+
+  useEffect(() => {
+    setAdminToken(sessionStorage.getItem(ADMIN_STORAGE_KEY));
+  }, []);
+
+  const loginAdmin = useCallback((token: string) => {
+    sessionStorage.setItem(ADMIN_STORAGE_KEY, token);
+    setAdminToken(token);
+    setShowAdminLogin(false);
+  }, []);
+
+  const logoutAdmin = useCallback(() => {
+    sessionStorage.removeItem(ADMIN_STORAGE_KEY);
+    setAdminToken(null);
+  }, []);
 
   const fetchReports = useCallback(async () => {
     try {
@@ -99,10 +120,26 @@ export default function EmergencyApp() {
     [draft],
   );
 
-  const handleResolve = useCallback(async (id: string) => {
-    setReports((prev) => prev.filter((r) => r.id !== id));
-    await fetch(`/api/reports/${id}`, { method: "DELETE" }).catch(() => {});
-  }, []);
+  const handleResolve = useCallback(
+    async (id: string) => {
+      if (!adminToken) {
+        setShowAdminLogin(true);
+        return;
+      }
+      const previous = reports;
+      setReports((prev) => prev.filter((r) => r.id !== id));
+      const res = await fetch(`/api/reports/${id}`, {
+        method: "DELETE",
+        headers: { "x-admin-token": adminToken },
+      }).catch(() => null);
+      if (res && res.status === 401) {
+        logoutAdmin();
+        setReports(previous);
+        setShowAdminLogin(true);
+      }
+    },
+    [adminToken, reports, logoutAdmin],
+  );
 
   const counts = useMemo(() => {
     return reports.reduce(
@@ -141,6 +178,7 @@ export default function EmergencyApp() {
             draft={draft}
             onPick={handlePick}
             onResolve={handleResolve}
+            isAdmin={isAdmin}
             center={CARACAS}
             zoom={12}
           />
@@ -151,9 +189,29 @@ export default function EmergencyApp() {
 
         <aside className="flex flex-col gap-4">
           <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <h3 className="text-sm font-semibold text-slate-900">
-              Reportes activos: {reports.length}
-            </h3>
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="text-sm font-semibold text-slate-900">
+                Reportes activos: {reports.length}
+              </h3>
+              {isAdmin ? (
+                <button
+                  type="button"
+                  onClick={logoutAdmin}
+                  className="rounded-md border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-50"
+                  title="Cerrar sesión de administrador"
+                >
+                  Admin ✓ · Salir
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowAdminLogin(true)}
+                  className="rounded-md border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-50"
+                >
+                  🔒 Admin
+                </button>
+              )}
+            </div>
             <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
               {(Object.keys(REPORT_TYPES) as ReportType[]).map((type) => (
                 <button
@@ -233,13 +291,15 @@ export default function EmergencyApp() {
                           {new Date(report.createdAt).toLocaleString("es-VE")}
                         </p>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleResolve(report.id)}
-                        className="shrink-0 rounded-md border border-emerald-200 px-2 py-1 text-[11px] font-medium text-emerald-700 hover:bg-emerald-50"
-                      >
-                        Atendido
-                      </button>
+                      {isAdmin && (
+                        <button
+                          type="button"
+                          onClick={() => handleResolve(report.id)}
+                          className="shrink-0 rounded-md border border-emerald-200 px-2 py-1 text-[11px] font-medium text-emerald-700 hover:bg-emerald-50"
+                        >
+                          Atendido
+                        </button>
+                      )}
                     </div>
                   </li>
                 ))}
@@ -263,6 +323,13 @@ export default function EmergencyApp() {
           coords={draft}
           onCancel={() => setDraft(null)}
           onSubmit={handleSubmit}
+        />
+      )}
+
+      {showAdminLogin && (
+        <AdminLogin
+          onCancel={() => setShowAdminLogin(false)}
+          onSuccess={loginAdmin}
         />
       )}
     </section>

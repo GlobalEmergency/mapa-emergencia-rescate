@@ -63,6 +63,7 @@ interface MapViewProps {
   draft: { lat: number; lng: number } | null;
   onPick: (lat: number, lng: number) => void;
   onResolve: (id: string) => void;
+  isAdmin: boolean;
   center: [number, number];
   zoom: number;
 }
@@ -72,6 +73,7 @@ export default function MapView({
   draft,
   onPick,
   onResolve,
+  isAdmin,
   center,
   zoom,
 }: MapViewProps) {
@@ -119,13 +121,15 @@ export default function MapView({
               <p className="text-xs text-gray-500">
                 {new Date(report.createdAt).toLocaleString("es-VE")}
               </p>
-              <button
-                type="button"
-                onClick={() => onResolve(report.id)}
-                className="mt-1 text-xs font-medium text-emerald-700 underline"
-              >
-                Marcar como atendido (limpiar del mapa)
-              </button>
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={() => onResolve(report.id)}
+                  className="mt-1 text-xs font-medium text-emerald-700 underline"
+                >
+                  Marcar como atendido (limpiar del mapa)
+                </button>
+              )}
             </div>
           </Popup>
         </Marker>
