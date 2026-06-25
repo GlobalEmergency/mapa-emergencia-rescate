@@ -310,6 +310,31 @@ const OFFICES: CountryOffice[] = [
     ],
   },
   {
+    country: "Chequia",
+    countryCode: "CZ",
+    organization: "People in Need",
+    lines: [
+      {
+        type: "web",
+        label: "SOS Venezuela Emergency Appeal",
+        href: "https://www.peopleinneed.net/launching-sos-venezuela-appeal-after-tragic-earthquake-13590gp",
+      },
+    ],
+    shareChannels: [
+      {
+        name: "People in Need - SOS Venezuela",
+        description:
+          "Organización checa con operación en Venezuela y cuenta/IBAN publicados para aumentar ayuda humanitaria.",
+        href: "https://www.peopleinneed.net/launching-sos-venezuela-appeal-after-tragic-earthquake-13590gp",
+        source: "People in Need",
+        sourceHref:
+          "https://www.peopleinneed.net/launching-sos-venezuela-appeal-after-tragic-earthquake-13590gp",
+        updatedAt: "25 jun 2026",
+        status: "verified",
+      },
+    ],
+  },
+  {
     country: "Colombia",
     countryCode: "CO",
     organization: "Cruz Roja Colombiana",
@@ -1107,6 +1132,30 @@ const OFFICES: CountryOffice[] = [
     ],
   },
   {
+    country: "Suecia",
+    countryCode: "SE",
+    organization: "Plan International Sverige",
+    lines: [
+      {
+        type: "web",
+        label: "Akut insamling jordbävning i Venezuela",
+        href: "https://plansverige.org/",
+      },
+    ],
+    shareChannels: [
+      {
+        name: "Plan International Sverige",
+        description:
+          "Campaña sueca de emergencia para niños y familias afectadas por los terremotos en Venezuela.",
+        href: "https://plansverige.org/",
+        source: "Plan Sverige",
+        sourceHref: "https://plansverige.org/",
+        updatedAt: "25 jun 2026",
+        status: "verified",
+      },
+    ],
+  },
+  {
     country: "Estados Unidos",
     countryCode: "US",
     organization: "Cruz Roja Americana / organizaciones locales",
@@ -1261,6 +1310,7 @@ const TIME_ZONE_COUNTRY_CODES: Record<string, string> = {
   "Australia/Perth": "AU",
   "Europe/Zurich": "CH",
   "America/Bogota": "CO",
+  "Europe/Prague": "CZ",
   "America/Toronto": "CA",
   "America/Vancouver": "CA",
   "America/Winnipeg": "CA",
@@ -1281,6 +1331,7 @@ const TIME_ZONE_COUNTRY_CODES: Record<string, string> = {
   "America/Panama": "PA",
   "America/Puerto_Rico": "PR",
   "Europe/London": "GB",
+  "Europe/Stockholm": "SE",
   "America/New_York": "US",
   "America/Chicago": "US",
   "America/Denver": "US",
