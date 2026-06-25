@@ -52,26 +52,32 @@ const CARDS: GuideCard[] = [
   },
 ];
 
-export default function SurvivalGuide() {
+export default function SurvivalGuide({ embedded = false }: { embedded?: boolean }) {
   return (
     <section id="guia" className="mx-auto w-full max-w-7xl px-4 py-10">
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-        <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h2 className="text-lg font-bold text-slate-900">
-              🧭 Guía rápida para la comunidad
-            </h2>
-            <p className="mt-1 text-sm text-slate-600">
-              Acciones esenciales en las primeras horas. Compártelas con tus
-              vecinos, familiares y grupos de chat.
+        {!embedded && (
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">
+                🧭 Guía rápida para la comunidad
+              </h2>
+              <p className="mt-1 text-sm text-slate-600">
+                Acciones esenciales en las primeras horas. Compártelas con tus
+                vecinos, familiares y grupos de chat.
+              </p>
+            </div>
+            <p className="text-xs text-slate-400">
+              Fuente: Operación Todos con VZLA
             </p>
           </div>
-          <p className="text-xs text-slate-400">
-            Fuente: Operación Todos con VZLA
-          </p>
-        </div>
+        )}
 
-        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+        {embedded && (
+          <p className="text-xs text-slate-400">Fuente: Operación Todos con VZLA</p>
+        )}
+
+        <div className={`grid gap-4 sm:grid-cols-2 ${embedded ? "mt-4" : "mt-5"}`}>
           {CARDS.map((card) => (
             <article
               key={card.title}

@@ -38,7 +38,7 @@ interface Props {
 
 function shareUrl(person: MissingPerson): string {
   if (typeof window === "undefined") return "https://terremotovenezuela.app/";
-  return `${window.location.origin}/#desaparecidas`;
+  return `${window.location.origin}/desaparecidas`;
 }
 
 function shareText(person: MissingPerson): string {

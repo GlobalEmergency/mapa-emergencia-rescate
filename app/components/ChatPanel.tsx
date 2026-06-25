@@ -16,7 +16,7 @@ const ADMIN_STORAGE_KEY = "emergency:adminToken";
 const NAME_STORAGE_KEY = "emergency:chatName";
 const MAX_TEXT = 500;
 
-export default function ChatPanel() {
+export default function ChatPanel({ embedded = false }: { embedded?: boolean }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [name, setName] = useState(() =>
     typeof window === "undefined"
@@ -132,20 +132,24 @@ export default function ChatPanel() {
   return (
     <section id="chat" className="mx-auto w-full max-w-7xl px-4 pb-14">
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-        <h2 className="text-lg font-bold text-slate-900">
-          🤝 Espacio de voluntarios
-        </h2>
-        <p className="mt-1 text-sm text-slate-600">
-          Espacio de intercambio de información entre voluntarios. Coordínense,
-          compartan información verificada y ofrezcan o pidan apoyo. Sean
-          respetuosos: no compartan datos sensibles ni difundan rumores sin
-          confirmar.
-        </p>
+        {!embedded && (
+          <>
+            <h2 className="text-lg font-bold text-slate-900">
+              🤝 Espacio de voluntarios
+            </h2>
+            <p className="mt-1 text-sm text-slate-600">
+              Espacio de intercambio de información entre voluntarios. Coordínense,
+              compartan información verificada y ofrezcan o pidan apoyo. Sean
+              respetuosos: no compartan datos sensibles ni difundan rumores sin
+              confirmar.
+            </p>
+          </>
+        )}
 
         <div
           ref={listRef}
           onScroll={handleScroll}
-          className="mt-4 h-[60vh] max-h-[420px] min-h-[280px] space-y-3 overflow-y-auto rounded-xl border border-slate-100 bg-slate-50 p-3 sm:h-[400px] sm:max-h-none"
+          className={`h-[60vh] max-h-[420px] min-h-[280px] space-y-3 overflow-y-auto rounded-xl border border-slate-100 bg-slate-50 p-3 sm:h-[400px] sm:max-h-none ${embedded ? "mt-0" : "mt-4"}`}
         >
           {messages.length === 0 ? (
             <p className="grid h-full place-items-center text-sm text-slate-400">

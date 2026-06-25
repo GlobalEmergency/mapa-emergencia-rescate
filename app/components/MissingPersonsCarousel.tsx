@@ -173,7 +173,7 @@ export default function MissingPersonsCarousel() {
               <span aria-hidden>＋</span> Reportar desaparecida
             </button>
             <a
-              href="#desaparecidas"
+              href="/desaparecidas"
               className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
             >
               Ver lista completa →
@@ -279,7 +279,7 @@ export default function MissingPersonsCarousel() {
 
             {total > preview.length && (
               <a
-                href="#desaparecidas"
+                href="/desaparecidas"
                 className="flex w-[160px] shrink-0 snap-start flex-col items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white p-4 text-center text-slate-700 shadow-sm transition hover:border-purple-300 hover:bg-purple-50 sm:w-[180px]"
                 role="listitem"
               >

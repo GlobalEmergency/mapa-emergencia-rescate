@@ -231,7 +231,7 @@ export default function MapView({
                     <p className="text-sm">📍 {person.lastSeen}</p>
                   )}
                   <a
-                    href="#desaparecidas"
+                    href="/desaparecidas"
                     className="mt-1 inline-block text-xs font-medium text-purple-700 underline"
                   >
                     Ver ficha completa →

@@ -130,40 +130,46 @@ function ContactRow({ line }: { line: ContactLine }) {
   return <p className="text-sm text-slate-600">{content}</p>;
 }
 
-export default function InternationalHelp() {
+export default function InternationalHelp({ embedded = false }: { embedded?: boolean }) {
   return (
     <section
       id="ayuda-internacional"
-      className="border-y border-slate-200 bg-gradient-to-b from-slate-50 to-white"
+      className={
+        embedded
+          ? "mx-auto w-full max-w-7xl px-4 pb-14"
+          : "border-y border-slate-200 bg-gradient-to-b from-slate-50 to-white"
+      }
     >
-      <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:py-14">
+      <div className={`mx-auto w-full max-w-7xl ${embedded ? "" : "px-4 py-10 sm:py-14"}`}>
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="p-6 sm:p-8">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-6">
-              <span
-                className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-red-50 text-3xl"
-                aria-hidden
-              >
-                🏚️
-              </span>
-              <div>
-                <h2 className="text-xl font-bold leading-snug text-red-700 sm:text-2xl">
-                  ¿Estás fuera de Venezuela y perdiste contacto con tus
-                  familiares tras el terremoto?
-                </h2>
-                <p className="mt-2 text-sm leading-relaxed text-slate-700 sm:text-base">
-                  Los equipos de la{" "}
-                  <strong className="font-semibold text-slate-900">
-                    Cruz Roja
-                  </strong>{" "}
-                  te pueden apoyar a restablecer el contacto con tu familia
-                  desde tu país de residencia. Este es un canal oficial de
-                  búsqueda y reunificación familiar a largo plazo.
-                </p>
+            {!embedded && (
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-6">
+                <span
+                  className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-red-50 text-3xl"
+                  aria-hidden
+                >
+                  🏚️
+                </span>
+                <div>
+                  <h2 className="text-xl font-bold leading-snug text-red-700 sm:text-2xl">
+                    ¿Estás fuera de Venezuela y perdiste contacto con tus
+                    familiares tras el terremoto?
+                  </h2>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-700 sm:text-base">
+                    Los equipos de la{" "}
+                    <strong className="font-semibold text-slate-900">
+                      Cruz Roja
+                    </strong>{" "}
+                    te pueden apoyar a restablecer el contacto con tu familia
+                    desde tu país de residencia. Este es un canal oficial de
+                    búsqueda y reunificación familiar a largo plazo.
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
 
-            <p className="mt-6 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+            <p className={`rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900 ${embedded ? "" : "mt-6"}`}>
               <strong className="font-semibold">Esta plataforma es un nexo</strong>{" "}
               entre personas afectadas, familiares en el exterior y organizaciones
               de ayuda. Aquí puedes consultar desaparecidos, compartir
@@ -205,13 +211,13 @@ export default function InternationalHelp() {
 
             <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <a
-                href="#desaparecidas"
+                href="/desaparecidas"
                 className="inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700"
               >
                 🧍 Buscar en la lista de desaparecidos
               </a>
               <a
-                href="#mapa"
+                href="/mapa"
                 className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
               >
                 🗺️ Ver mapa de reportes

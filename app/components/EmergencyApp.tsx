@@ -692,7 +692,7 @@ export default function EmergencyApp() {
                 personas desaparecidas en la base consolidada. En el mapa se
                 muestran las que tienen ubicación geocodificada (
                 {missingStats.onMap.toLocaleString("es-VE")}).{" "}
-                <a href="#desaparecidas" className="font-semibold underline">
+                <a href="/desaparecidas" className="font-semibold underline">
                   Ver lista completa →
                 </a>
               </div>

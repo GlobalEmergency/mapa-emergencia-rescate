@@ -128,7 +128,7 @@ function locationLabel(center: CollectionCenter): string {
   return parts.join(" · ");
 }
 
-export default function CollectionCenters() {
+export default function CollectionCenters({ embedded = false }: { embedded?: boolean }) {
   const [query, setQuery] = useState("");
 
   const filtered = useMemo(() => {
@@ -152,36 +152,33 @@ export default function CollectionCenters() {
     });
   }, [query]);
 
-  return (
-    <section
-      id="centros-acopio"
-      className="border-y border-emerald-200/70 bg-gradient-to-b from-emerald-50/70 via-white to-white"
-    >
-      <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:py-14">
-        <details open className="group rounded-2xl border border-emerald-200 bg-white shadow-sm">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-2xl p-4 sm:p-6">
-            <div>
-              <h2 className="flex flex-wrap items-center gap-2 text-lg font-bold text-slate-900 sm:text-xl">
-                🟢 Centros de acopio
-                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-800">
-                  {CENTERS.length} puntos
-                </span>
-              </h2>
-              <p className="mt-1 max-w-3xl text-sm text-slate-600">
-                Lugares verificados donde puedes llevar donaciones físicas para
-                quienes fueron afectados por el terremoto. Revisa qué reciben
-                antes de ir.
-              </p>
-            </div>
-            <span
-              aria-hidden
-              className="shrink-0 text-slate-400 transition-transform duration-200 group-open:rotate-180"
-            >
-              ▼
-            </span>
-          </summary>
+  const inner = (
+    <>
+      {!embedded && (
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-2xl p-4 sm:p-6">
+          <div>
+            <h2 className="flex flex-wrap items-center gap-2 text-lg font-bold text-slate-900 sm:text-xl">
+              🟢 Centros de acopio
+              <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-800">
+                {CENTERS.length} puntos
+              </span>
+            </h2>
+            <p className="mt-1 max-w-3xl text-sm text-slate-600">
+              Lugares verificados donde puedes llevar donaciones físicas para
+              quienes fueron afectados por el terremoto. Revisa qué reciben
+              antes de ir.
+            </p>
+          </div>
+          <span
+            aria-hidden
+            className="shrink-0 text-slate-400 transition-transform duration-200 group-open:rotate-180"
+          >
+            ▼
+          </span>
+        </summary>
+      )}
 
-          <div className="border-t border-emerald-100 p-3 sm:p-6">
+      <div className={embedded ? "p-4 sm:p-6" : "border-t border-emerald-100 p-3 sm:p-6"}>
             <div className="relative mb-4">
               <span
                 aria-hidden
@@ -268,7 +265,10 @@ export default function CollectionCenters() {
 
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               <p className="rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
-                💚 Si conoces otro punto de acopio activo, repórtalo en el mapa
+                💚 Si conoces otro punto de acopio activo, repórtalo en{" "}
+                <a href="/mapa" className="font-semibold underline">
+                  el mapa
+                </a>{" "}
                 con el marcador{" "}
                 <strong className="font-semibold">Centro de Acopio</strong> para
                 que más personas puedan donar.
@@ -278,7 +278,33 @@ export default function CollectionCenters() {
                 información proviene de convocatorias ciudadanas y puede cambiar.
               </p>
             </div>
+      </div>
+    </>
+  );
+
+  if (embedded) {
+    return (
+      <section id="centros-acopio" className="mx-auto w-full max-w-7xl px-4 pb-14">
+        <div className="rounded-2xl border border-emerald-200 bg-white shadow-sm">
+          <div className="flex items-center justify-between gap-3 border-b border-emerald-100 px-4 py-4 sm:px-6">
+            <p className="text-sm font-medium text-slate-600">
+              {CENTERS.length} puntos verificados
+            </p>
           </div>
+          {inner}
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section
+      id="centros-acopio"
+      className="border-y border-emerald-200/70 bg-gradient-to-b from-emerald-50/70 via-white to-white"
+    >
+      <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:py-14">
+        <details open className="group rounded-2xl border border-emerald-200 bg-white shadow-sm">
+          {inner}
         </details>
       </div>
     </section>
