@@ -60,14 +60,24 @@ export async function POST(request: Request) {
     );
   }
 
-  const report = await addReport({
-    type,
-    lat,
-    lng,
-    place,
-    affected: Number(body.affected) || 0,
-    needs: typeof body.needs === "string" ? body.needs : "",
-  });
-
-  return NextResponse.json({ report }, { status: 201 });
+  try {
+    const report = await addReport({
+      type,
+      lat,
+      lng,
+      place,
+      affected: Number(body.affected) || 0,
+      needs: typeof body.needs === "string" ? body.needs : "",
+    });
+    return NextResponse.json({ report }, { status: 201 });
+  } catch {
+    // Falla visible: nunca confirmamos un reporte que no se guardó en la base.
+    return NextResponse.json(
+      {
+        error:
+          "No se pudo guardar el reporte. Revisa tu conexión e inténtalo de nuevo.",
+      },
+      { status: 503 },
+    );
+  }
 }

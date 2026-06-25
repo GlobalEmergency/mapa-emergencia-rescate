@@ -71,6 +71,9 @@ export async function addMessage(input: {
   name?: string;
   text: string;
 }): Promise<ChatMessage> {
+  if (!hasDbEnv() && process.env.VERCEL) {
+    throw new Error("DATABASE_URL no configurada: la persistencia es obligatoria.");
+  }
   const message: ChatMessage = {
     id: crypto.randomUUID(),
     name: sanitizeName(input.name),

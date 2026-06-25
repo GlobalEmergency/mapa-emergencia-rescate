@@ -47,6 +47,16 @@ export async function POST(request: Request) {
     );
   }
 
-  const message = await addMessage({ name: body.name, text });
-  return NextResponse.json({ message }, { status: 201 });
+  try {
+    const message = await addMessage({ name: body.name, text });
+    return NextResponse.json({ message }, { status: 201 });
+  } catch {
+    return NextResponse.json(
+      {
+        error:
+          "No se pudo enviar el mensaje. Revisa tu conexión e inténtalo de nuevo.",
+      },
+      { status: 503 },
+    );
+  }
 }

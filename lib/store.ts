@@ -81,6 +81,9 @@ export async function listReports(): Promise<EmergencyReport[]> {
 }
 
 export async function addReport(input: NewReport): Promise<EmergencyReport> {
+  if (!hasDbEnv() && process.env.VERCEL) {
+    throw new Error("DATABASE_URL no configurada: la persistencia es obligatoria.");
+  }
   const report = createReport(input);
   if (hasDbEnv()) {
     await ensureSchema();

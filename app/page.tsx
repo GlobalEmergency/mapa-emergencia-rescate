@@ -1,6 +1,7 @@
 import EmergencyApp from "./components/EmergencyApp";
 import ShareButton from "./components/ShareButton";
 import ChatPanel from "./components/ChatPanel";
+import EmergencyContacts from "./components/EmergencyContacts";
 import { REPORT_TYPES, type ReportType } from "@/lib/types";
 
 const STEPS = [
@@ -40,6 +41,12 @@ export default function Home() {
             >
               Ir al mapa y reportar
             </a>
+            <a
+              href="#telefonos"
+              className="inline-block rounded-lg border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+            >
+              📞 Teléfonos de emergencia
+            </a>
             <ShareButton />
           </div>
         </div>
@@ -66,6 +73,8 @@ export default function Home() {
       </section>
 
       <EmergencyApp />
+
+      <EmergencyContacts />
 
       <section className="mx-auto w-full max-w-7xl px-4 pb-14">
         <div className="grid gap-6 lg:grid-cols-2">
