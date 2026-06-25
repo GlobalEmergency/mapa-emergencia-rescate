@@ -393,6 +393,95 @@ const OFFICES: CountryOffice[] = [
     ],
   },
   {
+    country: "Panamá",
+    countryCode: "PA",
+    organization: "Alcaldía de Panamá / centros aliados",
+    lines: [
+      {
+        type: "web",
+        label: "Centros de acopio en Panamá",
+        href: "https://www.telemetro.com/nacionales/lista-centros-acopio-panama-ayudar-victimas-del-terremoto-venezuela-n6083254",
+      },
+    ],
+    donationPoints: [
+      {
+        city: "Ciudad de Panamá",
+        name: "Teatro Gladys Vidal",
+        address: "Planta baja del Edificio Hatillo, sede de la Alcaldía de Panamá",
+        hours: "Jueves 25 y viernes 26 de junio, 8:00 a.m. a 4:00 p.m.",
+        accepts:
+          "Alimentos no perecederos, emergencia, higiene, ropa limpia o nueva, mochilas, útiles escolares y alimentos para mascotas.",
+        source: "TVN",
+        sourceHref:
+          "https://www.tvn-2.com/nacionales/venezuela-alcaldia-panama-activa-centro-acopio-ayuda-humanitaria-terremotos_1_2247885.html",
+        updatedAt: "25 jun 2026",
+      },
+      {
+        city: "Ciudad de Panamá",
+        name: "Costa del Este - Este Sport Center",
+        address:
+          "Estacionamientos del Este Sport Center, entrada por avenida La Rotonda, contiguo al edificio Bladex y detrás de Nación Sushi",
+        hours: "Jueves 25 y viernes 26 de junio, 12:00 m. a 8:00 p.m.",
+        accepts:
+          "Agua, alimentos no perecederos, fórmula y alimentos para bebés, higiene, primeros auxilios, carpas, lonas, mantas, colchonetas y mosquiteros.",
+        source: "Ellas",
+        sourceHref:
+          "https://www.ellas.pa/estilo-de-vida/cinco-centros-de-acopio-en-panama-reciben-ayuda-para-afectados-por-el-terremoto-en-venezuela/",
+        updatedAt: "25 jun 2026",
+      },
+      {
+        city: "Panamá",
+        name: "Supermercados Riba Smith",
+        address: "Todas las sucursales de Riba Smith",
+        hours: "Hasta el domingo 28 de junio; horario regular de cada sucursal",
+        accepts:
+          "Agua, alimentos no perecederos, medicamentos e insumos básicos de primeros auxilios e higiene personal.",
+        source: "Telemetro",
+        sourceHref:
+          "https://www.telemetro.com/nacionales/lista-centros-acopio-panama-ayudar-victimas-del-terremoto-venezuela-n6083254",
+        updatedAt: "25 jun 2026",
+      },
+      {
+        city: "Ciudad de Panamá",
+        name: "Casa Club del Parque Omar",
+        address: "Casa Club del Parque Omar",
+        hours:
+          "Jueves 25 y viernes 26 de junio, 8:00 a.m. a 8:00 p.m.; sábado 27, 8:00 a.m. a 2:00 p.m.",
+        accepts: "Alimentos no perecederos y agua embotellada.",
+        source: "Telemetro",
+        sourceHref:
+          "https://www.telemetro.com/nacionales/lista-centros-acopio-panama-ayudar-victimas-del-terremoto-venezuela-n6083254",
+        updatedAt: "25 jun 2026",
+      },
+      {
+        city: "Panamá / Colón",
+        name: "Iglesia Refugio Panamá",
+        address:
+          "Avenida Domingo Díaz, Plaza Roosevelt; y sede de La Verbena, Cativá, provincia de Colón",
+        hours: "Jueves a domingo, 9:00 a.m. a 6:00 p.m.",
+        accepts:
+          "Alimentos, higiene, insumos médicos y productos de primera necesidad.",
+        source: "Ellas",
+        sourceHref:
+          "https://www.ellas.pa/estilo-de-vida/cinco-centros-de-acopio-en-panama-reciben-ayuda-para-afectados-por-el-terremoto-en-venezuela/",
+        updatedAt: "25 jun 2026",
+      },
+    ],
+    shareChannels: [
+      {
+        name: "Alcaldía de Panamá",
+        description:
+          "Campaña Todos con Venezuela con centro de acopio en el Edificio Hatillo.",
+        href: "https://www.tvn-2.com/nacionales/venezuela-alcaldia-panama-activa-centro-acopio-ayuda-humanitaria-terremotos_1_2247885.html",
+        source: "TVN",
+        sourceHref:
+          "https://www.tvn-2.com/nacionales/venezuela-alcaldia-panama-activa-centro-acopio-ayuda-humanitaria-terremotos_1_2247885.html",
+        updatedAt: "25 jun 2026",
+        status: "verified",
+      },
+    ],
+  },
+  {
     country: "Estados Unidos",
     countryCode: "US",
     organization: "Cruz Roja Americana / organizaciones locales",
@@ -523,6 +612,7 @@ const TIME_ZONE_COUNTRY_CODES: Record<string, string> = {
   "America/Guayaquil": "EC",
   "America/Tegucigalpa": "HN",
   "America/Mexico_City": "MX",
+  "America/Panama": "PA",
   "America/New_York": "US",
   "America/Chicago": "US",
   "America/Denver": "US",
@@ -896,7 +986,7 @@ export default function InternationalHelp() {
                 <div className="mt-4 grid gap-3">
                   {selectedOffice.donationPoints.map((point) => (
                     <DonationCard
-                      key={`${point.city}-${point.name}`}
+                      key={`${point.city}-${point.name}-${point.address}`}
                       point={point}
                     />
                   ))}
