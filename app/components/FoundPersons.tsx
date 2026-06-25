@@ -130,54 +130,56 @@ export default function FoundPersons() {
 
         <ul className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {people.map((person) => (
-            <li key={person.id}>
+            <li
+              key={person.id}
+              className="relative overflow-hidden rounded-xl border border-emerald-200 transition hover:border-emerald-300 hover:shadow-sm"
+            >
               <button
                 type="button"
                 onClick={() => setSelected(person)}
-                className="group flex h-full w-full flex-col overflow-hidden rounded-2xl border border-emerald-200 bg-white text-left shadow-sm transition hover:border-emerald-400 hover:shadow-md"
+                aria-label={`Ver detalle de ${person.name}`}
+                className="flex w-full gap-3 p-3 text-left transition active:bg-emerald-50/60"
               >
-                <div className="relative aspect-square w-full overflow-hidden bg-emerald-50">
-                  {person.photoUrl ? (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img
-                      src={person.photoUrl}
-                      alt={`Foto de ${person.name}`}
-                      loading="lazy"
-                      className="h-full w-full object-cover transition group-hover:scale-105"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center text-5xl text-emerald-300">
-                      💚
-                    </div>
-                  )}
-                  <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-emerald-600 px-2.5 py-1 text-[11px] font-semibold text-white shadow-md">
+                {person.photoUrl ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={person.photoUrl}
+                    alt={`Foto de ${person.name}`}
+                    loading="lazy"
+                    className="h-24 w-24 shrink-0 rounded-lg object-cover ring-1 ring-emerald-200"
+                  />
+                ) : (
+                  <div className="grid h-24 w-24 shrink-0 place-items-center rounded-lg bg-emerald-50 text-3xl text-emerald-300">
+                    💚
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-600 px-2 py-0.5 text-[11px] font-semibold text-white">
                     <span aria-hidden>✓</span> Localizado a salvo
                   </span>
-                </div>
-                <div className="flex flex-1 flex-col gap-1.5 p-4">
-                  <p
-                    className="line-clamp-2 text-base font-semibold leading-snug text-slate-900"
-                    title={person.name}
-                  >
+                  <p className="mt-1 font-semibold text-slate-900">
                     {person.name}
+                    {person.age !== null && (
+                      <span className="font-normal text-slate-500">
+                        {" "}
+                        · {person.age} años
+                      </span>
+                    )}
                   </p>
-                  {person.age !== null && (
-                    <p className="text-xs text-slate-500">{person.age} años</p>
-                  )}
                   {person.lastSeen && (
-                    <p
-                      className="line-clamp-2 text-xs text-slate-600"
-                      title={person.lastSeen}
-                    >
-                      <span aria-hidden>📍</span> {person.lastSeen}
+                    <p className="mt-0.5 text-xs text-slate-600">
+                      📍 {person.lastSeen}
                     </p>
                   )}
                   {person.resolvedAt && (
-                    <p className="mt-auto text-xs text-emerald-700">
+                    <p className="mt-1 text-xs text-emerald-700">
                       <span aria-hidden>📅</span>{" "}
                       {formatDate(person.resolvedAt)}
                     </p>
                   )}
+                  <p className="mt-1 text-[11px] text-slate-400">
+                    Toca para ver más
+                  </p>
                 </div>
               </button>
             </li>
