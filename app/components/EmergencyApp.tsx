@@ -37,6 +37,7 @@ export default function EmergencyApp() {
     lat: number;
     lng: number;
     ts: number;
+    id?: string;
   } | null>(null);
 
   const isAdmin = Boolean(adminToken);
@@ -102,6 +103,24 @@ export default function EmergencyApp() {
   const handleAddressSelect = useCallback((result: GeocodeResult) => {
     setFocus({ lat: result.lat, lng: result.lng, ts: Date.now() });
     setDraft({ lat: result.lat, lng: result.lng });
+  }, []);
+
+  const handleFocusReport = useCallback((report: EmergencyReport) => {
+    setFocus({
+      lat: report.lat,
+      lng: report.lng,
+      id: report.id,
+      ts: Date.now(),
+    });
+    // En móvil la lista está debajo del mapa: llevamos al usuario al mapa.
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia("(max-width: 1023px)").matches
+    ) {
+      document
+        .getElementById("mapa")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   }, []);
 
   const handleSubmit = useCallback(
@@ -293,9 +312,14 @@ export default function EmergencyApp() {
                 )}
                 <ul className="divide-y divide-slate-100">
                 {visibleReports.map((report) => (
-                  <li key={report.id} className="p-3">
+                  <li key={report.id} className="p-1">
                     <div className="flex items-start justify-between gap-2">
-                      <div>
+                      <button
+                        type="button"
+                        onClick={() => handleFocusReport(report)}
+                        aria-label={`Ver ${report.place} en el mapa`}
+                        className="min-w-0 flex-1 rounded-lg p-2 text-left transition hover:bg-slate-50 active:bg-slate-100"
+                      >
                         <p className="text-sm font-semibold text-slate-900">
                           {REPORT_TYPES[report.type].emoji} {report.place}
                         </p>
@@ -310,12 +334,12 @@ export default function EmergencyApp() {
                         <p className="mt-1 text-[11px] text-slate-400">
                           {new Date(report.createdAt).toLocaleString("es-VE")}
                         </p>
-                      </div>
+                      </button>
                       {isAdmin && (
                         <button
                           type="button"
                           onClick={() => handleResolve(report.id)}
-                          className="shrink-0 rounded-md border border-emerald-200 px-2 py-1 text-[11px] font-medium text-emerald-700 hover:bg-emerald-50"
+                          className="mr-1 mt-2 shrink-0 rounded-md border border-emerald-200 px-2 py-1 text-[11px] font-medium text-emerald-700 hover:bg-emerald-50"
                         >
                           Atendido
                         </button>

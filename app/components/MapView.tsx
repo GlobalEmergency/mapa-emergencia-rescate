@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import L from "leaflet";
 import {
   MapContainer,
@@ -31,17 +31,27 @@ function markerIcon(type: ReportType): L.DivIcon {
 
 function FlyToHandler({
   focus,
+  getMarker,
 }: {
-  focus: { lat: number; lng: number; ts: number } | null;
+  focus: { lat: number; lng: number; ts: number; id?: string } | null;
+  getMarker: (id: string) => L.Marker | undefined;
 }) {
   const map = useMap();
+  const lastTs = useRef<number | null>(null);
   useEffect(() => {
-    if (focus) {
-      map.flyTo([focus.lat, focus.lng], Math.max(map.getZoom(), 16), {
-        duration: 1,
+    if (!focus || focus.ts === lastTs.current) return;
+    lastTs.current = focus.ts;
+    map.flyTo([focus.lat, focus.lng], Math.max(map.getZoom(), 16), {
+      duration: 1,
+    });
+    if (focus.id) {
+      const id = focus.id;
+      // El marcador puede abrir su popup una vez termina la animación.
+      map.once("moveend", () => {
+        getMarker(id)?.openPopup();
       });
     }
-  }, [focus, map]);
+  }, [focus, map, getMarker]);
   return null;
 }
 
@@ -80,7 +90,7 @@ interface MapViewProps {
   onPick: (lat: number, lng: number) => void;
   onResolve: (id: string) => void;
   isAdmin: boolean;
-  focus: { lat: number; lng: number; ts: number } | null;
+  focus: { lat: number; lng: number; ts: number; id?: string } | null;
   center: [number, number];
   zoom: number;
 }
@@ -95,6 +105,11 @@ export default function MapView({
   center,
   zoom,
 }: MapViewProps) {
+  const markerRefs = useRef<Map<string, L.Marker>>(new Map());
+  const getMarker = useCallback(
+    (id: string) => markerRefs.current.get(id),
+    [],
+  );
   const draftIcon = useMemo(
     () =>
       L.divIcon({
@@ -118,7 +133,7 @@ export default function MapView({
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <ResizeHandler />
-      <FlyToHandler focus={focus} />
+      <FlyToHandler focus={focus} getMarker={getMarker} />
       <ClickHandler onPick={onPick} />
 
       {reports.map((report) => (
@@ -126,6 +141,10 @@ export default function MapView({
           key={report.id}
           position={[report.lat, report.lng]}
           icon={markerIcon(report.type)}
+          ref={(marker) => {
+            if (marker) markerRefs.current.set(report.id, marker);
+            else markerRefs.current.delete(report.id);
+          }}
         >
           <Popup>
             <div className="space-y-1">
