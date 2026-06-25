@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Brain,
   CircleCheck,
@@ -435,6 +435,7 @@ export function MobileStickyNav() {
   const { missing, found } = usePeopleTotals();
   const [sheetOpen, setSheetOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
   const onHome = pathname === "/";
 
   useEffect(() => {
@@ -468,16 +469,20 @@ export function MobileStickyNav() {
   );
 
   const handleSheetClick = useCallback(
-    (e: React.MouseEvent<HTMLAnchorElement>, link: SectionLink) => {
+    (link: SectionLink) => {
+      setSheetOpen(false);
       if (isAnchor(link.href) && onHome) {
-        e.preventDefault();
-        setSheetOpen(false);
         window.setTimeout(() => scrollToSection(link.href), 50);
         return;
       }
-      setSheetOpen(false);
+      const href = resolveHref(link.href, onHome);
+      if (href.startsWith("#")) {
+        window.location.href = `/${href}`;
+        return;
+      }
+      router.push(href);
     },
-    [onHome],
+    [onHome, router],
   );
 
   return (
@@ -529,7 +534,7 @@ export function MobileStickyNav() {
             type="button"
             aria-label="Cerrar menú de secciones"
             style={{ bottom: MOBILE_NAV_BOTTOM }}
-            className="fixed inset-x-0 top-0 z-[1860] touch-manipulation bg-slate-900/50 md:hidden"
+            className="fixed inset-x-0 top-0 z-[1940] touch-manipulation bg-slate-900/50 md:hidden"
             onClick={closeSheet}
           />
 
@@ -539,7 +544,7 @@ export function MobileStickyNav() {
             aria-modal="true"
             aria-label="Más secciones"
             style={{ bottom: MOBILE_NAV_BOTTOM }}
-            className="fixed inset-x-0 z-[1870] flex max-h-[min(60vh,24rem)] flex-col rounded-t-2xl border-t border-slate-200 bg-white shadow-2xl md:hidden"
+            className="fixed inset-x-0 z-[1950] flex max-h-[min(60vh,24rem)] flex-col rounded-t-2xl border-t border-slate-200 bg-white shadow-2xl md:hidden"
           >
             <div className="flex shrink-0 items-center justify-between border-b border-slate-100 px-4 py-3">
               <p className="text-sm font-bold text-slate-900">Más secciones</p>
@@ -557,9 +562,9 @@ export function MobileStickyNav() {
                 const badge = badgeValue(link, missing, found);
                 return (
                   <li key={link.href}>
-                    <a
-                      href={resolveHref(link.href, onHome)}
-                      onClick={(e) => handleSheetClick(e, link)}
+                    <button
+                      type="button"
+                      onClick={() => handleSheetClick(link)}
                       className="flex min-h-12 w-full touch-manipulation items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-semibold text-slate-800 transition active:bg-slate-100"
                     >
                       <span className="text-xl" aria-hidden>
@@ -571,7 +576,7 @@ export function MobileStickyNav() {
                           {badge}
                         </span>
                       )}
-                    </a>
+                    </button>
                   </li>
                 );
               })}

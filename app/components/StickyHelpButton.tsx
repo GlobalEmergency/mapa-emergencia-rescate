@@ -68,6 +68,21 @@ export default function StickyHelpButton() {
     };
   }, [open]);
 
+  useEffect(() => {
+    const closeIfMobileSheetOpen = () => {
+      if (document.body.classList.contains("mobile-sheet-open")) {
+        setOpen(false);
+      }
+    };
+    closeIfMobileSheetOpen();
+    const observer = new MutationObserver(closeIfMobileSheetOpen);
+    observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+    return () => observer.disconnect();
+  }, []);
+
   if (pathname?.startsWith("/admin")) {
     return null;
   }
@@ -75,7 +90,8 @@ export default function StickyHelpButton() {
   return (
     <div
       ref={rootRef}
-      className="fixed bottom-[calc(3.75rem+env(safe-area-inset-bottom))] right-3 z-[1900] flex flex-col items-end gap-3 md:bottom-[max(1rem,env(safe-area-inset-bottom))] md:right-4"
+      data-sticky-help-root
+      className="fixed bottom-[calc(3.75rem+env(safe-area-inset-bottom))] right-3 z-[1840] flex flex-col items-end gap-3 md:bottom-[max(1rem,env(safe-area-inset-bottom))] md:right-4 md:z-[1900]"
     >
       <div
         id="sticky-help-menu"
