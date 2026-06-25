@@ -279,6 +279,23 @@ export default function AdminDashboard() {
     }
   }, [syncing, fetchData]);
 
+  const resetCursor = useCallback(async () => {
+    const current = sessionStorage.getItem(ADMIN_STORAGE_KEY);
+    if (!current) return;
+    if (!window.confirm("¿Reiniciar el cursor a la página 1? El próximo barrido empezará desde el inicio.")) {
+      return;
+    }
+    try {
+      await fetch("/api/sync/reset", {
+        method: "POST",
+        headers: { "x-admin-token": current },
+      });
+      await fetchData();
+    } catch {
+      // se refleja en el próximo poll
+    }
+  }, [fetchData]);
+
   const loadDuplicates = useCallback(async () => {
     const current = sessionStorage.getItem(ADMIN_STORAGE_KEY);
     if (!current || loadingDup) return;
@@ -445,14 +462,23 @@ export default function AdminDashboard() {
             <h2 className="text-sm font-semibold text-slate-900">
               🔄 Sincronización de fuentes
             </h2>
-            <button
-              type="button"
-              onClick={runSyncNow}
-              disabled={syncing}
-              className="rounded-lg bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
-            >
-              {syncing ? "Sincronizando…" : "Sincronizar ahora"}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={resetCursor}
+                className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                Reiniciar cursor
+              </button>
+              <button
+                type="button"
+                onClick={runSyncNow}
+                disabled={syncing}
+                className="rounded-lg bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
+              >
+                {syncing ? "Sincronizando…" : "Sincronizar ahora"}
+              </button>
+            </div>
           </div>
 
           {data?.sync?.state && data.sync.state.length > 0 && (

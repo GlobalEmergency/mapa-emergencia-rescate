@@ -95,6 +95,26 @@ export async function setSyncCursor(
   `;
 }
 
+/**
+ * Reinicia el cursor a la página 1 (re-escaneo desde el inicio). No destructivo:
+ * solo cambia por dónde arranca el próximo scan. Si se pasa `source`, solo esa.
+ */
+export async function resetSyncCursor(source?: string): Promise<void> {
+  if (!hasDbEnv()) return;
+  await ensureStateSchema();
+  const now = Date.now();
+  if (source) {
+    await getSql()`
+      UPDATE sync_state SET next_page = 1, last_cycle_completed_at = NULL, updated_at = ${now}
+      WHERE source = ${source}
+    `;
+  } else {
+    await getSql()`
+      UPDATE sync_state SET next_page = 1, last_cycle_completed_at = NULL, updated_at = ${now}
+    `;
+  }
+}
+
 export type SyncTrigger = "cron" | "manual";
 
 /** Registra una corrida en la bitácora (best-effort: no rompe el sync si falla). */
