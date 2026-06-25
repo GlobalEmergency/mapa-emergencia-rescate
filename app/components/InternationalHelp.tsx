@@ -642,6 +642,31 @@ const OFFICES: CountryOffice[] = [
     ],
   },
   {
+    country: "El Salvador",
+    countryCode: "SV",
+    organization: "Gobierno de El Salvador",
+    lines: [
+      {
+        type: "web",
+        label: "Rescatistas y suministros para Venezuela",
+        href: "https://www.al-monitor.com/originals/2026/06/factbox-international-aid-heads-venezuela-after-deadly-earthquake",
+      },
+    ],
+    shareChannels: [
+      {
+        name: "Apoyo de El Salvador",
+        description:
+          "El Salvador informó que 300 rescatistas y paramédicos, junto a 50 toneladas de suministros médicos, estaban preparados para viajar a Venezuela.",
+        href: "https://www.al-monitor.com/originals/2026/06/factbox-international-aid-heads-venezuela-after-deadly-earthquake",
+        source: "Reuters / Al-Monitor",
+        sourceHref:
+          "https://www.al-monitor.com/originals/2026/06/factbox-international-aid-heads-venezuela-after-deadly-earthquake",
+        updatedAt: "25 jun 2026",
+        status: "verified",
+      },
+    ],
+  },
+  {
     country: "España",
     countryCode: "ES",
     organization: "Venezuelan Press / asociaciones venezolanas",
@@ -835,6 +860,31 @@ const OFFICES: CountryOffice[] = [
         href: "https://www.unicef.ie/donate/venezuela-earthquake-appeal/",
         source: "UNICEF Ireland",
         sourceHref: "https://www.unicef.ie/donate/venezuela-earthquake-appeal/",
+        updatedAt: "25 jun 2026",
+        status: "verified",
+      },
+    ],
+  },
+  {
+    country: "Israel",
+    countryCode: "IL",
+    organization: "IsraAID",
+    lines: [
+      {
+        type: "web",
+        label: "IsraAID Emergency Fund",
+        href: "https://www.israaid.org/media/as-devastating-earthquakes-strike-venezuela-israaid-responds/",
+      },
+    ],
+    shareChannels: [
+      {
+        name: "IsraAID",
+        description:
+          "ONG israelí desplegando equipo de emergencia hacia Venezuela, con foco en primeros auxilios psicológicos, agua, saneamiento y evaluación rápida de necesidades.",
+        href: "https://www.israaid.org/media/as-devastating-earthquakes-strike-venezuela-israaid-responds/",
+        source: "IsraAID",
+        sourceHref:
+          "https://www.israaid.org/media/as-devastating-earthquakes-strike-venezuela-israaid-responds/",
         updatedAt: "25 jun 2026",
         status: "verified",
       },
@@ -1498,10 +1548,12 @@ const TIME_ZONE_COUNTRY_CODES: Record<string, string> = {
   "America/Santo_Domingo": "DO",
   "Europe/Madrid": "ES",
   "Atlantic/Canary": "ES",
+  "America/El_Salvador": "SV",
   "Europe/Paris": "FR",
   "America/Tegucigalpa": "HN",
   "Asia/Kolkata": "IN",
   "Europe/Dublin": "IE",
+  "Asia/Jerusalem": "IL",
   "Europe/Rome": "IT",
   "America/Mexico_City": "MX",
   "Europe/Amsterdam": "NL",
