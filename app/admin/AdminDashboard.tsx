@@ -13,6 +13,12 @@ const ADMIN_STORAGE_KEY = "emergency:adminToken";
 const POLL_INTERVAL_MS = 7000;
 const OPENPANEL_CLIENT_ID = process.env.NEXT_PUBLIC_OPENPANEL_CLIENT_ID;
 const OPENPANEL_DASHBOARD_URL = process.env.NEXT_PUBLIC_OPENPANEL_DASHBOARD_URL;
+const OPENPANEL_REALTIME_URL = OPENPANEL_DASHBOARD_URL
+  ? `${OPENPANEL_DASHBOARD_URL.replace(/\/$/, "")}/realtime`
+  : "";
+const OPENPANEL_EVENTS_URL = OPENPANEL_DASHBOARD_URL
+  ? `${OPENPANEL_DASHBOARD_URL.replace(/\/$/, "")}/events`
+  : "";
 
 interface Report {
   id: string;
@@ -395,43 +401,65 @@ export default function AdminDashboard() {
           ))}
         </div>
 
-        <div className="relative mt-4">
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar en esta sección…"
-            className="w-full max-w-md rounded-xl border border-slate-300 bg-white py-2.5 pl-9 pr-3 text-sm outline-none focus:border-slate-900"
-          />
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-            🔎
-          </span>
-        </div>
+        {tab !== "analytics" && (
+          <div className="relative mt-4">
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Buscar en esta sección…"
+              className="w-full max-w-md rounded-xl border border-slate-300 bg-white py-2.5 pl-9 pr-3 text-sm outline-none focus:border-slate-900"
+            />
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+              🔎
+            </span>
+          </div>
+        )}
 
         <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           {tab === "analytics" && (
-            <section className="p-6">
-              <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+            <section>
+              <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-100 p-4">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
                     OpenPanel
                   </p>
-                  <h2 className="mt-1 text-xl font-bold text-slate-900">
-                    Dashboard de tráfico y usuarios en vivo
+                  <h2 className="mt-1 text-lg font-bold text-slate-900">
+                    Usuarios en vivo y tráfico
                   </h2>
-                  <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                    Este panel interno administra reportes, personas y chat. Las
-                    métricas estilo Google Analytics van en OpenPanel: usuarios en
-                    tiempo real, visitantes por hora, páginas vistas, sesiones,
-                    funnels e interacciones.
+                  <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600">
+                    Las métricas de tráfico se muestran desde OpenPanel. Si ves
+                    una pantalla de login, inicia sesión en OpenPanel en este
+                    navegador y vuelve a cargar el admin.
                   </p>
-                  <div className="mt-4 flex flex-wrap gap-2">
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {OPENPANEL_REALTIME_URL && (
+                    <a
+                      href={OPENPANEL_REALTIME_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                    >
+                      Realtime
+                    </a>
+                  )}
+                  {OPENPANEL_EVENTS_URL && (
+                    <a
+                      href={OPENPANEL_EVENTS_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                    >
+                      Eventos
+                    </a>
+                  )}
                     {OPENPANEL_DASHBOARD_URL ? (
                       <a
                         href={OPENPANEL_DASHBOARD_URL}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+                        className="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
                       >
                         Abrir OpenPanel
                       </a>
@@ -440,46 +468,46 @@ export default function AdminDashboard() {
                         Falta NEXT_PUBLIC_OPENPANEL_DASHBOARD_URL
                       </span>
                     )}
+                </div>
+              </div>
+              {OPENPANEL_DASHBOARD_URL ? (
+                <iframe
+                  title="OpenPanel analytics"
+                  src={OPENPANEL_DASHBOARD_URL}
+                  className="h-[75vh] min-h-[680px] w-full bg-white"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  loading="lazy"
+                />
+              ) : (
+                <div className="p-6">
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                    Configura `NEXT_PUBLIC_OPENPANEL_DASHBOARD_URL` en Vercel y
+                    vuelve a desplegar para mostrar el dashboard aquí.
                   </div>
                 </div>
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                  <h3 className="text-sm font-semibold text-slate-900">
-                    Estado de integración
-                  </h3>
-                  <dl className="mt-3 space-y-2 text-sm">
-                    <div className="flex items-center justify-between gap-3">
-                      <dt className="text-slate-500">SDK instalado</dt>
-                      <dd className="font-semibold text-emerald-700">Sí</dd>
-                    </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <dt className="text-slate-500">Proxy local</dt>
-                      <dd className="font-semibold text-emerald-700">/api/op</dd>
-                    </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <dt className="text-slate-500">Client ID</dt>
-                      <dd
-                        className={
-                          OPENPANEL_CLIENT_ID
-                            ? "font-semibold text-emerald-700"
-                            : "font-semibold text-amber-700"
-                        }
-                      >
-                        {OPENPANEL_CLIENT_ID ? "Configurado" : "Pendiente"}
-                      </dd>
-                    </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <dt className="text-slate-500">Dashboard URL</dt>
-                      <dd
-                        className={
-                          OPENPANEL_DASHBOARD_URL
-                            ? "font-semibold text-emerald-700"
-                            : "font-semibold text-amber-700"
-                        }
-                      >
-                        {OPENPANEL_DASHBOARD_URL ? "Configurada" : "Pendiente"}
-                      </dd>
-                    </div>
-                  </dl>
+              )}
+              <div className="grid gap-3 border-t border-slate-100 bg-slate-50 p-4 text-sm md:grid-cols-3">
+                <div className="rounded-lg border border-slate-200 bg-white p-3">
+                  <span className="text-slate-500">SDK</span>
+                  <p className="font-semibold text-emerald-700">Instalado</p>
+                </div>
+                <div className="rounded-lg border border-slate-200 bg-white p-3">
+                  <span className="text-slate-500">Client ID</span>
+                  <p
+                    className={
+                      OPENPANEL_CLIENT_ID
+                        ? "font-semibold text-emerald-700"
+                        : "font-semibold text-amber-700"
+                    }
+                  >
+                    {OPENPANEL_CLIENT_ID ? "Configurado" : "Pendiente"}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-slate-200 bg-white p-3">
+                  <span className="text-slate-500">Tracking local</span>
+                  <p className="font-semibold text-slate-900">
+                    Desactivado fuera de producción
+                  </p>
                 </div>
               </div>
             </section>
