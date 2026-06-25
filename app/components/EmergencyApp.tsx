@@ -40,6 +40,12 @@ const MapView = dynamic(() => import("./MapView"), {
 });
 
 const CARACAS: [number, number] = [10.4806, -66.9036];
+// Centro de la zona afectada por el terremoto. Las búsquedas de direcciones
+// priorizan resultados cercanos a este punto. Ajustar si el foco se desplaza.
+const AFFECTED_CENTER: { lat: number; lng: number } = {
+  lat: CARACAS[0],
+  lng: CARACAS[1],
+};
 const POLL_INTERVAL_MS = 5000;
 const ADMIN_STORAGE_KEY = "emergency:adminToken";
 
@@ -310,7 +316,10 @@ export default function EmergencyApp() {
     <section id="mapa" className="mx-auto w-full max-w-7xl px-4 py-10">
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <div className="flex flex-col gap-3">
-          <AddressSearch onSelect={handleAddressSelect} />
+          <AddressSearch
+            onSelect={handleAddressSelect}
+            bias={focus ? { lat: focus.lat, lng: focus.lng } : AFFECTED_CENTER}
+          />
           <div className="relative h-[520px] overflow-hidden rounded-2xl border border-slate-200 shadow-sm lg:h-[640px]">
           <MapView
             reports={reports}

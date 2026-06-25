@@ -10,12 +10,15 @@ export interface GeocodeResult {
 
 interface AddressSearchProps {
   onSelect: (result: GeocodeResult) => void;
+  /** Punto de referencia para priorizar resultados cercanos a la zona afectada. */
+  bias?: { lat: number; lng: number };
 }
 
-export default function AddressSearch({ onSelect }: AddressSearchProps) {
+export default function AddressSearch({ onSelect, bias }: AddressSearchProps) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<GeocodeResult[]>([]);
   const [loading, setLoading] = useState(false);
+  const [locating, setLocating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -43,7 +46,12 @@ export default function AddressSearch({ onSelect }: AddressSearchProps) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/geocode?q=${encodeURIComponent(q)}`);
+      const params = new URLSearchParams({ q });
+      if (bias) {
+        params.set("lat", String(bias.lat));
+        params.set("lng", String(bias.lng));
+      }
+      const res = await fetch(`/api/geocode?${params.toString()}`);
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? "No se pudo buscar.");
       setResults(data.results ?? []);
@@ -63,6 +71,39 @@ export default function AddressSearch({ onSelect }: AddressSearchProps) {
     setOpen(false);
     setResults([]);
     setQuery(result.label.split(",").slice(0, 2).join(", "));
+  }
+
+  function useMyLocation() {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setError("Tu dispositivo no permite compartir la ubicación.");
+      return;
+    }
+    setLocating(true);
+    setError(null);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLocating(false);
+        setOpen(false);
+        setResults([]);
+        setQuery("Mi ubicación actual");
+        onSelect({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+          label: "Mi ubicación actual",
+        });
+      },
+      (err) => {
+        setLocating(false);
+        const message =
+          err.code === err.PERMISSION_DENIED
+            ? "Permiso denegado. Activa la ubicación para usar esta opción."
+            : err.code === err.TIMEOUT
+              ? "Tardó demasiado en obtener tu ubicación. Inténtalo de nuevo."
+              : "No se pudo obtener tu ubicación.";
+        setError(message);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+    );
   }
 
   return (
@@ -88,6 +129,16 @@ export default function AddressSearch({ onSelect }: AddressSearchProps) {
           className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-60"
         >
           {loading ? "Buscando…" : "Buscar"}
+        </button>
+        <button
+          type="button"
+          onClick={useMyLocation}
+          disabled={locating}
+          title="Usar mi ubicación actual"
+          aria-label="Usar mi ubicación actual"
+          className="flex items-center gap-1 rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+        >
+          {locating ? "Ubicando…" : "🎯"}
         </button>
       </form>
 
