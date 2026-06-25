@@ -1,21 +1,69 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from "react";
 import { useLowBandwidthMode } from "./useLowBandwidthMode";
 import { trackEvent } from "./openpanel";
+import {
+  CHAT_ROLES,
+  CHAT_ROLE_KEYS,
+  getRoleMeta,
+  isValidChatRole,
+  type ChatMessage,
+  type ChatRole,
+} from "@/lib/chat-types";
 
-interface ChatMessage {
-  id: string;
-  name: string;
-  text: string;
-  createdAt: number;
+interface ChatNode {
+  message: ChatMessage;
+  children: ChatNode[];
 }
 
 const POLL_INTERVAL_MS = 5000;
 const LOW_BANDWIDTH_POLL_INTERVAL_MS = 30_000;
 const ADMIN_STORAGE_KEY = "emergency:adminToken";
 const NAME_STORAGE_KEY = "emergency:chatName";
+const ROLE_STORAGE_KEY = "emergency:chatRole";
 const MAX_TEXT = 500;
+const MAX_THREAD_DEPTH = 6;
+
+function buildForest(messages: ChatMessage[]): ChatNode[] {
+  const byId = new Map<string, ChatNode>();
+  const roots: ChatNode[] = [];
+
+  // Primera pasada: crear nodos.
+  for (const message of messages) {
+    byId.set(message.id, { message, children: [] });
+  }
+
+  // Segunda pasada: enlazar padres-hijos.
+  for (const message of messages) {
+    const node = byId.get(message.id)!;
+    if (message.replyTo && byId.has(message.replyTo)) {
+      const parent = byId.get(message.replyTo)!;
+      parent.children.push(node);
+    } else {
+      roots.push(node);
+    }
+  }
+
+  // Ordenar raíces por threadBumpedAt descendente (más reciente primero).
+  roots.sort((a, b) => b.message.threadBumpedAt - a.message.threadBumpedAt);
+
+  // Ordenar hijos cronológicamente en cada nivel.
+  const sortChildren = (nodes: ChatNode[]) => {
+    nodes.sort((a, b) => a.message.createdAt - b.message.createdAt);
+    for (const node of nodes) sortChildren(node.children);
+  };
+  sortChildren(roots);
+
+  return roots;
+}
+
+function formatTime(ts: number): string {
+  return new Date(ts).toLocaleTimeString("es-VE", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 export default function ChatPanel() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -24,10 +72,18 @@ export default function ChatPanel() {
       ? ""
       : (localStorage.getItem(NAME_STORAGE_KEY) ?? ""),
   );
+  const [role, setRole] = useState<ChatRole>(() => {
+    if (typeof window === "undefined") return "citizen";
+    const stored = localStorage.getItem(ROLE_STORAGE_KEY);
+    return isValidChatRole(stored ?? "") ? (stored as ChatRole) : "citizen";
+  });
+  const [showRolePicker, setShowRolePicker] = useState(false);
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [adminToken, setAdminToken] = useState<string | null>(null);
+  const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
+  const [roleFilter, setRoleFilter] = useState<ChatRole | "all">("all");
   const network = useLowBandwidthMode(
     POLL_INTERVAL_MS,
     LOW_BANDWIDTH_POLL_INTERVAL_MS,
@@ -35,18 +91,20 @@ export default function ChatPanel() {
 
   const listRef = useRef<HTMLDivElement>(null);
   const atBottomRef = useRef(true);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const fetchMessages = useCallback(async () => {
     setAdminToken(sessionStorage.getItem(ADMIN_STORAGE_KEY));
     try {
-      const res = await fetch("/api/chat", { cache: "no-store" });
+      const qs = roleFilter !== "all" ? `?role=${roleFilter}` : "";
+      const res = await fetch(`/api/chat${qs}`, { cache: "no-store" });
       if (!res.ok) return;
       const data = await res.json();
       setMessages(data.messages ?? []);
     } catch {
       // se reintenta en el siguiente ciclo
     }
-  }, []);
+  }, [roleFilter]);
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval> | null = null;
@@ -84,6 +142,12 @@ export default function ChatPanel() {
       el.scrollHeight - el.scrollTop - el.clientHeight < 40;
   }
 
+  const handleRoleChange = useCallback((next: ChatRole) => {
+    setRole(next);
+    localStorage.setItem(ROLE_STORAGE_KEY, next);
+    setShowRolePicker(false);
+  }, []);
+
   const handleSend = useCallback(
     async (event: React.FormEvent) => {
       event.preventDefault();
@@ -96,16 +160,23 @@ export default function ChatPanel() {
         const res = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: name.trim(), text: trimmed }),
+          body: JSON.stringify({
+            name: name.trim(),
+            text: trimmed,
+            role,
+            replyTo: replyingTo?.id ?? null,
+          }),
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error ?? "No se pudo enviar.");
         trackEvent("chat_message_sent", {
-          hasName: Boolean(name.trim()),
+          role,
+          hasReply: Boolean(replyingTo),
           lengthBucket:
             trimmed.length < 80 ? "short" : trimmed.length < 240 ? "medium" : "long",
         });
         setText("");
+        setReplyingTo(null);
         atBottomRef.current = true;
         if (data.message) {
           setMessages((prev) =>
@@ -120,7 +191,7 @@ export default function ChatPanel() {
         setSending(false);
       }
     },
-    [text, name],
+    [text, name, role, replyingTo],
   );
 
   const handleDelete = useCallback(
@@ -135,6 +206,93 @@ export default function ChatPanel() {
     [adminToken],
   );
 
+  const forest = useMemo(() => buildForest(messages), [messages]);
+
+  const handleReply = useCallback((message: ChatMessage) => {
+    setReplyingTo(message);
+    textareaRef.current?.focus();
+  }, []);
+
+  const renderMessage = (
+    node: ChatNode,
+    depth: number,
+    isRoot: boolean,
+  ): ReactElement => {
+    const { message, children } = node;
+    const meta = getRoleMeta(message.role);
+    const hasReplies = children.length > 0;
+    const isReply = depth > 0;
+
+    return (
+      <div
+        key={message.id}
+        className={`${isRoot ? "mt-3 first:mt-0" : "mt-2"}`}
+      >
+        <div
+          className={`group relative rounded-xl border bg-white px-3 py-2 shadow-sm transition hover:shadow-md ${
+            isReply
+              ? "border-slate-100"
+              : replyingTo?.id === message.id
+                ? "border-sky-300 ring-1 ring-sky-200"
+                : "border-slate-200"
+          }`}
+        >
+          {message.replyPreview && (
+            <div className="mb-1.5 border-l-2 border-slate-300 pl-2 text-xs text-slate-500">
+              <span className="line-clamp-2">{message.replyPreview}</span>
+            </div>
+          )}
+          <div className="flex items-baseline justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-1.5">
+              <span
+                className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold text-white"
+                style={{ backgroundColor: meta.color }}
+                title={meta.description}
+              >
+                <span aria-hidden>{meta.icon}</span>
+                <span className="truncate">{meta.label}</span>
+              </span>
+              <span className="truncate text-sm font-semibold text-slate-900">
+                {message.name}
+              </span>
+            </div>
+            <span className="shrink-0 text-[11px] text-slate-400">
+              {formatTime(message.createdAt)}
+            </span>
+          </div>
+          <p className="mt-1 whitespace-pre-wrap break-words text-sm text-slate-700">
+            {message.text}
+          </p>
+          <div className="mt-1.5 flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+            <button
+              type="button"
+              onClick={() => handleReply(message)}
+              className="text-[11px] font-medium text-slate-500 hover:text-sky-700"
+            >
+              Responder
+            </button>
+            {adminToken && (
+              <button
+                type="button"
+                onClick={() => handleDelete(message.id)}
+                className="text-[11px] font-medium text-slate-500 hover:text-red-600"
+              >
+                Borrar
+              </button>
+            )}
+          </div>
+        </div>
+
+        {hasReplies && depth < MAX_THREAD_DEPTH && (
+          <div className="relative mt-1 pl-4 sm:pl-6">
+            <div className="absolute bottom-0 left-2 top-0 w-px bg-slate-200 sm:left-3" />
+            {children.map((child) => renderMessage(child, depth + 1, false))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <section id="chat" className="mx-auto w-full max-w-7xl px-4 pb-14">
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
@@ -148,6 +306,88 @@ export default function ChatPanel() {
           confirmar.
         </p>
 
+        {/* Filtros por rol */}
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setRoleFilter("all")}
+            className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
+              roleFilter === "all"
+                ? "border-slate-900 bg-slate-900 text-white"
+                : "border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300"
+            }`}
+          >
+            Todos
+          </button>
+          {CHAT_ROLE_KEYS.map((r) => {
+            const m = CHAT_ROLES[r];
+            const active = roleFilter === r;
+            return (
+              <button
+                key={r}
+                type="button"
+                onClick={() => setRoleFilter(r)}
+                className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium transition ${
+                  active
+                    ? "border-slate-900 bg-slate-900 text-white"
+                    : "border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300"
+                }`}
+              >
+                <span aria-hidden>{m.icon}</span>
+                <span>{m.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Selector de rol propio */}
+        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-sm">
+          <span className="text-slate-500">Participas como:</span>
+          <button
+            type="button"
+            onClick={() => setShowRolePicker((v) => !v)}
+            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+            style={{ color: CHAT_ROLES[role].color }}
+          >
+            <span>{CHAT_ROLES[role].icon}</span>
+            {CHAT_ROLES[role].label}
+            <span aria-hidden>▾</span>
+          </button>
+          {showRolePicker && (
+            <div className="mt-2 w-full">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {CHAT_ROLE_KEYS.map((r) => {
+                  const m = CHAT_ROLES[r];
+                  return (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => handleRoleChange(r)}
+                      className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm transition ${
+                        role === r
+                          ? "border-slate-900 bg-slate-900 text-white"
+                          : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                      }`}
+                    >
+                      <span aria-hidden>{m.icon}</span>
+                      <div>
+                        <p className="font-semibold">{m.label}</p>
+                        <p
+                          className={`text-[10px] ${
+                            role === r ? "text-slate-300" : "text-slate-500"
+                          }`}
+                        >
+                          {m.description}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
         <div
           ref={listRef}
           onScroll={handleScroll}
@@ -157,37 +397,12 @@ export default function ChatPanel() {
             <p className="grid h-full place-items-center text-sm text-slate-400">
               Aún no hay mensajes. ¡Escribe el primero!
             </p>
+          ) : forest.length === 0 ? (
+            <p className="grid h-full place-items-center text-sm text-slate-400">
+              No hay mensajes para este filtro.
+            </p>
           ) : (
-            messages.map((message) => (
-              <div key={message.id} className="group flex items-start gap-2">
-                <div className="min-w-0 flex-1 rounded-xl bg-white px-3 py-2 shadow-sm">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <span className="truncate text-sm font-semibold text-slate-900">
-                      {message.name}
-                    </span>
-                    <span className="shrink-0 text-[11px] text-slate-400">
-                      {new Date(message.createdAt).toLocaleTimeString("es-VE", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </span>
-                  </div>
-                  <p className="whitespace-pre-wrap break-words text-sm text-slate-700">
-                    {message.text}
-                  </p>
-                </div>
-                {adminToken && (
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(message.id)}
-                    aria-label="Borrar mensaje"
-                    className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-md text-base text-slate-400 transition hover:bg-red-50 hover:text-red-600"
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-            ))
+            forest.map((root) => renderMessage(root, 0, true))
           )}
         </div>
 
@@ -200,8 +415,30 @@ export default function ChatPanel() {
             maxLength={40}
             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-900 sm:max-w-xs"
           />
+
+          {replyingTo && (
+            <div className="flex items-center justify-between gap-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-900">
+              <span className="truncate">
+                Respondiendo a{" "}
+                <strong>
+                  {replyingTo.name} ({CHAT_ROLES[replyingTo.role].label})
+                </strong>
+                : {replyingTo.text}
+              </span>
+              <button
+                type="button"
+                onClick={() => setReplyingTo(null)}
+                className="shrink-0 rounded-md px-1.5 py-0.5 font-semibold hover:bg-sky-100"
+                aria-label="Cancelar respuesta"
+              >
+                ×
+              </button>
+            </div>
+          )}
+
           <div className="flex items-end gap-2">
             <textarea
+              ref={textareaRef}
               value={text}
               onChange={(e) => setText(e.target.value)}
               onKeyDown={(e) => {
