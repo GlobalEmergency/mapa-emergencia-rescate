@@ -14,7 +14,8 @@ export default function SubPageShell({
   children,
 }: SubPageShellProps) {
   return (
-    <main className="flex-1 bg-slate-50 md:pt-16">
+    <>
+      <main id="main" className="flex-1 bg-slate-50 md:pt-16">
       <HeroDesktopNav />
 
       <div className="border-b border-slate-200 bg-white">
@@ -28,9 +29,10 @@ export default function SubPageShell({
       </div>
 
       <div className="pb-12">{children}</div>
+    </main>
 
       <SiteFooter />
       <MobileStickyNav />
-    </main>
+    </>
   );
 }

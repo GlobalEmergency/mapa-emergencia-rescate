@@ -172,9 +172,9 @@ export default function Hospitals() {
           <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-red-700">
             🏥 Hospitales
           </span>
-          <h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">
             Hospitales y centros de salud
-          </h2>
+          </h1>
           <p className="mt-1 max-w-2xl text-sm text-slate-600">
             Lista priorizada de la red hospitalaria de Venezuela según la zona
             de afectación. Toca un hospital para ver los pacientes registrados o

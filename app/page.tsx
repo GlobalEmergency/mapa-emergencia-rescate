@@ -66,7 +66,8 @@ const STEPS: {
 
 export default function Home() {
   return (
-    <main className="flex-1">
+    <>
+      <main id="main" className="flex-1">
       <header className="relative overflow-hidden border-b border-slate-800 md:pt-16">
         <div
           className="absolute inset-0 bg-[url('/images/hero-terremoto-venezuela.png')] bg-cover bg-center bg-no-repeat"
@@ -208,8 +209,9 @@ export default function Home() {
       <EmergencyApp />
 
       <PersonsTabs />
+    </main>
 
       <SiteFooter />
-    </main>
+    </>
   );
 }

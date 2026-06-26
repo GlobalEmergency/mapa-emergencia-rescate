@@ -121,12 +121,12 @@ export default function EmergencyContacts() {
       >
         <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-2xl p-4 sm:p-6">
           <div>
-            <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900">
+            <h1 className="flex items-center gap-2 text-lg font-bold text-slate-900">
               📞 Teléfonos de emergencia
               <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
                 {totalNumbers}
               </span>
-            </h2>
+            </h1>
             <p className="mt-1 text-sm text-slate-600">
               Toca para ver y llamar directamente. Caracas y Gran Caracas (0212).
             </p>

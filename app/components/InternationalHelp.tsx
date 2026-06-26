@@ -2172,9 +2172,9 @@ export default function InternationalHelp() {
                 <p className="text-xs font-bold uppercase tracking-wide text-red-700">
                   Apoyo global
                 </p>
-                <h2 className="mt-1 text-2xl font-bold leading-tight text-slate-950 sm:text-3xl">
+                <h1 className="mt-1 text-2xl font-bold leading-tight text-slate-950 sm:text-3xl">
                   Ayuda para Venezuela desde {selectedOffice.country}
-                </h2>
+                </h1>
                 <p className="mt-3 text-sm leading-relaxed text-slate-700">
                   Te mostramos solo la información local del país detectado para
                   evitar ruido. Puedes cambiar de país si estás ayudando a
