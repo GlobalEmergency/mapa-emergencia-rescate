@@ -12,6 +12,7 @@ const Hospitals = dynamic(() => import("@/app/components/Hospitals"), {
 
 export const metadata: Metadata = {
   title: "Hospitales y pacientes · Mapa de Emergencia Venezuela",
+  alternates: { canonical: "/hospitales" },
   description:
     "Red hospitalaria priorizada con búsqueda global de pacientes por nombre o número de cédula.",
 };

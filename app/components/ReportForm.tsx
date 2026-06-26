@@ -1,13 +1,21 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { REPORT_TYPES, REPORT_TYPE_KEYS, type ReportType } from "@/lib/types";
 import { trackEvent } from "./openpanel";
 
 interface ReportFormProps {
-  coords: { lat: number; lng: number };
+  /** Ubicación elegida, o null mientras el usuario aún no la define. */
+  coords: { lat: number; lng: number } | null;
   onCancel: () => void;
   onCoordsChange?: (coords: { lat: number; lng: number }) => void;
+  /** Oculta el modal sin desmontarlo (conserva lo escrito) mientras el usuario
+   * elige el punto tocando el mapa. */
+  hidden?: boolean;
+  /** Solicita elegir la ubicación tocando el mapa. */
+  onPickOnMap?: () => void;
+  /** Quita la ubicación elegida (vuelve a "sin definir"). */
+  onClearLocation?: () => void;
   onSubmit: (payload: {
     type: ReportType;
     place: string;
@@ -95,8 +103,18 @@ export default function ReportForm({
   coords,
   onCancel,
   onCoordsChange,
+  hidden = false,
+  onPickOnMap,
+  onClearLocation,
   onSubmit,
 }: ReportFormProps) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  // Al abrir (o al volver de "elegir en el mapa") movemos el foco al modal para
+  // que Esc lo cierre de inmediato, y por accesibilidad.
+  useEffect(() => {
+    if (!hidden) dialogRef.current?.focus({ preventScroll: true });
+  }, [hidden]);
+
   const [type, setType] = useState<ReportType>("critical");
   const [place, setPlace] = useState("");
   const [affected, setAffected] = useState("");
@@ -163,6 +181,12 @@ export default function ReportForm({
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
+    if (!coords) {
+      setError(
+        "Elige la ubicación del reporte: tócala en el mapa o usa tu ubicación.",
+      );
+      return;
+    }
     if (!place.trim()) {
       setError("Indica el nombre o dirección del lugar.");
       return;
@@ -190,12 +214,18 @@ export default function ReportForm({
 
   return (
     <div
-      className="fixed inset-0 z-[2000] flex items-end justify-center bg-slate-900/60 p-0 sm:items-center sm:p-4"
+      className={`fixed inset-0 z-[2000] flex items-end justify-center bg-slate-900/60 p-0 sm:items-center sm:p-4 ${
+        hidden ? "hidden" : ""
+      }`}
       role="dialog"
       aria-modal="true"
       aria-labelledby="form-title"
     >
-      <div className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-white p-5 shadow-xl sm:rounded-2xl sm:p-6">
+      <div
+        ref={dialogRef}
+        tabIndex={-1}
+        className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-white p-5 shadow-xl outline-none sm:rounded-2xl sm:p-6"
+      >
         <div className="mb-3 flex items-start justify-between">
           <h2 id="form-title" className="text-lg font-bold text-slate-900">
             🚨 Reportar Emergencia / Solicitar Ayuda
@@ -211,21 +241,55 @@ export default function ReportForm({
           </button>
         </div>
 
-        <div className="mb-4 flex flex-wrap items-center gap-2">
-          <p className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-1 text-xs text-slate-600">
-            📍 {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}
-          </p>
-          {onCoordsChange && (
-            <button
-              type="button"
-              onClick={useMyLocation}
-              data-track="report_use_geolocation_click"
-              disabled={locating}
-              className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+        <div
+          className={`mb-4 rounded-lg border p-3 ${
+            coords
+              ? "border-slate-200 bg-slate-50"
+              : "border-amber-300 bg-amber-50"
+          }`}
+        >
+          <p className="mb-2 flex flex-wrap items-center gap-1.5 text-xs font-semibold text-slate-700">
+            <span aria-hidden>📍</span> Ubicación del reporte
+            <span
+              className={`font-normal ${coords ? "text-slate-500" : "text-amber-700"}`}
             >
-              {locating ? "Localizando…" : "🛰️ Usar mi ubicación"}
-            </button>
-          )}
+              {coords
+                ? `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`
+                : "sin definir — elígela abajo"}
+            </span>
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {onPickOnMap && (
+              <button
+                type="button"
+                onClick={onPickOnMap}
+                className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                🗺️ Elegir en el mapa
+              </button>
+            )}
+            {onCoordsChange && (
+              <button
+                type="button"
+                onClick={useMyLocation}
+                data-track="report_use_geolocation_click"
+                disabled={locating}
+                className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+              >
+                {locating ? "Localizando…" : "🛰️ Usar mi ubicación"}
+              </button>
+            )}
+            {coords && onClearLocation && (
+              <button
+                type="button"
+                onClick={onClearLocation}
+                aria-label="Quitar la ubicación elegida"
+                className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
+              >
+                ✕ Quitar
+              </button>
+            )}
+          </div>
         </div>
         {geoError && (
           <p className="-mt-2 mb-3 rounded-md bg-amber-50 px-2 py-1 text-xs text-amber-800">

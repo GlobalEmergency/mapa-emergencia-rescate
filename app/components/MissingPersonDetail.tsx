@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import MissingFoundForm, {
   type MissingFoundPayload,
 } from "./MissingFoundForm";
+import ImageZoomLightbox from "./ImageZoomLightbox";
 
 interface MissingPerson {
   id: string;
@@ -62,6 +63,7 @@ export default function MissingPersonDetail({
   const [showFoundForm, setShowFoundForm] = useState(false);
   const [copied, setCopied] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
+  const [zoomOpen, setZoomOpen] = useState(false);
   const touchStartX = useRef<number | null>(null);
 
   const currentIndex =
@@ -85,6 +87,7 @@ export default function MissingPersonDetail({
     setShowFoundForm(false);
     setCopied(false);
     setShareError(null);
+    setZoomOpen(false);
   }, [person.id]);
 
   useEffect(() => {
@@ -216,7 +219,8 @@ export default function MissingPersonDetail({
             <img
               src={person.photoUrl}
               alt={`Foto de ${person.name}`}
-              className="max-h-[55vh] w-full bg-slate-100 object-contain"
+              className="max-h-[55vh] w-full cursor-zoom-in bg-slate-100 object-contain"
+              onClick={() => setZoomOpen(true)}
             />
           ) : (
             <div className="grid h-64 w-full place-items-center bg-slate-100 text-6xl text-slate-300">
@@ -448,6 +452,15 @@ export default function MissingPersonDetail({
             await onMarkFound(payload);
             setShowFoundForm(false);
           }}
+        />
+      )}
+
+      {person.photoUrl && (
+        <ImageZoomLightbox
+          src={person.photoUrl}
+          alt={`Foto de ${person.name}`}
+          isOpen={zoomOpen}
+          onClose={() => setZoomOpen(false)}
         />
       )}
     </div>

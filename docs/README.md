@@ -79,6 +79,10 @@ acción.
 
 - [0001 — Identidad de registros externos por (source, external_id)](adr/0001-identidad-source-external-id.md) · _aceptada_
 - [0002 — Upsert por lotes (batched)](adr/0002-upsert-por-lotes.md) · _aceptada_
+- [0003 — Caché en proceso (SWR + single-flight) para el camino de lectura](adr/0003-cache-en-proceso.md) · _aceptada_
+- [0004 — Escrituras atómicas con CTE](adr/0004-escrituras-atomicas-cte.md) · _aceptada_
+- [0005 — Endurecimiento de la superficie HTTP ante el pico mediático](adr/0005-endurecimiento-superficie-http.md) · _aceptada_
+- [0006 — Estrategia de búsqueda (trigram + mínimo, conteo acotado y caché)](adr/0006-estrategia-de-busqueda.md) · _aceptada_
 
 ### Arquitectura
 
@@ -87,4 +91,5 @@ _(pendiente)_
 ### Guías
 
 - [Desplegar la sincronización con Vercel Cron](guides/sincronizacion-cron-vercel.md)
+- [Rendimiento, capacidad y pruebas de carga](guides/rendimiento-y-pruebas-de-carga.md)
 </content>

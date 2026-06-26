@@ -12,6 +12,7 @@ const ChatPanel = dynamic(() => import("@/app/components/ChatPanel"), {
 
 export const metadata: Metadata = {
   title: "Chat de voluntarios · Mapa de Emergencia Venezuela",
+  alternates: { canonical: "/chat" },
   description:
     "Coordina rescates, suministros y difusión con otros voluntarios en tiempo real.",
 };

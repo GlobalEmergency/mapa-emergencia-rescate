@@ -15,6 +15,7 @@ const EmergencyContacts = dynamic(
 
 export const metadata: Metadata = {
   title: "Teléfonos de emergencia · Mapa de Emergencia Venezuela",
+  alternates: { canonical: "/telefonos" },
   description:
     "Directorio actualizado de teléfonos para emergencias, salud, rescate y servicios públicos durante el terremoto.",
 };

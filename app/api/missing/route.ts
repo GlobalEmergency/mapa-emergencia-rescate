@@ -6,15 +6,25 @@ import {
   listMissingPage,
   MAX_NAME,
   MAX_PHOTO_CHARS,
+  MIN_SEARCH_LEN,
   type MissingStatusFilter,
 } from "@/lib/missing";
 import { isPersistent } from "@/lib/store";
 import { checkRateLimit, clientIp } from "@/lib/ratelimit";
+import { cached } from "@/lib/cache";
+import { jsonWithEtag } from "@/lib/http";
+import { readJson, bodyErrorResponse, BODY_LIMIT_PHOTO } from "@/lib/body";
 
 export const dynamic = "force-dynamic";
 
 const LIST_CACHE_HEADERS = {
   "Cache-Control": "public, max-age=0, s-maxage=2, stale-while-revalidate=15",
+};
+// Las búsquedas no necesitan frescura de 2 s y son el caso más caro (count por
+// término). Un TTL largo colapsa los re-counts del polling y comparte las
+// búsquedas populares entre usuarios.
+const SEARCH_CACHE_HEADERS = {
+  "Cache-Control": "public, max-age=0, s-maxage=30, stale-while-revalidate=120",
 };
 
 export async function GET(request: Request) {
@@ -27,23 +37,31 @@ export async function GET(request: Request) {
   const status: MissingStatusFilter =
     statusParam === "found" ? "found" : statusParam === "all" ? "all" : "active";
 
-  const result = await listMissingPage({
-    status,
-    page: Number(params.get("page") ?? "1"),
-    pageSize: Number(params.get("pageSize") ?? String(DEFAULT_PAGE_SIZE)),
-    search: params.get("q") ?? undefined,
-  });
+  const page = Number(params.get("page") ?? "1");
+  const pageSize = Number(params.get("pageSize") ?? String(DEFAULT_PAGE_SIZE));
+  const search = params.get("q") ?? undefined;
+  // Una búsqueda efectiva necesita al menos MIN_SEARCH_LEN caracteres; por
+  // debajo de eso se trata como listado normal (TTL corto, conteo exacto).
+  const hasSearch = (search ?? "").trim().length >= MIN_SEARCH_LEN;
+  // Clave por params: la página 1 sin búsqueda (lo que ve el 95%) cachea
+  // perfecto; las búsquedas/páginas profundas entran en el LRU acotado.
+  const key = `missing:${status}:${page}:${pageSize}:${search ?? ""}`;
+  const result = await cached(key, hasSearch ? 30_000 : 2_000, () =>
+    listMissingPage({ status, page, pageSize, search }),
+  );
 
-  return NextResponse.json(
+  return jsonWithEtag(
+    request,
     {
       people: result.people,
       total: result.total,
+      totalCapped: result.totalCapped,
       page: result.page,
       pageSize: result.pageSize,
       totalPages: result.totalPages,
       persistent: isPersistent(),
     },
-    { headers: LIST_CACHE_HEADERS },
+    hasSearch ? SEARCH_CACHE_HEADERS : LIST_CACHE_HEADERS,
   );
 }
 
@@ -65,9 +83,9 @@ export async function POST(request: Request) {
     photo?: string | null;
   };
   try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
+    body = await readJson(request, BODY_LIMIT_PHOTO);
+  } catch (e) {
+    return bodyErrorResponse(e);
   }
 
   const name = typeof body.name === "string" ? body.name.trim() : "";

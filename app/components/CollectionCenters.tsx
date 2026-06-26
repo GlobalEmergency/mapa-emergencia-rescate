@@ -161,12 +161,12 @@ export default function CollectionCenters() {
         <details open className="group rounded-2xl border border-emerald-200 bg-white shadow-sm">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-2xl p-4 sm:p-6">
             <div>
-              <h2 className="flex flex-wrap items-center gap-2 text-lg font-bold text-slate-900 sm:text-xl">
+              <h1 className="flex flex-wrap items-center gap-2 text-lg font-bold text-slate-900 sm:text-xl">
                 🟢 Centros de acopio
                 <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-800">
                   {CENTERS.length} puntos
                 </span>
-              </h2>
+              </h1>
               <p className="mt-1 max-w-3xl text-sm text-slate-600">
                 Lugares verificados donde puedes llevar donaciones físicas para
                 quienes fueron afectados por el terremoto. Revisa qué reciben

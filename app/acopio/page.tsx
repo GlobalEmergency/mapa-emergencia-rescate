@@ -15,6 +15,7 @@ const CollectionCenters = dynamic(
 
 export const metadata: Metadata = {
   title: "Centros de acopio · Mapa de Emergencia Venezuela",
+  alternates: { canonical: "/acopio" },
   description:
     "Puntos verificados para entregar agua, alimentos, medicinas y artículos de primera necesidad.",
 };

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import MissingPersonDetail from "./MissingPersonDetail";
 import { useLowBandwidthMode } from "./useLowBandwidthMode";
 
@@ -23,6 +23,16 @@ const POLL_INTERVAL_MS = 20_000;
 const LOW_BANDWIDTH_POLL_INTERVAL_MS = 60_000;
 const PAGE_SIZE = 48;
 
+/** Ventana compacta de números de página alrededor de la página actual. */
+function pageWindow(page: number, totalPages: number): number[] {
+  const span = 2;
+  const start = Math.max(1, Math.min(page - span, totalPages - span * 2));
+  const end = Math.min(totalPages, Math.max(page + span, span * 2 + 1));
+  const pages: number[] = [];
+  for (let p = start; p <= end; p++) pages.push(p);
+  return pages;
+}
+
 function formatDate(ts: number | null | undefined): string {
   if (!ts) return "";
   const d = new Date(ts);
@@ -43,8 +53,13 @@ export default function FoundPersons() {
     POLL_INTERVAL_MS,
     LOW_BANDWIDTH_POLL_INTERVAL_MS,
   );
+  const requestIdRef = useRef(0);
+  const listTopRef = useRef<HTMLDivElement | null>(null);
+  const initialPageRef = useRef(true);
 
   const fetchFound = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
+
     try {
       const res = await fetch(
         `/api/missing?status=found&page=${page}&pageSize=${PAGE_SIZE}`,
@@ -52,6 +67,8 @@ export default function FoundPersons() {
       );
       if (!res.ok) return;
       const data = await res.json();
+      // Ignorar respuestas de solicitudes anteriores (carrera con polling).
+      if (requestId !== requestIdRef.current) return;
       setPeople(data.people ?? []);
       setTotal(data.total ?? 0);
       setTotalPages(data.totalPages ?? 1);
@@ -87,16 +104,25 @@ export default function FoundPersons() {
     };
   }, [fetchFound, network.pollIntervalMs]);
 
+  // Al cambiar de página, hacemos scroll al inicio de la lista (no en la
+  // carga inicial).
+  useEffect(() => {
+    if (initialPageRef.current) {
+      initialPageRef.current = false;
+      return;
+    }
+    listTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [page]);
+
   // El servidor ya ordena por fecha de localización (resolved_at) desc.
   if (total === 0) {
     return null;
   }
 
+  const pages = pageWindow(page, totalPages);
+
   return (
-    <section
-      id="localizados"
-      className="border-y border-emerald-200/60 bg-gradient-to-b from-emerald-50/60 via-white to-white"
-    >
+    <div ref={listTopRef} className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 sm:p-6">
       <div className="mx-auto w-full max-w-7xl px-4 py-10">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -115,9 +141,8 @@ export default function FoundPersons() {
               💚 Personas localizadas a salvo
             </h2>
             <p className="mt-1 max-w-2xl text-sm text-slate-600">
-              Familias que volvieron a encontrarse gracias a la comunidad.
-              Cada historia es un recordatorio de que vale la pena seguir
-              buscando.
+              Familias que volvieron a encontrarse gracias a la comunidad. Cada
+              historia es un recordatorio de que vale la pena seguir buscando.
             </p>
           </div>
           <a
@@ -188,7 +213,7 @@ export default function FoundPersons() {
 
         {totalPages > 1 && (
           <nav
-            className="mt-6 flex items-center justify-center gap-3"
+            className="mt-6 flex flex-wrap items-center justify-center gap-1.5"
             aria-label="Paginación de personas localizadas"
           >
             <button
@@ -199,9 +224,49 @@ export default function FoundPersons() {
             >
               ← Anterior
             </button>
-            <span className="text-xs text-slate-500">
-              Página {page} de {totalPages}
-            </span>
+            {pages[0] > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setPage(1)}
+                  className="rounded-md border border-emerald-200 px-3 py-1.5 text-sm font-medium text-emerald-800 hover:bg-emerald-50"
+                >
+                  1
+                </button>
+                {pages[0] > 2 && (
+                  <span className="px-1 text-slate-400">…</span>
+                )}
+              </>
+            )}
+            {pages.map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => setPage(p)}
+                aria-current={p === page ? "page" : undefined}
+                className={
+                  p === page
+                    ? "rounded-md bg-emerald-700 px-3 py-1.5 text-sm font-semibold text-white"
+                    : "rounded-md border border-emerald-200 px-3 py-1.5 text-sm font-medium text-emerald-800 hover:bg-emerald-50"
+                }
+              >
+                {p}
+              </button>
+            ))}
+            {pages[pages.length - 1] < totalPages && (
+              <>
+                {pages[pages.length - 1] < totalPages - 1 && (
+                  <span className="px-1 text-slate-400">…</span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setPage(totalPages)}
+                  className="rounded-md border border-emerald-200 px-3 py-1.5 text-sm font-medium text-emerald-800 hover:bg-emerald-50"
+                >
+                  {totalPages}
+                </button>
+              </>
+            )}
             <button
               type="button"
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
@@ -212,6 +277,9 @@ export default function FoundPersons() {
             </button>
           </nav>
         )}
+        <p className="mt-3 text-center text-[11px] text-slate-400">
+          Página {page} de {totalPages}
+        </p>
       </div>
 
       {selected && (
@@ -222,6 +290,6 @@ export default function FoundPersons() {
           onClose={() => setSelected(null)}
         />
       )}
-    </section>
+    </div>
   );
 }

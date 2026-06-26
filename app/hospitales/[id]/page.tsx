@@ -22,6 +22,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: `${hospital.name} · Hospitales · Mapa de Emergencia Venezuela`,
     description: `Información, pacientes registrados y datos del ${hospital.name} en ${hospital.state}.`,
+    alternates: { canonical: `/hospitales/${buildHospitalSlug(hospital)}` },
   };
 }
 

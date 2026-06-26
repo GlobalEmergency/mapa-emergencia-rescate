@@ -6,6 +6,7 @@ import {
   MAX_RESOLUTION_NOTE,
 } from "@/lib/missing";
 import { checkRateLimit, clientIp } from "@/lib/ratelimit";
+import { readJson, bodyErrorResponse, BODY_LIMIT_PHOTO } from "@/lib/body";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,7 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const allowed = await checkRateLimit(`found:${clientIp(request)}`, 6);
+  const allowed = await checkRateLimit(`found:${clientIp(request)}`, 2);
   if (!allowed) {
     return NextResponse.json(
       { error: "Demasiadas solicitudes. Espera un momento." },
@@ -24,9 +25,9 @@ export async function POST(
 
   let body: { note?: string; photo?: string | null };
   try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
+    body = await readJson(request, BODY_LIMIT_PHOTO);
+  } catch (e) {
+    return bodyErrorResponse(e);
   }
 
   const note = typeof body.note === "string" ? body.note : "";
@@ -68,9 +69,10 @@ export async function POST(
       );
     }
     return NextResponse.json({ person });
-  } catch (err) {
+  } catch {
+    // No exponemos err.message al cliente (puede filtrar detalles internos).
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error al actualizar." },
+      { error: "No se pudo actualizar. Inténtalo de nuevo." },
       { status: 503 },
     );
   }

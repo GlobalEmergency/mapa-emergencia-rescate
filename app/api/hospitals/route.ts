@@ -9,6 +9,9 @@ import {
   type HospitalPriorityZone,
 } from "@/lib/hospitals";
 import { checkRateLimit, clientIp } from "@/lib/ratelimit";
+import { cached } from "@/lib/cache";
+import { jsonWithEtag } from "@/lib/http";
+import { readJson, bodyErrorResponse, BODY_LIMIT_TEXT } from "@/lib/body";
 
 export const dynamic = "force-dynamic";
 
@@ -26,20 +29,20 @@ export async function GET(request: Request) {
       ? (zoneParam as HospitalPriorityZone)
       : undefined;
 
-  const [hospitals, states] = await Promise.all([
-    listHospitals({
-      state: params.get("state") ?? undefined,
-      priorityZone: zone,
-      search: params.get("q") ?? undefined,
-      limit: Number(params.get("limit") ?? "500"),
-    }),
-    wantsStates ? listStates() : Promise.resolve(null),
-  ]);
+  const state = params.get("state") ?? undefined;
+  const search = params.get("q") ?? undefined;
+  const limit = Number(params.get("limit") ?? "500");
+  const key = `hospitals:${state ?? ""}:${zone ?? ""}:${search ?? ""}:${limit}:${wantsStates ? 1 : 0}`;
 
-  return NextResponse.json(
-    { hospitals, states },
-    { headers: LIST_CACHE_HEADERS },
-  );
+  const { hospitals, states } = await cached(key, 10_000, async () => {
+    const [hospitals, states] = await Promise.all([
+      listHospitals({ state, priorityZone: zone, search, limit }),
+      wantsStates ? listStates() : Promise.resolve(null),
+    ]);
+    return { hospitals, states };
+  });
+
+  return jsonWithEtag(request, { hospitals, states }, LIST_CACHE_HEADERS);
 }
 
 export async function POST(request: Request) {
@@ -61,9 +64,9 @@ export async function POST(request: Request) {
     priorityZone?: HospitalPriorityZone;
   };
   try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
+    body = await readJson(request, BODY_LIMIT_TEXT);
+  } catch (e) {
+    return bodyErrorResponse(e);
   }
 
   const name = (body.name ?? "").trim();

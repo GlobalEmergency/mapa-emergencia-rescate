@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Política de privacidad · Mapa de Emergencia Venezuela",
+  alternates: { canonical: "/privacidad" },
   description:
     "Cómo manejamos los datos publicados en el mapa, el chat y el módulo de personas desaparecidas.",
 };
