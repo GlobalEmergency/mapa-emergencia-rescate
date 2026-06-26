@@ -31,6 +31,17 @@ function ensureSchema(): Promise<void> {
       `;
       await sql`ALTER TABLE reports ADD COLUMN IF NOT EXISTS photo TEXT`;
       await sql`ALTER TABLE reports ADD COLUMN IF NOT EXISTS confirmations INTEGER NOT NULL DEFAULT 0`;
+      // Índice del listado: `listReports` ordena por created_at DESC.
+      await sql`CREATE INDEX IF NOT EXISTS idx_reports_created_at ON reports (created_at DESC)`;
+      // Tabla de dedup de confirmaciones (antes se creaba en cada confirmación).
+      await sql`
+        CREATE TABLE IF NOT EXISTS report_confirmations (
+          report_id TEXT NOT NULL,
+          ip_hash TEXT NOT NULL,
+          created_at BIGINT NOT NULL,
+          PRIMARY KEY (report_id, ip_hash)
+        )
+      `;
     })();
   }
   return _schemaReady;
@@ -112,7 +123,7 @@ export async function listReports(): Promise<EmergencyReport[]> {
              (photo IS NOT NULL) AS has_photo, confirmations, created_at
       FROM reports
       ORDER BY created_at DESC
-      LIMIT 2000
+      LIMIT 500
     `) as ReportRow[];
     return rows.map(rowToReport);
   }
@@ -172,27 +183,19 @@ export async function confirmReport(
   if (hasDbEnv()) {
     await ensureSchema();
     const sql = getSql();
-    // Tabla de dedup ligera: (report_id, ip_hash) único; si el INSERT genera
-    // conflicto, no incrementamos.
-    await sql`
-      CREATE TABLE IF NOT EXISTS report_confirmations (
-        report_id TEXT NOT NULL,
-        ip_hash TEXT NOT NULL,
-        created_at BIGINT NOT NULL,
-        PRIMARY KEY (report_id, ip_hash)
-      )
-    `;
-    const inserted = (await sql`
-      INSERT INTO report_confirmations (report_id, ip_hash, created_at)
-      VALUES (${id}, ${ipKey}, ${Date.now()})
-      ON CONFLICT DO NOTHING
-      RETURNING report_id
-    `) as { report_id: string }[];
-    if (inserted.length === 0) return null;
+    // Dedup (report_id, ip_hash) + incremento en UNA sola sentencia atómica:
+    // si la IP ya había confirmado, el INSERT genera conflicto, el CTE `ins`
+    // queda vacío, el UPDATE no afecta filas y devolvemos null.
     const rows = (await sql`
-      UPDATE reports SET confirmations = confirmations + 1
-      WHERE id = ${id}
-      RETURNING confirmations
+      WITH ins AS (
+        INSERT INTO report_confirmations (report_id, ip_hash, created_at)
+        VALUES (${id}, ${ipKey}, ${Date.now()})
+        ON CONFLICT DO NOTHING
+        RETURNING report_id
+      )
+      UPDATE reports r SET confirmations = confirmations + 1
+      FROM ins WHERE r.id = ins.report_id
+      RETURNING r.confirmations
     `) as { confirmations: number }[];
     return rows[0] ? Number(rows[0].confirmations) : null;
   }

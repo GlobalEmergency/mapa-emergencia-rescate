@@ -53,19 +53,27 @@ export async function incrementPsychologyHelpClick(
   if (hasDbEnv()) {
     await ensureSchema();
     const sql = getSql();
-    const inserted = (await sql`
-      INSERT INTO click_counter_dedup (counter_key, ip_hash, created_at)
-      VALUES (${PSYCHOLOGY_HELP_KEY}, ${ipKey}, ${Date.now()})
-      ON CONFLICT DO NOTHING
-      RETURNING counter_key
-    `) as { counter_key: string }[];
-    if (inserted.length === 0) {
-      return getPsychologyHelpClickCount();
-    }
+    // Dedup por IP + incremento + lectura del total en UNA sentencia:
+    //  - si la IP es nueva, `ins` trae fila → `upd` incrementa y devuelve el
+    //    nuevo total.
+    //  - si la IP repite, `ins` queda vacío → `upd` no corre → caemos al total
+    //    actual sin incrementar.
     const rows = (await sql`
-      UPDATE click_counters SET count = count + 1
-      WHERE key = ${PSYCHOLOGY_HELP_KEY}
-      RETURNING count
+      WITH ins AS (
+        INSERT INTO click_counter_dedup (counter_key, ip_hash, created_at)
+        VALUES (${PSYCHOLOGY_HELP_KEY}, ${ipKey}, ${Date.now()})
+        ON CONFLICT DO NOTHING
+        RETURNING counter_key
+      ),
+      upd AS (
+        UPDATE click_counters SET count = count + 1
+        WHERE key = ${PSYCHOLOGY_HELP_KEY} AND EXISTS (SELECT 1 FROM ins)
+        RETURNING count
+      )
+      SELECT COALESCE(
+        (SELECT count FROM upd),
+        (SELECT count FROM click_counters WHERE key = ${PSYCHOLOGY_HELP_KEY})
+      ) AS count
     `) as { count: number }[];
     return Number(rows[0]?.count ?? 0);
   }

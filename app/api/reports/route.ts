@@ -6,22 +6,26 @@ import {
   MAX_REPORT_PHOTO_CHARS,
 } from "@/lib/store";
 import { checkRateLimit, clientIp } from "@/lib/ratelimit";
+import { cached } from "@/lib/cache";
+import { jsonWithEtag } from "@/lib/http";
+import { readJson, bodyErrorResponse, BODY_LIMIT_PHOTO } from "@/lib/body";
 import { REPORT_TYPE_KEYS, type NewReport, type ReportType } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-// La respuesta se cachea en el CDN de Vercel durante unos segundos para que
-// miles de usuarios haciendo polling se sirvan desde el edge y no golpeen la
-// base de datos en cada petición.
+// La respuesta se cachea unos segundos. Si hay un CDN delante (p. ej. Vercel),
+// el polling se sirve desde el edge. Sin CDN, el micro-caché en proceso cumple
+// la misma función: la BD ve ~1 query cada `s-maxage` por instancia.
 const LIST_CACHE_HEADERS = {
   "Cache-Control": "public, max-age=0, s-maxage=4, stale-while-revalidate=30",
 };
 
-export async function GET() {
-  const reports = await listReports();
-  return NextResponse.json(
+export async function GET(request: Request) {
+  const reports = await cached("reports", 4_000, () => listReports());
+  return jsonWithEtag(
+    request,
     { reports, persistent: isPersistent() },
-    { headers: LIST_CACHE_HEADERS },
+    LIST_CACHE_HEADERS,
   );
 }
 
@@ -36,9 +40,9 @@ export async function POST(request: Request) {
 
   let body: Partial<NewReport>;
   try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
+    body = await readJson(request, BODY_LIMIT_PHOTO);
+  } catch (e) {
+    return bodyErrorResponse(e);
   }
 
   const lat = Number(body.lat);

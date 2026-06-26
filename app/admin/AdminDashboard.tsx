@@ -475,7 +475,7 @@ export default function AdminDashboard() {
   const stats = data?.stats;
 
   return (
-    <main className="min-h-screen bg-slate-100 pb-16">
+    <main id="main" className="min-h-screen bg-slate-100 pb-16">
       <header className="sticky top-0 z-10 border-b border-slate-200 bg-white">
         <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3">
           <div>

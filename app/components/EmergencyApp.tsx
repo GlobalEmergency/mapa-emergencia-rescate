@@ -219,7 +219,10 @@ export default function EmergencyApp() {
 
   const fetchReports = useCallback(async () => {
     try {
-      const res = await fetch("/api/reports", { cache: "no-store" });
+      // no-cache (no no-store): el navegador revalida con If-None-Match y, si
+      // nada cambió, recibe un 304 vacío y reusa el body cacheado (ahorra ancho
+      // de banda y parseo bajo polling). El res.json() sigue funcionando igual.
+      const res = await fetch("/api/reports", { cache: "no-cache" });
       if (!res.ok) return;
       const data = await res.json();
       setReports(data.reports ?? []);
@@ -231,7 +234,7 @@ export default function EmergencyApp() {
 
   const fetchMissingStats = useCallback(async () => {
     try {
-      const res = await fetch("/api/missing/stats", { cache: "no-store" });
+      const res = await fetch("/api/missing/stats", { cache: "no-cache" });
       if (!res.ok) return;
       const data = await res.json();
       setMissingStats(data.stats ?? null);
@@ -246,7 +249,7 @@ export default function EmergencyApp() {
       const qs = b
         ? `?north=${b.north}&south=${b.south}&east=${b.east}&west=${b.west}&limit=800`
         : "?limit=800";
-      const res = await fetch(`/api/missing/map${qs}`, { cache: "no-store" });
+      const res = await fetch(`/api/missing/map${qs}`, { cache: "no-cache" });
       if (!res.ok) return;
       const data = await res.json();
       setMissingMapMarkers(data.markers ?? []);

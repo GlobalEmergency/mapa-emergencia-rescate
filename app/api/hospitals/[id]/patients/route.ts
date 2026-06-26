@@ -8,6 +8,7 @@ import {
   type PatientStatus,
 } from "@/lib/hospitals";
 import { checkRateLimit, clientIp } from "@/lib/ratelimit";
+import { readJson, bodyErrorResponse, BODY_LIMIT_TEXT } from "@/lib/body";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +30,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const ip = clientIp(request);
-  const allowed = await checkRateLimit(`patients:${ip}`, 10);
+  const allowed = await checkRateLimit(`patients:${ip}`, 5);
   if (!allowed) {
     return NextResponse.json(
       { error: "Demasiadas peticiones." },
@@ -52,9 +53,9 @@ export async function POST(
     contact?: string;
   };
   try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
+    body = await readJson(request, BODY_LIMIT_TEXT);
+  } catch (e) {
+    return bodyErrorResponse(e);
   }
 
   const name = (body.name ?? "").trim();

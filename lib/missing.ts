@@ -63,6 +63,19 @@ export const DEFAULT_PAGE_SIZE = 48;
 export const MAX_PAGE_SIZE = 100;
 
 /**
+ * Mínimo de caracteres por término de búsqueda. El índice GIN de trigramas no
+ * puede servir términos de <3 caracteres (haría un seq scan completo), así que
+ * los ignoramos en cliente y servidor.
+ */
+export const MIN_SEARCH_LEN = 3;
+/**
+ * Tope del conteo de resultados de búsqueda. Contar las coincidencias exactas
+ * cuesta ~50 ms por request; acotamos a este número (se muestra "500+") para que
+ * el conteo pare temprano. El listado sin búsqueda sí usa el conteo exacto.
+ */
+export const SEARCH_COUNT_CAP = 500;
+
+/**
  * Indica si la búsqueda acento-insensitiva (unaccent + pg_trgm) quedó lista.
  * Si las extensiones no están disponibles, se cae a ILIKE sobre las columnas
  * crudas (sensible a acentos) para no perder la funcionalidad.
@@ -127,7 +140,18 @@ function ensureSchema(): Promise<void> {
 
       // Búsqueda acento-insensitiva (best-effort). Un fallo aquí (p. ej. sin
       // permiso para crear extensiones) no debe romper el listado.
+      //
+      // Si el índice ya existe (caso normal tras el primer arranque) saltamos el
+      // DDL caro (CREATE EXTENSION/FUNCTION/INDEX): repetirlo en cada cold start
+      // genera contención de locks de catálogo bajo un pico de tráfico.
       try {
+        const existing = (await sql`
+          SELECT to_regclass('public.idx_missing_search') AS oid
+        `) as { oid: string | null }[];
+        if (existing[0]?.oid) {
+          accentSearchReady = true;
+          return;
+        }
         await sql`CREATE EXTENSION IF NOT EXISTS unaccent`;
         await sql`CREATE EXTENSION IF NOT EXISTS pg_trgm`;
         // El primer argumento debe ser un regdictionary explícito: así la
@@ -268,6 +292,8 @@ export interface MissingPageResult {
   page: number;
   pageSize: number;
   totalPages: number;
+  /** true si `total` se truncó en SEARCH_COUNT_CAP (mostrar "500+"). */
+  totalCapped: boolean;
 }
 
 function clampInt(
@@ -285,13 +311,16 @@ function stripAccents(s: string): string {
   return s.normalize("NFD").replace(/[̀-ͯ]/g, "");
 }
 
-/** Palabras de búsqueda en minúsculas (sin patrones), máx. 8. */
+/**
+ * Palabras de búsqueda en minúsculas (sin patrones), máx. 8. Se descartan los
+ * términos de menos de `MIN_SEARCH_LEN` caracteres (el trigram no los indexa).
+ */
 function searchTerms(search: string | undefined): string[] {
   return (search ?? "")
     .trim()
     .toLowerCase()
     .split(/\s+/)
-    .filter(Boolean)
+    .filter((t) => t.length >= MIN_SEARCH_LEN)
     .slice(0, 8);
 }
 
@@ -342,11 +371,15 @@ export async function listMissingPage(
         ? "COALESCE(resolved_at, created_at) DESC, id DESC"
         : "created_at DESC, id DESC";
 
-    const countRows = (await sql.query(
-      `SELECT count(*)::int AS n FROM missing_persons ${whereSql}`,
-      values,
-    )) as { n: number }[];
+    // Con búsqueda acotamos el conteo (para temprano en SEARCH_COUNT_CAP); sin
+    // búsqueda usamos el conteo exacto (es el número que se muestra de titular).
+    const hasSearch = terms.length > 0;
+    const countSql = hasSearch
+      ? `SELECT count(*)::int AS n FROM (SELECT 1 FROM missing_persons ${whereSql} LIMIT ${SEARCH_COUNT_CAP}) t`
+      : `SELECT count(*)::int AS n FROM missing_persons ${whereSql}`;
+    const countRows = (await sql.query(countSql, values)) as { n: number }[];
     const total = countRows[0]?.n ?? 0;
+    const totalCapped = hasSearch && total >= SEARCH_COUNT_CAP;
     const totalPages = Math.max(1, Math.ceil(total / pageSize));
     const page = Math.min(requestedPage, totalPages);
     const offset = (page - 1) * pageSize;
@@ -356,7 +389,7 @@ export async function listMissingPage(
       [...values, pageSize, offset],
     )) as Row[];
 
-    return { people: rows.map(rowToPerson), total, page, pageSize, totalPages };
+    return { people: rows.map(rowToPerson), total, page, pageSize, totalPages, totalCapped };
   }
 
   // Fallback en memoria (modo demo sin DB). Búsqueda acento-insensitiva.
@@ -386,6 +419,7 @@ export async function listMissingPage(
     page,
     pageSize,
     totalPages,
+    totalCapped: false,
   };
 }
 

@@ -296,9 +296,9 @@ export default function ChatPanel() {
   return (
     <section id="chat" className="mx-auto w-full max-w-7xl px-4 pb-14">
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-        <h2 className="text-lg font-bold text-slate-900">
+        <h1 className="text-lg font-bold text-slate-900">
           🤝 Espacio de voluntarios
-        </h2>
+        </h1>
         <p className="mt-1 text-sm text-slate-600">
           Espacio de intercambio de información entre voluntarios. Coordínense,
           compartan información verificada y ofrezcan o pidan apoyo. Sean
