@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { psychologyHelpUrl } from "@/lib/site";
 import { trackEvent } from "./openpanel";
-import TranslateWidget from "./TranslateWidget";
 
 function psychologyClickLabel(count: number): string {
   const n = count.toLocaleString("es-VE");
@@ -142,7 +141,6 @@ export default function StickyHelpButton() {
       </div>
 
       <div className="flex items-center gap-2">
-        <TranslateWidget floating />
         <button
           type="button"
           aria-expanded={open}

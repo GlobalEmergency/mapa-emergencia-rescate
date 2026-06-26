@@ -46,9 +46,14 @@ function setGoogleTranslateLang(targetLang: string) {
 interface TranslateWidgetProps {
   /** Modo flotante: botón circular compacto con dropdown hacia arriba */
   floating?: boolean;
+  /** Barra superior: pill compacto alineado con la nav */
+  nav?: boolean;
 }
 
-export default function TranslateWidget({ floating = false }: TranslateWidgetProps) {
+export default function TranslateWidget({
+  floating = false,
+  nav = false,
+}: TranslateWidgetProps) {
   const [open, setOpen] = useState(false);
   const [activeLang, setActiveLang] = useState<LangCode>("es");
   const ref = useRef<HTMLDivElement>(null);
@@ -92,7 +97,7 @@ export default function TranslateWidget({ floating = false }: TranslateWidgetPro
 
   const dropdown = (
     <div
-      className={`absolute right-0 z-[2000] min-w-[10rem] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl ${
+      className={`absolute right-0 z-[2000] min-w-[10rem] overflow-hidden rounded-xl border border-[var(--eborder)] bg-[var(--esurf)] shadow-xl ${
         floating ? "bottom-full mb-2" : "top-full mt-1.5"
       }`}
     >
@@ -169,6 +174,34 @@ export default function TranslateWidget({ floating = false }: TranslateWidgetPro
             ))}
           </div>
         )}
+      </div>
+    );
+  }
+
+  if (nav) {
+    return (
+      <div ref={ref} className="relative">
+        <div id="google-translate-container" className="hidden" aria-hidden />
+        <button
+          type="button"
+          aria-label="Cambiar idioma de la página"
+          aria-expanded={open}
+          onClick={() => setOpen((v) => !v)}
+          className={`inline-flex h-9 min-h-0 shrink-0 items-center justify-center gap-1.5 rounded-full border-[1.5px] px-3 text-xs font-bold transition ${
+            isTranslated
+              ? "border-sky-300 bg-sky-50 text-sky-800"
+              : "border-[var(--eborder)] bg-[var(--esurf)] text-[var(--etext2)] hover:bg-[var(--einput)]"
+          }`}
+          title={`Idioma: ${current.label}`}
+        >
+          {isTranslated ? (
+            <span aria-hidden>{current.flag}</span>
+          ) : (
+            <Languages aria-hidden className="h-4 w-4" strokeWidth={2.2} />
+          )}
+          <span className="hidden sm:inline">{current.label}</span>
+        </button>
+        {open && dropdown}
       </div>
     );
   }

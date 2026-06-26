@@ -87,9 +87,9 @@ export default function PersonsTabs() {
   ];
 
   return (
-    <section id="desaparecidas" className="mx-auto w-full max-w-7xl px-4 pb-14">
-      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="flex border-b border-slate-200">
+    <section id="desaparecidas" className="mx-auto w-full max-w-[1120px] px-4 pb-14 sm:px-6">
+      <div className="e-card overflow-hidden">
+        <div className="flex border-b-2 border-[var(--eborder)]">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -98,11 +98,8 @@ export default function PersonsTabs() {
                 setActive(tab.id);
                 window.history.replaceState(null, "", `#${tab.id}`);
               }}
-              className={`flex flex-1 items-center justify-center gap-2 px-4 py-3.5 text-sm font-semibold transition border-b-2 ${
-                active === tab.id
-                  ? tab.activeColor
-                  : `${tab.color} border-transparent`
-              }`}
+              data-active={active === tab.id}
+              className="e-tab-label flex flex-1 items-center justify-center gap-2"
             >
               <span aria-hidden>{tab.icon}</span>
               <span className="hidden sm:inline">{tab.label}</span>
@@ -110,19 +107,15 @@ export default function PersonsTabs() {
                 {tab.id === "desaparecidas" ? "Desaparecidas" : "Localizados"}
               </span>
               {tab.count !== null && (
-                <span
-                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-bold ${
-                    active === tab.id ? "bg-white/80 text-inherit" : tab.badgeColor
-                  }`}
-                >
-                  {tab.count}
+                <span className="e-pill bg-red-50 text-red-700 text-xs">
+                  {tab.count.toLocaleString("es-VE")}
                 </span>
               )}
             </button>
           ))}
         </div>
 
-        <div className="p-4 sm:p-6">
+        <div className="bg-[var(--ebg)] p-4 sm:p-6">
           {active === "desaparecidas" ? <MissingPersons /> : <FoundPersons />}
         </div>
       </div>

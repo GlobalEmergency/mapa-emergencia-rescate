@@ -19,7 +19,19 @@ const STATIC_PATHS = [
   { path: "/apoyo-global", changeFrequency: "weekly", priority: 0.7 },
   { path: "/riesgo-sismico", changeFrequency: "monthly", priority: 0.6 },
   { path: "/privacidad", changeFrequency: "yearly", priority: 0.3 },
+  { path: "/contacto", changeFrequency: "monthly", priority: 0.5 },
 ] as const;
+
+const DB_TIMEOUT_MS = 5_000;
+
+async function listHospitalsWithTimeout() {
+  return Promise.race([
+    listHospitals({ limit: 1000 }),
+    new Promise<Awaited<ReturnType<typeof listHospitals>>>((resolve) =>
+      setTimeout(() => resolve([]), DB_TIMEOUT_MS),
+    ),
+  ]);
+}
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const lastModified = new Date();
@@ -33,7 +45,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   let hospitalEntries: MetadataRoute.Sitemap = [];
   try {
-    const hospitals = await listHospitals({ limit: 1000 });
+    const hospitals = await listHospitalsWithTimeout();
     hospitalEntries = hospitals.map((hospital) => ({
       url: `${SITE_URL}/hospitales/${buildHospitalSlug(hospital)}`,
       lastModified,

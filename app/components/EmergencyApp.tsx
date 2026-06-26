@@ -626,7 +626,7 @@ export default function EmergencyApp() {
   }, [reports, selectedTypes, query, timeFilter, now]);
 
   return (
-    <section id="mapa" className="mx-auto w-full max-w-7xl px-4 py-10">
+    <section id="mapa" className="mx-auto w-full max-w-[1120px] px-4 py-10 sm:px-6">
       {pendingCount > 0 && (
         <div
           role="status"
@@ -659,11 +659,11 @@ export default function EmergencyApp() {
             : "Sin conexión: mostrando datos guardados cuando estén disponibles."}
         </div>
       )}
-      <div className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600 shadow-sm">
+      <div className="mb-3 flex items-center justify-between gap-3 rounded-xl border border-[var(--eborder)] bg-[var(--esurf)] px-3 py-2 text-xs text-[var(--etext2)] shadow-sm">
         <span className="flex items-center gap-2">
           <span aria-hidden>⚠️</span>
           <span>
-            <strong className="font-semibold text-slate-900">
+            <strong className="font-semibold text-[var(--etext)]">
               Riesgo sísmico:
             </strong>{" "}
             priorización de inspección, no daño confirmado.
@@ -671,13 +671,14 @@ export default function EmergencyApp() {
         </span>
         <Link
           href="/riesgo-sismico"
-          className="shrink-0 font-semibold text-slate-900 underline-offset-2 hover:underline"
+          className="shrink-0 font-semibold text-sky-600 underline-offset-2 hover:underline"
         >
           Ver →
         </Link>
       </div>
+      <div className={`e-map-grid ${placing ? "is-placing" : ""}`}>
       <div
-        className={`map-shell relative h-[72vh] min-h-[500px] w-full overflow-hidden rounded-2xl border border-slate-200 shadow-sm ${
+        className={`map-shell e-leaflet-wrap relative h-full min-h-[280px] w-full overflow-hidden md:min-h-[420px] ${
           placing ? "is-placing" : ""
         }`}
       >
@@ -726,8 +727,8 @@ export default function EmergencyApp() {
                   aria-label={`${meta.label}: ${counts[type]}${active ? " (filtro activo, toca para quitarlo)" : ""}`}
                   className={`flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-full border py-1.5 pl-1.5 pr-3 text-xs font-semibold shadow-sm transition hover:shadow-md ${
                     active
-                      ? "border-slate-900 bg-slate-900 text-white hover:bg-slate-700"
-                      : "border-slate-200 bg-white/95 text-slate-700 hover:border-slate-300 hover:bg-slate-100"
+                      ? "border-[var(--etext)] bg-[var(--etext)] text-white hover:opacity-90"
+                      : "border-[var(--eborder)] bg-[var(--esurf)]/95 text-[var(--etext)] hover:border-[var(--etext3)] hover:bg-[var(--einput)]"
                   }`}
                 >
                   <span
@@ -791,7 +792,7 @@ export default function EmergencyApp() {
             <button
               type="button"
               onClick={startReport}
-              className="shrink-0 rounded-full bg-red-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700"
+              className="shrink-0 rounded-full bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700"
             >
               + Reportar
             </button>
@@ -799,10 +800,10 @@ export default function EmergencyApp() {
         </div>
       </div>
 
-      {/* Lista de reportes: separada del mapa, full-width, siempre debajo */}
-      <div className="mt-5">
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-[11px] text-slate-500" aria-live="polite">
+      {/* Lista de reportes: sidebar en desktop, debajo en móvil */}
+      <div className="e-map-sidebar">
+            <div className="flex items-center justify-between gap-2 border-b border-[var(--eborder)] px-3 py-2">
+              <p className="text-[11px] text-[var(--etext2)]" aria-live="polite">
                 {missingStats
                   ? `Desaparecidos activos: ${missingStats.active.toLocaleString("es-VE")}`
                   : "Cargando…"}
@@ -829,9 +830,9 @@ export default function EmergencyApp() {
               )}
             </div>
 
-          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="mt-3 flex flex-col gap-2 px-3 sm:flex-row sm:items-center">
             <div
-              className="flex flex-wrap items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 text-xs"
+              className="flex flex-wrap items-center gap-1 rounded-xl border border-[var(--eborder)] bg-[var(--einput)] p-1 text-xs"
               role="group"
               aria-label="Filtrar por antigüedad"
             >
@@ -843,8 +844,8 @@ export default function EmergencyApp() {
                   aria-pressed={timeFilter === key}
                   className={`flex-1 rounded-lg px-3 py-1.5 font-medium transition sm:flex-none ${
                     timeFilter === key
-                      ? "bg-slate-900 text-white"
-                      : "text-slate-600 hover:bg-slate-50"
+                      ? "bg-[var(--etext)] text-white"
+                      : "text-[var(--etext2)] hover:bg-[var(--esurf)]"
                   }`}
                 >
                   {TIME_FILTER_LABELS[key]}
@@ -859,7 +860,7 @@ export default function EmergencyApp() {
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Buscar por nombre, sector, zona o necesidad…"
                 aria-label="Buscar reportes"
-                className="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-9 pr-9 text-sm outline-none focus:border-slate-900"
+                className="e-input py-2.5 pl-9 pr-9"
               />
               <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
                 🔎
@@ -877,7 +878,7 @@ export default function EmergencyApp() {
             </div>
           </div>
 
-          <div className="mt-3 max-h-[70vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-2">
+          <div className="mx-3 mb-3 mt-3 max-h-[70vh] flex-1 overflow-y-auto rounded-xl border border-[var(--eborder)] bg-[var(--esurf)] p-2 md:max-h-none">
             {selectedTypes.has("missing") &&
               missingStats &&
               missingStats.active > 0 && (
@@ -1012,6 +1013,7 @@ export default function EmergencyApp() {
               </>
             )}
             </div>
+      </div>
       </div>
 
       {!persistent && (
