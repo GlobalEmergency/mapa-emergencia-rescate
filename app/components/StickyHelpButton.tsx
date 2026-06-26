@@ -88,11 +88,15 @@ export default function StickyHelpButton() {
     return null;
   }
 
+  // El root va con pointer-events-none porque su caja incluye el menú oculto
+  // (opacity-0 pero presente en el layout); sin esto bloquearía el mapa/página
+  // detrás. Los hijos interactivos (botón, y el menú al abrirse) reactivan los
+  // pointer-events.
   return (
     <div
       ref={rootRef}
       data-sticky-help-root
-      className="fixed bottom-[calc(3.75rem+env(safe-area-inset-bottom))] right-3 z-[1840] flex flex-col items-end gap-3 md:bottom-[max(1rem,env(safe-area-inset-bottom))] md:right-4 md:z-[1900]"
+      className="pointer-events-none fixed bottom-[calc(3.75rem+env(safe-area-inset-bottom))] right-3 z-[1840] flex flex-col items-end gap-3 md:bottom-[max(1rem,env(safe-area-inset-bottom))] md:right-4 md:z-[1900]"
     >
       <div
         id="sticky-help-menu"
@@ -141,7 +145,7 @@ export default function StickyHelpButton() {
         </p>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="pointer-events-auto flex items-center gap-2">
         <TranslateWidget floating />
         <button
           type="button"
