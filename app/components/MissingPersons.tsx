@@ -287,7 +287,10 @@ export default function MissingPersons() {
         )}
 
         {isSearching && (
-          <p className="mt-3 text-xs font-medium text-slate-500">
+          <p
+            aria-live="polite"
+            className="mt-3 text-xs font-medium text-slate-500"
+          >
             {totalCapped ? `${total}+` : total} resultado{total === 1 ? "" : "s"} para “{debouncedQuery.trim()}”
           </p>
         )}

@@ -15,6 +15,7 @@ const InternationalHelp = dynamic(
 
 export const metadata: Metadata = {
   title: "Apoyo global · Mapa de Emergencia Venezuela",
+  alternates: { canonical: "/apoyo-global" },
   description:
     "Cómo sumarte desde el exterior: donaciones, organizaciones aliadas y formas de difundir la emergencia.",
 };

@@ -15,6 +15,7 @@ const SurvivalGuide = dynamic(
 
 export const metadata: Metadata = {
   title: "Guía rápida de emergencia · Mapa de Emergencia Venezuela",
+  alternates: { canonical: "/guia" },
   description:
     "Pasos esenciales antes, durante y después de un sismo. Cómo proteger a tu familia y solicitar ayuda.",
 };

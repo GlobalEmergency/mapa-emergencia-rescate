@@ -168,7 +168,15 @@ summary {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .donations-marquee__track {
-    animation: none;
+  /* Respeta la preferencia del sistema: neutraliza animaciones y transiciones
+   * (pines pulsantes, ping, marquee de donaciones, botón de ayuda, etc.) y el
+   * scroll suave basado en CSS. */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

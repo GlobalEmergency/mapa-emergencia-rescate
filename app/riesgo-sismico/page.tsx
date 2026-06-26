@@ -15,6 +15,7 @@ import {
 
 export const metadata: Metadata = {
   title: "Riesgo sísmico de inspección · Mapa de Emergencia Venezuela",
+  alternates: { canonical: "/riesgo-sismico" },
   description:
     "Vista de priorización para inspección sísmica basada en sacudida estimada por USGS, exposición poblacional y huellas de edificios de OpenStreetMap.",
 };
