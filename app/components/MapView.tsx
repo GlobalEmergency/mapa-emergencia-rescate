@@ -9,10 +9,12 @@ import {
   TileLayer,
   useMap,
   useMapEvents,
+  ZoomControl,
 } from "react-leaflet";
 import Supercluster, { type ClusterProperties, type AnyProps } from "supercluster";
 import { REPORT_TYPES, type EmergencyReport, type ReportType } from "@/lib/types";
 import { timeAgo } from "@/lib/format";
+import { xShareHref, whatsappShareHref } from "@/lib/share";
 import type { MissingMapMarker } from "@/lib/missing";
 
 export type MapBounds = {
@@ -160,7 +162,7 @@ function MissingClusterLayer({
                     src={p.photoUrl}
                     alt={`Foto de ${p.name}`}
                     loading="lazy"
-                    className="my-1 max-h-40 w-full rounded-md object-cover"
+                    className="my-1 max-h-52 w-full rounded-lg bg-slate-100 object-contain"
                   />
                 )}
                 <p className="font-medium">{p.name}</p>
@@ -199,6 +201,55 @@ function FlyToHandler({
       map.once("moveend", () => { getMarker(id)?.openPopup(); });
     }
   }, [focus, map, getMarker]);
+  return null;
+}
+
+/** Cierra el popup abierto al presionar Esc, sin importar dónde esté el foco.
+ * Acotado: no hace nada si hay un modal/diálogo abierto (lo maneja él). */
+function EscClosePopup() {
+  const map = useMap();
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      if (
+        document.querySelector('[role="dialog"][aria-modal="true"]:not(.hidden)')
+      )
+        return;
+      if (document.querySelector(".leaflet-popup")) {
+        map.closePopup();
+        event.stopPropagation();
+      }
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [map]);
+  return null;
+}
+
+/** Centra y hace zoom para que entren en pantalla los pines del filtro activo. */
+function FitToBoundsHandler({
+  fitRequest,
+}: {
+  fitRequest: { points: { lat: number; lng: number }[]; ts: number } | null;
+}) {
+  const map = useMap();
+  const lastTs = useRef<number | null>(null);
+  useEffect(() => {
+    if (!fitRequest || fitRequest.ts === lastTs.current) return;
+    lastTs.current = fitRequest.ts;
+    const pts = fitRequest.points;
+    if (pts.length === 0) return;
+    if (pts.length === 1) {
+      map.flyTo([pts[0].lat, pts[0].lng], Math.max(map.getZoom(), 15), {
+        duration: 0.6,
+      });
+      return;
+    }
+    const bounds = L.latLngBounds(
+      pts.map((p) => [p.lat, p.lng] as [number, number]),
+    );
+    map.flyToBounds(bounds, { padding: [60, 60], maxZoom: 16, duration: 0.6 });
+  }, [fitRequest, map]);
   return null;
 }
 
@@ -255,6 +306,8 @@ interface MapViewProps {
   focus: { lat: number; lng: number; ts: number; id?: string } | null;
   center: [number, number];
   zoom: number;
+  /** Pedido para encuadrar el mapa a un conjunto de pines (al filtrar por tipo). */
+  fitRequest?: { points: { lat: number; lng: number }[]; ts: number } | null;
 }
 
 export default function MapView({
@@ -271,6 +324,7 @@ export default function MapView({
   focus,
   center,
   zoom,
+  fitRequest = null,
 }: MapViewProps) {
   const markerRefs = useRef<Map<string, L.Marker>>(new Map());
   const getMarker = useCallback((id: string) => markerRefs.current.get(id), []);
@@ -287,13 +341,22 @@ export default function MapView({
   );
 
   return (
-    <MapContainer center={center} zoom={zoom} scrollWheelZoom className="h-full w-full">
+    <MapContainer
+      center={center}
+      zoom={zoom}
+      scrollWheelZoom
+      zoomControl={false}
+      className="h-full w-full"
+    >
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
+      <ZoomControl position="topright" />
       <ResizeHandler />
       <FlyToHandler focus={focus} getMarker={getMarker} />
+      <FitToBoundsHandler fitRequest={fitRequest} />
+      <EscClosePopup />
       <BoundsHandler onBoundsChange={onBoundsChange} />
       <ClickHandler onPick={onPick} />
 
@@ -323,7 +386,7 @@ export default function MapView({
                     src={report.photoUrl}
                     alt="Foto del reporte"
                     loading="lazy"
-                    className="my-1 max-h-40 w-full rounded-md object-cover"
+                    className="my-1 max-h-52 w-full rounded-lg bg-slate-100 object-contain"
                   />
                 </a>
               )}
@@ -336,6 +399,28 @@ export default function MapView({
               >
                 🕒 {timeAgo(report.createdAt)} · {new Date(report.createdAt).toLocaleString("es-VE")}
               </p>
+              <div className="mt-2 flex gap-1.5">
+                <a
+                  href={xShareHref(report)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Compartir en X"
+                  style={{ color: "#ffffff" }}
+                  className="flex flex-1 items-center justify-center gap-1 rounded-md bg-black px-2 py-1.5 text-xs font-semibold no-underline transition hover:opacity-90"
+                >
+                  <span aria-hidden className="font-bold">𝕏</span> Compartir
+                </a>
+                <a
+                  href={whatsappShareHref(report)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Compartir por WhatsApp"
+                  style={{ color: "#0f172a" }}
+                  className="flex flex-1 items-center justify-center gap-1 rounded-md bg-[#4ade80] px-2 py-1.5 text-xs font-bold no-underline transition hover:brightness-95"
+                >
+                  WhatsApp
+                </a>
+              </div>
               <button
                 type="button"
                 onClick={() => onConfirm(report.id)}

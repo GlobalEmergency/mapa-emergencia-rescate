@@ -108,41 +108,94 @@ export default function AddressSearch({ onSelect, bias }: AddressSearchProps) {
 
   return (
     <div ref={containerRef} className="relative">
-      <form onSubmit={search} className="flex gap-2">
-        <div className="relative flex-1">
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-            📍
-          </span>
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onFocus={() => results.length > 0 && setOpen(true)}
-            placeholder="Escribe una dirección o zona (ej: Av. Libertador, Caracas)"
-            aria-label="Buscar dirección"
-            className="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-9 pr-3 text-sm outline-none focus:border-slate-900"
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={loading}
-          className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-60"
+      <form
+        onSubmit={search}
+        className="flex items-center gap-1 rounded-full border border-slate-200 bg-white py-1 pl-3 pr-1 shadow-lg ring-1 ring-black/5"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="pointer-events-none h-4 w-4 shrink-0 text-slate-400"
+          aria-hidden
         >
-          {loading ? "Buscando…" : "Buscar"}
-        </button>
+          <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+          <circle cx="12" cy="10" r="3" />
+        </svg>
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onFocus={() => results.length > 0 && setOpen(true)}
+          placeholder="Buscar dirección o zona…"
+          aria-label="Buscar dirección"
+          enterKeyHint="search"
+          className="min-w-0 flex-1 bg-transparent px-1 py-1.5 text-sm outline-none placeholder:text-slate-400"
+        />
         <button
           type="button"
           onClick={useMyLocation}
           disabled={locating}
           title="Usar mi ubicación actual"
           aria-label="Usar mi ubicación actual"
-          className="flex items-center gap-1 rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-base text-slate-600 transition hover:bg-slate-100 disabled:opacity-60"
         >
-          {locating ? "Ubicando…" : "🎯"}
+          {locating ? (
+            <span className="text-xs font-semibold">…</span>
+          ) : (
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-[18px] w-[18px]"
+              aria-hidden
+            >
+              <line x1="12" y1="2" x2="12" y2="5" />
+              <line x1="12" y1="19" x2="12" y2="22" />
+              <line x1="2" y1="12" x2="5" y2="12" />
+              <line x1="19" y1="12" x2="22" y2="12" />
+              <circle cx="12" cy="12" r="7" />
+              <circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none" />
+            </svg>
+          )}
+        </button>
+        <button
+          type="submit"
+          disabled={loading}
+          aria-label="Buscar dirección"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-slate-900 text-white transition hover:bg-slate-800 disabled:opacity-60"
+        >
+          {loading ? (
+            <span className="text-xs font-semibold">…</span>
+          ) : (
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-[18px] w-[18px]"
+              aria-hidden
+            >
+              <circle cx="11" cy="11" r="7" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+          )}
         </button>
       </form>
 
-      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+      {error && (
+        <p className="mt-1 rounded-lg bg-white/95 px-2 py-1 text-xs text-red-600 shadow-sm">
+          {error}
+        </p>
+      )}
 
       {open && results.length > 0 && (
         <ul className="absolute z-[1200] mt-1 max-h-64 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg">

@@ -56,6 +56,110 @@ body.mobile-sheet-open [data-sticky-help-root] {
   font: inherit;
 }
 
+/* Evita el doble icono de limpiar: el buscador de la lista usa un botón "×"
+ * propio, así que ocultamos el botón nativo que WebKit/Chromium dibuja para
+ * inputs type="search". */
+input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* Fila de chips de filtro sobre el mapa: scroll horizontal sin barra visible. */
+.reports-chips {
+  scrollbar-width: none;
+}
+.reports-chips::-webkit-scrollbar {
+  display: none;
+}
+
+/* Popups de Leaflet: esquinas redondeadas, padding parejo (Leaflet usa
+ * márgenes asimétricos por defecto) y scroll con cap de altura para que no
+ * tapen la atribución del mapa en móvil. Usamos selectores más específicos
+ * (.leaflet-popup ..., .leaflet-container a...) para ganarle al CSS de Leaflet
+ * sin depender del orden del bundle. */
+.leaflet-popup .leaflet-popup-content-wrapper {
+  border-radius: 14px;
+}
+.leaflet-popup .leaflet-popup-content {
+  margin: 12px 14px;
+  max-height: 45vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+/* Leaflet pone 18px de margen a cada <p> del popup; lo quitamos para que el
+ * título y el texto no tengan tanto padding (el espaciado lo da space-y). */
+.leaflet-popup .leaflet-popup-content p {
+  margin: 0;
+}
+.leaflet-popup .leaflet-popup-content::-webkit-scrollbar {
+  width: 6px;
+}
+.leaflet-popup .leaflet-popup-content::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+/* Botón de cerrar como pastilla blanca con sombra: flota limpio por encima del
+ * scrollbar en vez de chocar con él. */
+.leaflet-container a.leaflet-popup-close-button {
+  top: 6px;
+  right: 6px;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  font-size: 18px;
+  line-height: 24px;
+  text-align: center;
+  color: #475569;
+  background: #ffffff;
+  border-radius: 9999px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.18);
+}
+.leaflet-container a.leaflet-popup-close-button:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+/* Cursor de cruz mientras se coloca un reporte (modo "+ Reportar"). */
+.is-placing .leaflet-container,
+.is-placing .leaflet-grab {
+  cursor: crosshair;
+}
+
+/* Oculta los controles flotantes del mapa cuando hay un popup abierto o se está
+ * eligiendo una ubicación, para que no compitan ni tapen el contenido. Los
+ * overlays de Leaflet (popup) pintan dentro del contenedor; ocultar los nuestros
+ * deja el popup despejado por encima de todo. */
+.map-overlay {
+  transition:
+    opacity 0.15s ease,
+    visibility 0.15s ease;
+}
+/* visibility:hidden (no pointer-events:none) porque los hijos del overlay tienen
+ * pointer-events:auto y lo anularían, dejando el buscador invisible capturando
+ * taps por encima de la × del popup. visibility sí se propaga a los hijos. */
+.map-shell:has(.leaflet-popup) .map-overlay,
+.map-shell:has(.leaflet-popup) .leaflet-control-zoom,
+.is-placing .map-overlay {
+  opacity: 0;
+  visibility: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-overlay {
+    transition: none;
+  }
+}
+
+/* En móvil el zoom (top-right) chocaba con el buscador + chips; lo bajamos
+ * debajo de ellos. En desktop se queda arriba a la derecha. */
+@media (max-width: 767px) {
+  .leaflet-top.leaflet-right {
+    top: 7rem;
+  }
+}
+
 /* Oculta la barra superior que inyecta Google Translate para mantener el diseño limpio. */
 .goog-te-banner-frame,
 .goog-te-balloon-frame,

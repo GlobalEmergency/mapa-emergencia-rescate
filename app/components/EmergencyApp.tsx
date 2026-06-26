@@ -61,7 +61,7 @@ const POLL_INTERVAL_MS = 5000;
 const LOW_BANDWIDTH_POLL_INTERVAL_MS = 30_000;
 const ADMIN_STORAGE_KEY = "emergency:adminToken";
 
-/** Etiquetas cortas para el grid de contadores; el label completo va en
+/** Etiquetas cortas para los chips de filtro; el label completo va en
  * `REPORT_TYPES[type].label` y se expone via title/aria-label. */
 const REPORT_TYPE_SHORT: Record<ReportType, string> = {
   critical: "Crítica",
@@ -71,6 +71,11 @@ const REPORT_TYPE_SHORT: Record<ReportType, string> = {
   missing: "Buscan",
   building: "Edificios",
 };
+
+/** Abrevia conteos grandes para que quepan en los chips (67603 -> "68k"). */
+function formatCount(n: number): string {
+  return n >= 1000 ? `${Math.round(n / 1000)}k` : String(n);
+}
 
 type SubmitOutcome =
   | { status: "ok"; report?: EmergencyReport }
@@ -129,6 +134,17 @@ export default function EmergencyApp() {
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("all");
   const [now, setNow] = useState<number>(() => Date.now());
   const [query, setQuery] = useState("");
+  // Modo "colocar reporte": el próximo toque del mapa ubica el reporte. Evita
+  // que un clic accidental abra el formulario.
+  const [placing, setPlacing] = useState(false);
+  // El formulario de reporte está abierto (independiente de si ya hay ubicación).
+  const [reportOpen, setReportOpen] = useState(false);
+  // Pedido de encuadre del mapa a los pines de un filtro (se actualiza al tocar
+  // un chip de tipo).
+  const [fitRequest, setFitRequest] = useState<{
+    points: { lat: number; lng: number }[];
+    ts: number;
+  } | null>(null);
   const [pendingCount, setPendingCount] = useState(0);
   const [queuedFlash, setQueuedFlash] = useState(false);
   const flushingRef = useRef(false);
@@ -143,7 +159,19 @@ export default function EmergencyApp() {
     lng: number;
     ts: number;
     id?: string;
-  } | null>(null);
+  } | null>(() => {
+    // Enlace profundo: si la URL trae lat/lng (link compartido de un reporte),
+    // arrancamos con el foco en ese punto para que el mapa vuele hasta él.
+    if (typeof window === "undefined") return null;
+    const params = new URLSearchParams(window.location.search);
+    const latRaw = params.get("lat");
+    const lngRaw = params.get("lng");
+    if (!latRaw || !lngRaw) return null;
+    const lat = Number(latRaw);
+    const lng = Number(lngRaw);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+    return { lat, lng, ts: Date.now() };
+  });
   const [missingStats, setMissingStats] = useState<MissingStats | null>(null);
   const [missingMapMarkers, setMissingMapMarkers] = useState<MissingMapMarker[]>(
     [],
@@ -158,6 +186,25 @@ export default function EmergencyApp() {
     const id = setInterval(() => setNow(Date.now()), 30_000);
     return () => clearInterval(id);
   }, []);
+
+  // Esc cierra en cascada: primero "elegir en el mapa", luego el formulario de
+  // reporte, luego el login de admin. Usamos fase de CAPTURA porque Leaflet
+  // tiene su propio handler de teclado en el contenedor del mapa que se come el
+  // Escape; capturar en window lo intercepta antes, sin depender del foco.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      if (placing) setPlacing(false);
+      else if (reportOpen) {
+        setReportOpen(false);
+        setDraft(null);
+      } else if (showAdminLogin) setShowAdminLogin(false);
+      else return;
+      event.stopPropagation();
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [placing, reportOpen, showAdminLogin]);
 
   const loginAdmin = useCallback((token: string) => {
     sessionStorage.setItem(ADMIN_STORAGE_KEY, token);
@@ -343,13 +390,22 @@ export default function EmergencyApp() {
     return () => clearTimeout(id);
   }, [queuedFlash]);
 
-  const handlePick = useCallback((lat: number, lng: number) => {
-    setDraft({ lat, lng });
-  }, []);
+  const handlePick = useCallback(
+    (lat: number, lng: number) => {
+      // El clic en el mapa solo crea un reporte cuando el usuario activó el
+      // modo "colocar" con el botón "+ Reportar". Un clic normal no hace nada.
+      if (placing) {
+        setDraft({ lat, lng });
+        setPlacing(false);
+      }
+    },
+    [placing],
+  );
 
+  // El buscador de direcciones solo navega (vuela el mapa al punto); ya no abre
+  // el formulario, para crear se usa el botón "+ Reportar".
   const handleAddressSelect = useCallback((result: GeocodeResult) => {
     setFocus({ lat: result.lat, lng: result.lng, ts: Date.now() });
-    setDraft({ lat: result.lat, lng: result.lng });
   }, []);
 
   const handleFocusReport = useCallback((report: EmergencyReport) => {
@@ -359,14 +415,70 @@ export default function EmergencyApp() {
       id: report.id,
       ts: Date.now(),
     });
-    // En móvil la lista está debajo del mapa: llevamos al usuario al mapa.
-    if (
-      typeof window !== "undefined" &&
-      window.matchMedia("(max-width: 1023px)").matches
-    ) {
-      document
-        .getElementById("mapa")
-        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    // La lista vive debajo del mapa: subimos al mapa para ver el pin y su popup.
+    document
+      .getElementById("mapa")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
+
+  // "+ Reportar" abre el modal SIN ubicación: el usuario la elige con "Elegir
+  // en el mapa" o "Usar mi ubicación". El clic suelto en el mapa NO abre nada
+  // (sin aperturas accidentales).
+  const startReport = useCallback(() => {
+    setPlacing(false);
+    setDraft(null);
+    setReportOpen(true);
+  }, []);
+
+  const closeReport = useCallback(() => {
+    setReportOpen(false);
+    setDraft(null);
+    setPlacing(false);
+  }, []);
+
+  // Al tocar un chip: alterna el filtro y encuadra el mapa a los pines de ese
+  // tipo. Los "missing" no se encuadran (son decenas de miles y dependen del
+  // viewport).
+  const handleChipClick = useCallback(
+    (type: ReportType) => {
+      const next = filter === type ? "all" : type;
+      setFilter(next);
+      if (next === "all") return;
+      // "Buscan" (missing) encuadra los marcadores cargados (dependen del
+      // viewport, son decenas de miles) + los reportes propios de ese tipo.
+      const points =
+        next === "missing"
+          ? [
+              ...missingMapMarkers.map((m) => ({ lat: m.lat, lng: m.lng })),
+              ...reports
+                .filter((r) => r.type === "missing")
+                .map((r) => ({ lat: r.lat, lng: r.lng })),
+            ]
+          : reports
+              .filter((r) => r.type === next)
+              .map((r) => ({ lat: r.lat, lng: r.lng }));
+      if (points.length > 0) setFitRequest({ points, ts: Date.now() });
+    },
+    [filter, reports, missingMapMarkers],
+  );
+
+  const [shareCopied, setShareCopied] = useState(false);
+  const shareMap = useCallback(async () => {
+    const url = typeof window !== "undefined" ? window.location.href : "";
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share({ title: "Mapa de Emergencia y Rescate", url });
+        return;
+      } catch {
+        // el usuario canceló o falló: intentamos copiar al portapapeles
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    } catch {
+      /* sin permisos de portapapeles: no hacemos nada */
     }
   }, []);
 
@@ -419,6 +531,7 @@ export default function EmergencyApp() {
             "No hay conexión y no se pudo guardar el reporte en este dispositivo. Inténtalo de nuevo.",
           );
         }
+        setReportOpen(false);
         setDraft(null);
         setPendingCount(await countPending());
         setQueuedFlash(true);
@@ -426,6 +539,7 @@ export default function EmergencyApp() {
       }
 
       // outcome.status === "ok"
+      setReportOpen(false);
       setDraft(null);
       // Update optimista: el reporte propio se ve al instante aunque el CDN
       // sirva una versión cacheada de la lista durante unos segundos.
@@ -526,92 +640,165 @@ export default function EmergencyApp() {
           </button>
         </div>
       )}
-      <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
-        <div className="flex flex-col gap-3">
-          {network.isConstrained && (
-            <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-              {network.isOnline
-                ? `Conexión lenta: actualizando cada ${Math.round(
-                    network.pollIntervalMs / 1000,
-                  )} s para ahorrar datos.`
-                : "Sin conexión: mostrando datos guardados cuando estén disponibles."}
-            </div>
-          )}
-          <AddressSearch
-            onSelect={handleAddressSelect}
-            bias={focus ? { lat: focus.lat, lng: focus.lng } : AFFECTED_CENTER}
-          />
-          <div className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-            <span className="flex items-center gap-3">
-              <span
-                aria-hidden
-                className="relative grid h-8 w-8 shrink-0 place-items-center rounded-full bg-red-50 text-red-700 ring-1 ring-red-200"
-              >
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-25" />
-                <span className="relative text-base font-black">!</span>
-              </span>
-              <span>
-                <strong className="font-semibold text-slate-950">
-                  Riesgo sísmico:
-                </strong>{" "}
-                priorización de inspección, no daño confirmado.
-              </span>
-            </span>
-            <Link
-              href="/riesgo-sismico"
-              className="inline-flex shrink-0 items-center justify-center rounded-lg bg-slate-950 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-800"
-            >
-              Ver riesgo sísmico
-            </Link>
-          </div>
-          <div className="relative h-[520px] overflow-hidden rounded-2xl border border-slate-200 shadow-sm lg:h-[640px]">
-            <MapView
-              reports={mapReports}
-              missingMarkers={missingMapMarkers}
-              showMissingOnMap={showMissingOnMap}
-              onBoundsChange={handleBoundsChange}
-              draft={draft}
-              onPick={handlePick}
-              onResolve={handleResolve}
-              onConfirm={handleConfirm}
-              confirmed={confirmed}
-              isAdmin={isAdmin}
-              focus={focus}
-              center={CARACAS}
-              zoom={12}
+      {network.isConstrained && (
+        <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          {network.isOnline
+            ? `Conexión lenta: actualizando cada ${Math.round(
+                network.pollIntervalMs / 1000,
+              )} s para ahorrar datos.`
+            : "Sin conexión: mostrando datos guardados cuando estén disponibles."}
+        </div>
+      )}
+      <div className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600 shadow-sm">
+        <span className="flex items-center gap-2">
+          <span aria-hidden>⚠️</span>
+          <span>
+            <strong className="font-semibold text-slate-900">
+              Riesgo sísmico:
+            </strong>{" "}
+            priorización de inspección, no daño confirmado.
+          </span>
+        </span>
+        <Link
+          href="/riesgo-sismico"
+          className="shrink-0 font-semibold text-slate-900 underline-offset-2 hover:underline"
+        >
+          Ver →
+        </Link>
+      </div>
+      <div
+        className={`map-shell relative h-[72vh] min-h-[500px] w-full overflow-hidden rounded-2xl border border-slate-200 shadow-sm ${
+          placing ? "is-placing" : ""
+        }`}
+      >
+        <MapView
+          reports={mapReports}
+          missingMarkers={missingMapMarkers}
+          showMissingOnMap={showMissingOnMap}
+          onBoundsChange={handleBoundsChange}
+          draft={draft}
+          onPick={handlePick}
+          onResolve={handleResolve}
+          onConfirm={handleConfirm}
+          confirmed={confirmed}
+          isAdmin={isAdmin}
+          focus={focus}
+          center={CARACAS}
+          zoom={12}
+          fitRequest={fitRequest}
+        />
+
+        {/* Controles flotantes: buscador de direcciones + chips de filtro por tipo */}
+        <div className="map-overlay pointer-events-none absolute inset-x-0 top-0 z-[1000] flex flex-col gap-2 p-3">
+          <div className="pointer-events-auto w-full max-w-sm">
+            <AddressSearch
+              onSelect={handleAddressSelect}
+              bias={focus ? { lat: focus.lat, lng: focus.lng } : AFFECTED_CENTER}
             />
-            <div className="pointer-events-none absolute left-1/2 top-3 z-[1000] -translate-x-1/2 rounded-full bg-slate-900/85 px-4 py-1.5 text-center text-xs font-medium text-white shadow">
-              Toca un punto del mapa para reportar
-            </div>
+          </div>
+          <div
+            className="reports-chips pointer-events-auto flex gap-1.5 overflow-x-auto pb-1"
+            role="group"
+            aria-label="Filtrar pines del mapa por tipo"
+          >
+            {(Object.keys(REPORT_TYPES) as ReportType[]).map((type) => {
+              const meta = REPORT_TYPES[type];
+              const active = filter === type;
+              return (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => handleChipClick(type)}
+                  aria-pressed={active}
+                  title={meta.label}
+                  aria-label={`${meta.label}: ${counts[type]}${active ? " (filtro activo, toca para quitarlo)" : ""}`}
+                  className={`flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-full border py-1.5 pl-1.5 pr-3 text-xs font-semibold shadow-sm transition ${
+                    active
+                      ? "border-slate-900 bg-slate-900 text-white"
+                      : "border-slate-200 bg-white/95 text-slate-700 hover:bg-white"
+                  }`}
+                >
+                  <span
+                    className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-[13px] text-white"
+                    style={{ background: meta.color }}
+                    aria-hidden
+                  >
+                    {meta.icon}
+                  </span>
+                  <span className="tabular-nums">{formatCount(counts[type])}</span>
+                  <span className="hidden sm:inline">
+                    {REPORT_TYPE_SHORT[type]}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        <aside className="flex flex-col gap-4">
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        {/* Modo "elegir en el mapa": atenúa el mapa y muestra una instrucción
+            prominente. El modal queda oculto pero montado (no se pierde lo escrito). */}
+        {placing && (
+          <>
+            <div
+              className="pointer-events-none absolute inset-0 z-[1150] bg-slate-900/25"
+              aria-hidden
+            />
+            <div className="pointer-events-auto absolute inset-x-0 top-0 z-[1200] flex items-center justify-between gap-3 bg-slate-900 px-4 py-3 text-white shadow-lg">
+              <span className="flex items-center gap-2 text-sm font-semibold">
+                <span aria-hidden className="text-base">
+                  📍
+                </span>
+                Toca el mapa para ubicar el reporte
+              </span>
+              <button
+                type="button"
+                onClick={() => setPlacing(false)}
+                className="shrink-0 rounded-md border border-white/40 px-3 py-1.5 text-xs font-semibold transition hover:bg-white/10"
+              >
+                Volver
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* Barra de acción flotante abajo: reportar + compartir */}
+        <div className="map-overlay pointer-events-none absolute inset-x-0 bottom-3 z-[1000] flex justify-center px-3">
+          <div className="pointer-events-auto flex items-center gap-2 rounded-full bg-white/95 p-1.5 shadow-lg ring-1 ring-black/5 backdrop-blur">
+            <button
+              type="button"
+              onClick={shareMap}
+              aria-label="Compartir el mapa"
+              title="Compartir el mapa"
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-base text-slate-600 transition hover:bg-slate-100"
+            >
+              {shareCopied ? "✓" : "🔗"}
+            </button>
+            <button
+              type="button"
+              onClick={startReport}
+              className="shrink-0 rounded-full bg-red-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700"
+            >
+              + Reportar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Lista de reportes: separada del mapa, full-width, siempre debajo */}
+      <div className="mt-5">
             <div className="flex items-center justify-between gap-2">
-              <div>
-                <h3 className="text-sm font-semibold text-slate-900">
-                  Desaparecidos activos:{" "}
-                  {missingStats
-                    ? missingStats.active.toLocaleString("es-VE")
-                    : "…"}
-                </h3>
-                <p className="mt-0.5 text-[11px] text-slate-500">
-                  Reportes en mapa: {reports.length}
-                  {missingStats && missingStats.onMap > 0 && (
-                    <>
-                      {" "}
-                      · {missingStats.onMap.toLocaleString("es-VE")} con punto
-                      en el mapa
-                    </>
-                  )}
-                </p>
-              </div>
+              <p className="text-[11px] text-slate-500" aria-live="polite">
+                {missingStats
+                  ? `Desaparecidos activos: ${missingStats.active.toLocaleString("es-VE")}`
+                  : "Cargando…"}
+                {" · "}
+                {reports.length} en el mapa
+              </p>
               {isAdmin ? (
                 <button
                   type="button"
                   onClick={logoutAdmin}
-                  className="rounded-md border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-50"
+                  className="shrink-0 rounded-md border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-50"
                   title="Cerrar sesión de administrador"
                 >
                   Admin ✓ · Salir
@@ -620,101 +807,62 @@ export default function EmergencyApp() {
                 <button
                   type="button"
                   onClick={() => setShowAdminLogin(true)}
-                  className="rounded-md border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-50"
+                  className="shrink-0 rounded-md border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-50"
                 >
                   🔒 Admin
                 </button>
               )}
             </div>
-            <p className="mt-3 text-[11px] text-slate-500">
-              Toca un tipo para filtrar la lista
-            </p>
-            <div className="mt-2 grid grid-cols-3 gap-2 text-center text-xs">
-              {(Object.keys(REPORT_TYPES) as ReportType[]).map((type) => {
-                const meta = REPORT_TYPES[type];
-                const active = filter === type;
-                return (
-                  <button
-                    key={type}
-                    type="button"
-                    onClick={() => setFilter(active ? "all" : type)}
-                    title={meta.label}
-                    aria-label={`${meta.label}: ${counts[type]}`}
-                    aria-pressed={active}
-                    className={`flex flex-col items-center gap-1 rounded-lg border p-2 transition ${
-                      active
-                        ? "border-slate-900 bg-slate-900 text-white"
-                        : "border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300"
-                    }`}
-                  >
-                    <span
-                      className="grid h-7 w-7 place-items-center rounded-full text-sm text-white shadow-sm"
-                      style={{ background: meta.color }}
-                      aria-hidden
-                    >
-                      {meta.icon}
-                    </span>
-                    <span className="text-lg font-bold leading-none">
-                      {counts[type]}
-                    </span>
-                    <span
-                      className={`text-[10px] font-medium leading-tight ${active ? "text-slate-200" : "text-slate-500"}`}
-                    >
-                      {REPORT_TYPE_SHORT[type]}
-                    </span>
-                  </button>
-                );
-              })}
+
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div
+              className="flex flex-wrap items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 text-xs"
+              role="group"
+              aria-label="Filtrar por antigüedad"
+            >
+              {(Object.keys(TIME_FILTER_LABELS) as TimeFilter[]).map((key) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setTimeFilter(key)}
+                  aria-pressed={timeFilter === key}
+                  className={`flex-1 rounded-lg px-3 py-1.5 font-medium transition sm:flex-none ${
+                    timeFilter === key
+                      ? "bg-slate-900 text-white"
+                      : "text-slate-600 hover:bg-slate-50"
+                  }`}
+                >
+                  {TIME_FILTER_LABELS[key]}
+                </button>
+              ))}
+            </div>
+
+            <div className="relative flex-1">
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Buscar por nombre, sector, zona o necesidad…"
+                aria-label="Buscar reportes"
+                className="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-9 pr-9 text-sm outline-none focus:border-slate-900"
+              />
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                🔎
+              </span>
+              {query && (
+                <button
+                  type="button"
+                  onClick={() => setQuery("")}
+                  aria-label="Limpiar búsqueda"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full px-2 py-0.5 text-slate-400 hover:text-slate-700"
+                >
+                  ×
+                </button>
+              )}
             </div>
           </div>
 
-          <div
-            className="flex flex-wrap items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 text-xs"
-            role="group"
-            aria-label="Filtrar por antigüedad"
-          >
-            {(Object.keys(TIME_FILTER_LABELS) as TimeFilter[]).map((key) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setTimeFilter(key)}
-                aria-pressed={timeFilter === key}
-                className={`flex-1 rounded-lg px-2 py-1.5 font-medium transition ${
-                  timeFilter === key
-                    ? "bg-slate-900 text-white"
-                    : "text-slate-600 hover:bg-slate-50"
-                }`}
-              >
-                {TIME_FILTER_LABELS[key]}
-              </button>
-            ))}
-          </div>
-
-          <div className="relative">
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar por nombre, sector, zona o necesidad…"
-              aria-label="Buscar reportes"
-              className="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-9 pr-9 text-sm outline-none focus:border-slate-900"
-            />
-            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-              🔎
-            </span>
-            {query && (
-              <button
-                type="button"
-                onClick={() => setQuery("")}
-                aria-label="Limpiar búsqueda"
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full px-2 py-0.5 text-slate-400 hover:text-slate-700"
-              >
-                ×
-              </button>
-            )}
-          </div>
-
-          <div className="max-h-[55vh] flex-1 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-sm lg:max-h-[520px]">
+          <div className="mt-3 max-h-[70vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-2">
             {filter === "missing" && missingStats && missingStats.active > 0 && (
               <div className="mb-2 rounded-lg border border-purple-200 bg-purple-50 px-3 py-2 text-xs text-purple-900">
                 Hay{" "}
@@ -731,7 +879,7 @@ export default function EmergencyApp() {
               <p className="p-4 text-sm text-slate-500">
                 {query.trim()
                   ? `No se encontraron reportes para “${query.trim()}”.`
-                  : `Aún no hay reportes${filter !== "all" ? " de este tipo" : ""}. Toca el mapa para crear el primero.`}
+                  : `Aún no hay reportes${filter !== "all" ? " de este tipo" : ""}. Usa el botón "+ Reportar" para crear el primero.`}
               </p>
             ) : (
               <>
@@ -743,16 +891,22 @@ export default function EmergencyApp() {
                     {visibleReports.length} resultado(s)
                   </p>
                 )}
-                <ul className="divide-y divide-slate-100">
+                <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
                 {visibleReports.map((report) => (
-                  <li key={report.id} className="p-1">
-                    <div className="flex items-start justify-between gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleFocusReport(report)}
-                        aria-label={`Ver ${report.place} en el mapa`}
-                        className="flex min-w-0 flex-1 items-start gap-2 rounded-lg p-2 text-left transition hover:bg-slate-50 active:bg-slate-100"
-                      >
+                  <li
+                    key={report.id}
+                    className="relative rounded-xl border border-slate-200"
+                  >
+                    {/* Toda la card (incluida el área libre) enfoca el reporte
+                        en el mapa; los botones de acción quedan por encima. */}
+                    <button
+                      type="button"
+                      onClick={() => handleFocusReport(report)}
+                      aria-label={`Ver ${report.place} en el mapa`}
+                      className="absolute inset-0 rounded-xl transition hover:bg-slate-50 active:bg-slate-100"
+                    />
+                    <div className="pointer-events-none relative flex items-start justify-between gap-2 p-3">
+                      <div className="flex min-w-0 flex-1 items-start gap-2">
                         {report.photoUrl && (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
@@ -783,8 +937,8 @@ export default function EmergencyApp() {
                             🕒 {timeAgo(report.createdAt, now)}
                           </p>
                         </div>
-                      </button>
-                      <div className="flex shrink-0 flex-col items-end gap-1">
+                      </div>
+                      <div className="pointer-events-auto flex shrink-0 flex-col items-end gap-1">
                         <button
                           type="button"
                           onClick={() => handleConfirm(report.id)}
@@ -799,10 +953,10 @@ export default function EmergencyApp() {
                               ? "Ya confirmaste este reporte"
                               : "Yo también veo esto"
                           }
-                          className={`mt-2 inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-semibold transition ${
+                          className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-semibold transition ${
                             confirmed.has(report.id)
                               ? "border-slate-200 bg-slate-100 text-slate-500"
-                              : "border-sky-200 text-sky-700 hover:bg-sky-50"
+                              : "border-sky-200 bg-white text-sky-700 hover:bg-sky-50"
                           }`}
                         >
                           ✓ +{report.confirmations}
@@ -811,7 +965,7 @@ export default function EmergencyApp() {
                           <button
                             type="button"
                             onClick={() => handleResolve(report.id)}
-                            className="rounded-md border border-emerald-200 px-2 py-1 text-[11px] font-medium text-emerald-700 hover:bg-emerald-50"
+                            className="rounded-md border border-emerald-200 bg-white px-2 py-1 text-[11px] font-medium text-emerald-700 hover:bg-emerald-50"
                           >
                             Atendido
                           </button>
@@ -823,8 +977,7 @@ export default function EmergencyApp() {
                 </ul>
               </>
             )}
-          </div>
-        </aside>
+            </div>
       </div>
 
       {!persistent && (
@@ -835,10 +988,13 @@ export default function EmergencyApp() {
         </p>
       )}
 
-      {draft && (
+      {reportOpen && (
         <ReportForm
           coords={draft}
-          onCancel={() => setDraft(null)}
+          hidden={placing}
+          onPickOnMap={() => setPlacing(true)}
+          onClearLocation={() => setDraft(null)}
+          onCancel={closeReport}
           onCoordsChange={(c) => setDraft(c)}
           onSubmit={handleSubmit}
         />
