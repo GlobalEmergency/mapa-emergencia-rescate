@@ -380,8 +380,8 @@ export default function MapView({
                 {REPORT_TYPES[report.type].emoji} {REPORT_TYPES[report.type].label}
               </p>
               {report.photoUrl && (
-                // eslint-disable-next-line @next/next/no-img-element
                 <a href={report.photoUrl} target="_blank" rel="noopener noreferrer" aria-label="Ver foto en grande">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={report.photoUrl}
                     alt="Foto del reporte"

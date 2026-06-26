@@ -37,7 +37,7 @@ interface Props {
   onMarkFound?: (payload: MissingFoundPayload) => Promise<void>;
 }
 
-function shareUrl(person: MissingPerson): string {
+function shareUrl(_person: MissingPerson): string {
   if (typeof window === "undefined") return "https://terremotovenezuela.app/";
   return `${window.location.origin}/#desaparecidas`;
 }
