@@ -132,7 +132,11 @@ export default function RootLayout({
         <StickyHelpButton />
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          dangerouslySetInnerHTML={{
+            // Escapar `<` evita un breakout de </script> si algún día el JSON-LD
+            // incluyera datos dinámicos (hoy son solo constantes).
+            __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
+          }}
         />
       </body>
       <GoogleAnalytics gaId="G-CHV8FZE23K" />

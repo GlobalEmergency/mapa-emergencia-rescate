@@ -8,6 +8,7 @@ import {
 } from "@/lib/chat";
 import { isPersistent } from "@/lib/store";
 import { checkRateLimit, clientIp } from "@/lib/ratelimit";
+import { readJson, bodyErrorResponse, BODY_LIMIT_TEXT } from "@/lib/body";
 
 export const dynamic = "force-dynamic";
 
@@ -48,9 +49,9 @@ export async function POST(request: Request) {
     replyTo?: string | null;
   };
   try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
+    body = await readJson(request, BODY_LIMIT_TEXT);
+  } catch (e) {
+    return bodyErrorResponse(e);
   }
 
   const text = typeof body.text === "string" ? body.text.trim() : "";
