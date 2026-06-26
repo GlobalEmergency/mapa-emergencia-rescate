@@ -29,9 +29,21 @@ export async function checkRateLimit(
 
 /**
  * Extrae la IP del cliente desde las cabeceras de la petición.
+ *
+ * NO usamos el primer valor de `x-forwarded-for`: el cliente lo controla y un
+ * proxy lo ANTEPONE, así que el valor más a la izquierda es falsificable (deja
+ * el rate-limit evadible cambiando el header). Preferimos:
+ *  1. `TRUSTED_IP_HEADER` si está configurado (la cabecera que pone TU proxy de
+ *     confianza, p. ej. `x-vercel-forwarded-for` o `cf-connecting-ip`).
+ *  2. `x-real-ip` (la pone el proxy/plataforma, no el cliente; en Vercel es la
+ *     IP real del cliente).
+ * Si no hay ninguna, caemos a "anon" (límite por instancia compartido).
  */
 export function clientIp(request: Request): string {
-  const forwarded = request.headers.get("x-forwarded-for");
-  if (forwarded) return forwarded.split(",")[0]!.trim();
+  const trusted = process.env.TRUSTED_IP_HEADER;
+  if (trusted) {
+    const v = request.headers.get(trusted);
+    if (v) return v.split(",")[0]!.trim();
+  }
   return request.headers.get("x-real-ip") ?? "anon";
 }

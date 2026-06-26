@@ -7,6 +7,9 @@ import {
   validateDonationInput,
 } from "@/lib/donations";
 import { checkRateLimit, clientIp } from "@/lib/ratelimit";
+import { cached } from "@/lib/cache";
+import { jsonWithEtag } from "@/lib/http";
+import { readJson, bodyErrorResponse, BODY_LIMIT_SMALL } from "@/lib/body";
 
 export const dynamic = "force-dynamic";
 
@@ -14,13 +17,16 @@ const CACHE_HEADERS = {
   "Cache-Control": "public, max-age=0, s-maxage=5, stale-while-revalidate=30",
 };
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const [stats, recent] = await Promise.all([
-      getDonationStats(),
-      listRecentDonations(30),
-    ]);
-    return NextResponse.json({ stats, recent }, { headers: CACHE_HEADERS });
+    const data = await cached("donations", 5_000, async () => {
+      const [stats, recent] = await Promise.all([
+        getDonationStats(),
+        listRecentDonations(30),
+      ]);
+      return { stats, recent };
+    });
+    return jsonWithEtag(request, data, CACHE_HEADERS);
   } catch {
     return NextResponse.json(
       {
@@ -49,9 +55,9 @@ export async function POST(request: Request) {
 
   let body: { name?: unknown; amountCents?: unknown };
   try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Cuerpo JSON inválido." }, { status: 400 });
+    body = await readJson(request, BODY_LIMIT_SMALL);
+  } catch (e) {
+    return bodyErrorResponse(e);
   }
 
   const parsed = validateDonationInput(body);

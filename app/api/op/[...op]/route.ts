@@ -1,5 +1,6 @@
 import { createHash } from "crypto";
 import { NextResponse } from "next/server";
+import { readJson, bodyErrorResponse, BODY_LIMIT_PROXY } from "@/lib/body";
 
 export const dynamic = "force-dynamic";
 
@@ -72,11 +73,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
+  let payload: unknown;
+  try {
+    payload = await readJson(request, BODY_LIMIT_PROXY);
+  } catch (e) {
+    return bodyErrorResponse(e);
+  }
+
   try {
     const upstream = await fetch(`${apiUrl()}${pathname.slice(trackIndex)}`, {
       method: "POST",
       headers: forwardHeaders(request),
-      body: JSON.stringify(await request.json()),
+      body: JSON.stringify(payload),
     });
     const contentType = upstream.headers.get("content-type") ?? "";
     if (contentType.includes("application/json")) {

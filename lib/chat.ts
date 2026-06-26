@@ -221,19 +221,21 @@ export async function addMessage(input: AddMessageInput): Promise<ChatMessage> {
   if (hasDbEnv()) {
     await ensureSchema();
     const sql = getSql();
+    // INSERT del mensaje + "bump" del hilo (sube en orden tipo WhatsApp) en una
+    // sola sentencia atómica. El CTE no ve su propio INSERT, pero el mensaje
+    // nuevo ya entra con thread_bumped_at = now, así que el estado final es el
+    // mismo y evitamos un roundtrip y el riesgo de desync entre ambas queries.
     await sql`
-      INSERT INTO chat_messages
-        (id, name, role, text, reply_to, reply_preview,
-         thread_root_id, thread_bumped_at, created_at)
-      VALUES (
-        ${message.id}, ${message.name}, ${message.role}, ${message.text},
-        ${message.replyTo}, ${message.replyPreview},
-        ${message.threadRootId}, ${message.threadBumpedAt}, ${message.createdAt}
+      WITH ins AS (
+        INSERT INTO chat_messages
+          (id, name, role, text, reply_to, reply_preview,
+           thread_root_id, thread_bumped_at, created_at)
+        VALUES (
+          ${message.id}, ${message.name}, ${message.role}, ${message.text},
+          ${message.replyTo}, ${message.replyPreview},
+          ${message.threadRootId}, ${message.threadBumpedAt}, ${message.createdAt}
+        )
       )
-    `;
-    // "Bump" del hilo: actualiza todos los mensajes del mismo hilo para que
-    // suba en el orden tipo WhatsApp.
-    await sql`
       UPDATE chat_messages
       SET thread_bumped_at = ${now}
       WHERE thread_root_id = ${message.threadRootId}

@@ -27,6 +27,9 @@ const POLL_INTERVAL_MS = 8000;
 const LOW_BANDWIDTH_POLL_INTERVAL_MS = 45_000;
 const SEARCH_DEBOUNCE_MS = 300;
 const PAGE_SIZE = 48;
+// Mínimo de caracteres para buscar (espeja MIN_SEARCH_LEN del servidor): por
+// debajo, el índice trigram no aplica y haríamos un seq scan completo.
+const MIN_SEARCH_LEN = 3;
 const ADMIN_STORAGE_KEY = "emergency:adminToken";
 
 function extractPhone(contact: string): string | null {
@@ -47,6 +50,7 @@ function pageWindow(page: number, totalPages: number): number[] {
 export default function MissingPersons() {
   const [people, setPeople] = useState<MissingPerson[]>([]);
   const [total, setTotal] = useState(0);
+  const [totalCapped, setTotalCapped] = useState(false);
   const [totalPages, setTotalPages] = useState(1);
   const [page, setPage] = useState(1);
   const [query, setQuery] = useState("");
@@ -81,16 +85,20 @@ export default function MissingPersons() {
           page: String(page),
           pageSize: String(PAGE_SIZE),
         });
-        if (debouncedQuery.trim()) params.set("q", debouncedQuery.trim());
+        // Solo buscamos con MIN_SEARCH_LEN+ caracteres; por debajo, listado normal.
+        if (debouncedQuery.trim().length >= MIN_SEARCH_LEN) {
+          params.set("q", debouncedQuery.trim());
+        }
         // El refresco manual evita la caché del CDN; el polling la aprovecha.
         if (manual) params.set("_", String(Date.now()));
         const res = await fetch(`/api/missing?${params.toString()}`, {
-          cache: "no-store",
+          cache: "no-cache",
         });
         if (!res.ok) return;
         const data = await res.json();
         setPeople(data.people ?? []);
         setTotal(data.total ?? 0);
+        setTotalCapped(Boolean(data.totalCapped));
         setTotalPages(data.totalPages ?? 1);
         setPersistent(Boolean(data.persistent));
         setLastFetchAt(Date.now());
@@ -191,7 +199,11 @@ export default function MissingPersons() {
   );
 
   const pages = useMemo(() => pageWindow(page, totalPages), [page, totalPages]);
-  const isSearching = debouncedQuery.trim().length > 0;
+  const isSearching = debouncedQuery.trim().length >= MIN_SEARCH_LEN;
+  // El usuario empezó a escribir pero aún no alcanza el mínimo para buscar.
+  const queryTooShort =
+    debouncedQuery.trim().length > 0 &&
+    debouncedQuery.trim().length < MIN_SEARCH_LEN;
 
   return (
     <section id="desaparecidas" className="mx-auto w-full max-w-7xl px-4 pb-14">
@@ -253,9 +265,15 @@ export default function MissingPersons() {
           </span>
         </div>
 
+        {queryTooShort && (
+          <p className="mt-3 text-xs font-medium text-slate-500">
+            Escribe al menos {MIN_SEARCH_LEN} letras para buscar.
+          </p>
+        )}
+
         {isSearching && (
           <p className="mt-3 text-xs font-medium text-slate-500">
-            {total} resultado{total === 1 ? "" : "s"} para “{debouncedQuery.trim()}”
+            {totalCapped ? `${total}+` : total} resultado{total === 1 ? "" : "s"} para “{debouncedQuery.trim()}”
           </p>
         )}
 

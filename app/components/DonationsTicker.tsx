@@ -52,7 +52,7 @@ export default function DonationsTicker({
 
   const fetchDonations = useCallback(async () => {
     try {
-      const res = await fetch("/api/donations", { cache: "no-store" });
+      const res = await fetch("/api/donations", { cache: "no-cache" });
       if (!res.ok) return;
       setData(await res.json());
     } catch {

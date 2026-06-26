@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
 import { listMissingMapMarkers } from "@/lib/missing";
+import { cached } from "@/lib/cache";
+import { jsonWithEtag } from "@/lib/http";
 
 export const dynamic = "force-dynamic";
 
@@ -15,12 +16,16 @@ function parseCoord(value: string | null): number | undefined {
 
 export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
-  const markers = await listMissingMapMarkers({
-    north: parseCoord(params.get("north")),
-    south: parseCoord(params.get("south")),
-    east: parseCoord(params.get("east")),
-    west: parseCoord(params.get("west")),
-    limit: Number(params.get("limit") ?? "500"),
-  });
-  return NextResponse.json({ markers }, { headers: CACHE_HEADERS });
+  const north = parseCoord(params.get("north"));
+  const south = parseCoord(params.get("south"));
+  const east = parseCoord(params.get("east"));
+  const west = parseCoord(params.get("west"));
+  const limit = Number(params.get("limit") ?? "500");
+  // Clave por viewport: el caso sin viewport (vista completa, el 95% del
+  // tráfico) cachea perfecto; los viewports concretos entran en el LRU acotado.
+  const key = `missing-map:${north ?? ""}:${south ?? ""}:${east ?? ""}:${west ?? ""}:${limit}`;
+  const markers = await cached(key, 3_000, () =>
+    listMissingMapMarkers({ north, south, east, west, limit }),
+  );
+  return jsonWithEtag(request, { markers }, CACHE_HEADERS);
 }

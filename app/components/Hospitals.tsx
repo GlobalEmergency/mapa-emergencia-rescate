@@ -60,7 +60,7 @@ export default function Hospitals() {
     setError(null);
     try {
       const res = await fetch("/api/hospitals?include=states", {
-        cache: "no-store",
+        cache: "no-cache",
       });
       if (!res.ok) throw new Error("No se pudo cargar la lista de hospitales.");
       const data = await res.json();
