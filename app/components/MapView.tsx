@@ -15,7 +15,9 @@ import Supercluster, { type ClusterProperties, type AnyProps } from "supercluste
 import { REPORT_TYPES, type EmergencyReport, type ReportType } from "@/lib/types";
 import { timeAgo } from "@/lib/format";
 import { xShareHref, whatsappShareHref } from "@/lib/share";
+import LinkText from "./LinkText";
 import type { MissingMapMarker } from "@/lib/missing";
+import EdificiosAfectadosLayer from "./EdificiosAfectadosLayer";
 
 export type MapBounds = {
   north: number;
@@ -154,7 +156,7 @@ function MissingClusterLayer({
             }}
           >
             <Popup>
-              <div className="space-y-1">
+              <div className="space-y-1.5 text-sm">
                 <p className="font-semibold">{REPORT_TYPES.missing.emoji} Se busca</p>
                 {p.photoUrl && (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -166,8 +168,12 @@ function MissingClusterLayer({
                   />
                 )}
                 <p className="font-medium">{p.name}</p>
-                {p.age !== null && <p>{p.age} años</p>}
-                {p.lastSeen && <p className="text-sm">📍 {p.lastSeen}</p>}
+                {p.age !== null && (
+                  <p className="text-xs text-slate-600">{p.age} años</p>
+                )}
+                {p.lastSeen && (
+                  <p className="text-slate-600">📍 {p.lastSeen}</p>
+                )}
                 <a
                   href="#desaparecidas"
                   className="mt-1 inline-block text-xs font-medium text-purple-700 underline"
@@ -308,6 +314,8 @@ interface MapViewProps {
   zoom: number;
   /** Pedido para encuadrar el mapa a un conjunto de pines (al filtrar por tipo). */
   fitRequest?: { points: { lat: number; lng: number }[]; ts: number } | null;
+  /** Muestra la capa de edificios afectados (snapshot de sismovenezuela.org). */
+  showEdificios?: boolean;
 }
 
 export default function MapView({
@@ -325,6 +333,7 @@ export default function MapView({
   center,
   zoom,
   fitRequest = null,
+  showEdificios = false,
 }: MapViewProps) {
   const markerRefs = useRef<Map<string, L.Marker>>(new Map());
   const getMarker = useCallback((id: string) => markerRefs.current.get(id), []);
@@ -357,6 +366,8 @@ export default function MapView({
       <FlyToHandler focus={focus} getMarker={getMarker} />
       <FitToBoundsHandler fitRequest={fitRequest} />
       <EscClosePopup />
+
+      {showEdificios && <EdificiosAfectadosLayer />}
       <BoundsHandler onBoundsChange={onBoundsChange} />
       <ClickHandler onPick={onPick} />
 
@@ -375,7 +386,7 @@ export default function MapView({
           }}
         >
           <Popup>
-            <div className="space-y-1">
+            <div className="space-y-1.5 text-sm">
               <p className="font-semibold">
                 {REPORT_TYPES[report.type].emoji} {REPORT_TYPES[report.type].label}
               </p>
@@ -391,10 +402,18 @@ export default function MapView({
                 </a>
               )}
               <p className="font-medium">{report.place}</p>
-              {report.affected > 0 && <p>Personas afectadas/atrapadas: {report.affected}</p>}
-              {report.needs && <p>Necesidad: {report.needs}</p>}
+              {report.affected > 0 && (
+                <p className="text-xs text-slate-600">
+                  Personas afectadas/atrapadas: {report.affected}
+                </p>
+              )}
+              {report.needs && (
+                <p className="break-words text-slate-600">
+                  Necesidad: <LinkText text={report.needs} />
+                </p>
+              )}
               <p
-                className="text-xs text-gray-500"
+                className="text-xs text-slate-500"
                 title={new Date(report.createdAt).toLocaleString("es-VE")}
               >
                 🕒 {timeAgo(report.createdAt)} · {new Date(report.createdAt).toLocaleString("es-VE")}

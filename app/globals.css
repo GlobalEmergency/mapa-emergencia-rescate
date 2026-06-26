@@ -17,6 +17,16 @@ body {
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
 }
 
+/* Cursor de mano en controles interactivos (Tailwind v4 ya no lo aplica por
+ * defecto en <button>). */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]) {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: not-allowed;
+}
+
 body.has-mobile-nav {
   padding-bottom: calc(3.75rem + env(safe-area-inset-bottom));
 }

@@ -167,7 +167,7 @@ export default function AddressSearch({ onSelect, bias }: AddressSearchProps) {
         </button>
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || query.trim().length === 0}
           aria-label="Buscar dirección"
           className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-slate-900 text-white transition hover:bg-slate-800 disabled:opacity-60"
         >

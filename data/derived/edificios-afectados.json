@@ -1,0 +1,2882 @@
+[
+  {
+    "id": "ce6cd3a1-bf6c-498a-8652-143eab988f95",
+    "lat": 10.4288799,
+    "lng": -66.9746909,
+    "severity": 1,
+    "place": "Edificio Borburata, Vuelvan Caras, UD-4, Caricuao, Caracas",
+    "photo_url": "/edificios/ce6cd3a1-bf6c-498a-8652-143eab988f95.jpg",
+    "note": "Grietas en paredes interiores en pasillos comunes de varios pisos y dentro de apartamentos",
+    "created_at": "2026-06-26T02:48:36.31342+00:00"
+  },
+  {
+    "id": "87d2de31-ea9d-4c47-8f69-1efd90b904c8",
+    "lat": 10.5009198824169,
+    "lng": -66.9101198021595,
+    "severity": 2,
+    "place": "Edificio Aconcagua",
+    "photo_url": "/edificios/87d2de31-ea9d-4c47-8f69-1efd90b904c8.jpeg",
+    "note": "Grietas en fachada",
+    "created_at": "2026-06-26T02:14:31.453754+00:00"
+  },
+  {
+    "id": "160ff34d-41a1-48f3-b133-a264490ea70d",
+    "lat": 10.4917241908293,
+    "lng": -66.8574708525639,
+    "severity": 2,
+    "place": "Edificio Cosmos",
+    "photo_url": "/edificios/160ff34d-41a1-48f3-b133-a264490ea70d.jpeg",
+    "note": "Paredes agrietadas",
+    "created_at": "2026-06-26T02:05:58.107136+00:00"
+  },
+  {
+    "id": "6c950f69-cda9-4b9e-97a0-40eeeb1b5916",
+    "lat": 10.4808355272264,
+    "lng": -66.9429449792042,
+    "severity": 3,
+    "place": "Edificio San Antonio",
+    "photo_url": "/edificios/6c950f69-cda9-4b9e-97a0-40eeeb1b5916.jpg",
+    "note": "Paredes caidas",
+    "created_at": "2026-06-26T01:52:38.193454+00:00"
+  },
+  {
+    "id": "f27c5840-2d45-4692-9946-6937328cd77e",
+    "lat": 10.4961762916073,
+    "lng": -66.8498894481509,
+    "severity": 3,
+    "place": "Res Habitat",
+    "photo_url": "/edificios/f27c5840-2d45-4692-9946-6937328cd77e.jpg",
+    "note": "Paredes caidas y grietas",
+    "created_at": "2026-06-26T01:42:14.756969+00:00"
+  },
+  {
+    "id": "e2e9a5ed-c8ee-4351-93da-f902ce65b7e0",
+    "lat": 10.4816616685186,
+    "lng": -66.8961553221212,
+    "severity": 3,
+    "place": "Residencia Rafael",
+    "photo_url": "/edificios/e2e9a5ed-c8ee-4351-93da-f902ce65b7e0.jpeg",
+    "note": "Paredes caidas y grietas",
+    "created_at": "2026-06-26T01:27:38.476361+00:00"
+  },
+  {
+    "id": "bae9f3e6-433a-4e1b-8fa1-9a44a4dc98e5",
+    "lat": 10.6159655,
+    "lng": -66.860337,
+    "severity": 4,
+    "place": "Residencias Caribe Mar Suites",
+    "photo_url": "/edificios/bae9f3e6-433a-4e1b-8fa1-9a44a4dc98e5.jpg",
+    "note": null,
+    "created_at": "2026-06-26T01:12:01.418528+00:00"
+  },
+  {
+    "id": "c9c7c373-cb18-431e-84fa-7bb3ed603274",
+    "lat": 10.6159655,
+    "lng": -66.860337,
+    "severity": 4,
+    "place": "Res.caribe mar suites",
+    "photo_url": "/edificios/c9c7c373-cb18-431e-84fa-7bb3ed603274.jpg",
+    "note": null,
+    "created_at": "2026-06-26T01:06:58.464817+00:00"
+  },
+  {
+    "id": "8904c207-82fa-4405-adf2-37d5a38ca659",
+    "lat": 10.4809159640365,
+    "lng": -66.9017395494976,
+    "severity": 2,
+    "place": "Residencias Dora, La Bandera, Caracas.",
+    "photo_url": "/edificios/8904c207-82fa-4405-adf2-37d5a38ca659.png",
+    "note": "Algunas grietas en la fachada y dentro de los departamentos..",
+    "created_at": "2026-06-26T00:10:35.226265+00:00"
+  },
+  {
+    "id": "088f105b-9cfd-4d01-8c1b-f477db7f0e03",
+    "lat": 10.6174796528121,
+    "lng": -66.8406709772214,
+    "severity": 4,
+    "place": "Palafito del Mar",
+    "photo_url": "/edificios/088f105b-9cfd-4d01-8c1b-f477db7f0e03.jpg",
+    "note": null,
+    "created_at": "2026-06-25T23:07:58.441682+00:00"
+  },
+  {
+    "id": "67bcd135-9cb7-4289-8dce-3efbea67c08a",
+    "lat": 10.6189517499238,
+    "lng": -66.8425786314403,
+    "severity": 4,
+    "place": "Residencias Lagunamar",
+    "photo_url": "/edificios/67bcd135-9cb7-4289-8dce-3efbea67c08a.webp",
+    "note": null,
+    "created_at": "2026-06-25T22:39:11.075248+00:00"
+  },
+  {
+    "id": "d05ae375-dca7-4362-a5b3-548143242f59",
+    "lat": 10.3444173,
+    "lng": -67.0474872,
+    "severity": 1,
+    "place": "Res. Yati",
+    "photo_url": "/edificios/d05ae375-dca7-4362-a5b3-548143242f59.jpg",
+    "note": "Grietas longitudinales entre pisos en la fachada",
+    "created_at": "2026-06-25T22:15:58.727597+00:00"
+  },
+  {
+    "id": "ed9137ad-49de-462f-9763-75f2b4b3ded5",
+    "lat": 10.6114930246072,
+    "lng": -67.020109986519,
+    "severity": 3,
+    "place": "Costa Dorada",
+    "photo_url": "/edificios/ed9137ad-49de-462f-9763-75f2b4b3ded5.jpeg",
+    "note": "Desprendimiento de lado A del edificio",
+    "created_at": "2026-06-25T21:33:34.086281+00:00"
+  },
+  {
+    "id": "aa7d4564-8ad1-413f-abc3-bd4b904986dc",
+    "lat": 10.6183929304644,
+    "lng": -66.8444723849471,
+    "severity": 4,
+    "place": "Rompemar II",
+    "photo_url": "/edificios/aa7d4564-8ad1-413f-abc3-bd4b904986dc.webp",
+    "note": null,
+    "created_at": "2026-06-25T20:55:22.358502+00:00"
+  },
+  {
+    "id": "b6d3c259-60b6-4268-a40c-9e85be16064d",
+    "lat": 10.6086804273404,
+    "lng": -67.0142768967085,
+    "severity": 4,
+    "place": "Edif. Sol Marino Grande, Playa Grande",
+    "photo_url": "/edificios/b6d3c259-60b6-4268-a40c-9e85be16064d.jpeg",
+    "note": "Cayo lateralmente",
+    "created_at": "2026-06-25T20:39:43.837148+00:00"
+  },
+  {
+    "id": "5c814f32-ccf3-4c3a-81bd-0bb94bb07508",
+    "lat": 10.4981139325352,
+    "lng": -66.9209197140523,
+    "severity": 2,
+    "place": "Residencias Don Elias",
+    "photo_url": "/edificios/5c814f32-ccf3-4c3a-81bd-0bb94bb07508.jpg",
+    "note": "Grietas en los pasillos, escaleras y paredes de los apartamentos de casi todos los pisos",
+    "created_at": "2026-06-25T20:30:28.363643+00:00"
+  },
+  {
+    "id": "9a083617-45db-4c91-a150-714f7139fc5e",
+    "lat": 10.4978877520349,
+    "lng": -66.920951835208,
+    "severity": 1,
+    "place": "Residencias Don Elias",
+    "photo_url": "/edificios/9a083617-45db-4c91-a150-714f7139fc5e.jpg",
+    "note": "Grietas en las paredes de los apartamentos,pasillos del edificio y escaleras",
+    "created_at": "2026-06-25T20:23:33.006776+00:00"
+  },
+  {
+    "id": "ab2584d1-429e-4a72-9a92-0785e6f21b43",
+    "lat": 10.6094705,
+    "lng": -67.0123965,
+    "severity": 4,
+    "place": "Relax Vistamr",
+    "photo_url": "/edificios/ab2584d1-429e-4a72-9a92-0785e6f21b43.jpg",
+    "note": "El edificio esta justo entrando a la calle 2, no hay equipos de rescate ni apoyo de máquinas, solo vecinos ayudando a sacar personas y escombros.",
+    "created_at": "2026-06-25T20:09:01.037534+00:00"
+  },
+  {
+    "id": "067dd207-d38f-4be9-9a58-3808e48ad7be",
+    "lat": 10.4981607,
+    "lng": -66.9105866,
+    "severity": 2,
+    "place": "Av Fuerzas armadas, esquina el cristo, el edificio 162, entre el colegio fray Luis de León y el motorista panda Motero",
+    "photo_url": "/edificios/067dd207-d38f-4be9-9a58-3808e48ad7be.jpg",
+    "note": "Las grietas de la foto son de la parte exterior, pero también se encuentra agrietado dentro de la estructura en las paredes escaleras, paredes  de los apartamentos y pasillos.",
+    "created_at": "2026-06-25T19:51:05.210788+00:00"
+  },
+  {
+    "id": "eb095d79-ac26-4ab9-ba72-881f24a96560",
+    "lat": 10.3016931,
+    "lng": -67.7229667,
+    "severity": 4,
+    "place": "Mariar",
+    "photo_url": "/edificios/eb095d79-ac26-4ab9-ba72-881f24a96560.jpg",
+    "note": null,
+    "created_at": "2026-06-25T18:10:47.500737+00:00"
+  },
+  {
+    "id": "0eca7c5c-ba6a-49d9-a784-6615c58b04e1",
+    "lat": 10.2864482654279,
+    "lng": -67.6986540782675,
+    "severity": 4,
+    "place": "Panaderia mi princesa",
+    "photo_url": "/edificios/0eca7c5c-ba6a-49d9-a784-6615c58b04e1.jpg",
+    "note": null,
+    "created_at": "2026-06-25T17:59:39.87292+00:00"
+  },
+  {
+    "id": "b0c2a169-97e6-40f2-b5fe-1f7c11ad5ffd",
+    "lat": 10.5059555,
+    "lng": -66.8840594,
+    "severity": 2,
+    "place": "Residencias Oakland",
+    "photo_url": "/edificios/b0c2a169-97e6-40f2-b5fe-1f7c11ad5ffd.jpeg",
+    "note": "Grietas en las paredes de los apartamentos,  caída de paredes internas, grietas entre pared y columnas, grietas en paredes exteriores del edificio.",
+    "created_at": "2026-06-25T17:52:38.182943+00:00"
+  },
+  {
+    "id": "6f4cee08-bdbe-4ed7-9b6b-ecbc2107fc54",
+    "lat": 10.2476781017196,
+    "lng": -67.606264064158,
+    "severity": 3,
+    "place": "Edificio Cantaclaro",
+    "photo_url": "/edificios/6f4cee08-bdbe-4ed7-9b6b-ecbc2107fc54.jpg",
+    "note": null,
+    "created_at": "2026-06-25T17:43:10.216054+00:00"
+  },
+  {
+    "id": "190838e8-3d8e-4b3a-8bb3-eef39a4af5fe",
+    "lat": 10.2338502762512,
+    "lng": -67.5977325684195,
+    "severity": 2,
+    "place": "Residencias el centro",
+    "photo_url": "/edificios/190838e8-3d8e-4b3a-8bb3-eef39a4af5fe.jpg",
+    "note": null,
+    "created_at": "2026-06-25T17:03:34.763993+00:00"
+  },
+  {
+    "id": "32fba9a4-651c-482f-a318-4fc2a23f8519",
+    "lat": 10.6188172227716,
+    "lng": -66.8495227177603,
+    "severity": 4,
+    "place": "Residencias Auro",
+    "photo_url": "/edificios/32fba9a4-651c-482f-a318-4fc2a23f8519.jpeg",
+    "note": "Edificio desplomado en un 95% aproximadamente",
+    "created_at": "2026-06-25T17:02:27.734654+00:00"
+  },
+  {
+    "id": "6e196120-872e-4e23-b414-655d6d501df1",
+    "lat": 10.4807558849978,
+    "lng": -66.8957662669889,
+    "severity": 3,
+    "place": "Res. Cala D´or",
+    "photo_url": "/edificios/6e196120-872e-4e23-b414-655d6d501df1.jpeg",
+    "note": "Paredes caidas y columbas con grietas",
+    "created_at": "2026-06-25T17:02:08.014831+00:00"
+  },
+  {
+    "id": "5509ec85-09c6-426c-965e-c44e09b06f61",
+    "lat": 10.5031554,
+    "lng": -66.9034586,
+    "severity": 2,
+    "place": "Edificio Salto Angel",
+    "photo_url": "/edificios/5509ec85-09c6-426c-965e-c44e09b06f61.jpg",
+    "note": "Parte de la fachada se cayó, grietas en todos los apartamentos",
+    "created_at": "2026-06-25T16:57:18.980964+00:00"
+  },
+  {
+    "id": "ef772a48-a06a-45e6-893b-ca526da60b7e",
+    "lat": 10.5167857270505,
+    "lng": -66.9120605202246,
+    "severity": 4,
+    "place": "Casa Frente a la emergencia pediátrica del Hospital Vargas de Caracas",
+    "photo_url": "/edificios/ef772a48-a06a-45e6-893b-ca526da60b7e.jpg",
+    "note": "Casa totalmente colapsada frente a la emergencia pediátrica del Hospital Vargas de Caracas",
+    "created_at": "2026-06-25T16:30:29.956817+00:00"
+  },
+  {
+    "id": "873cc0b4-82cd-4f50-8f4b-5f7451abe8e7",
+    "lat": 10.498500188229,
+    "lng": -66.9145972771526,
+    "severity": 3,
+    "place": "Avenida Sur 1 entre esquinas de candilito a tablitas, Urbanización santa Teresa, OPPP9 Edificio El Renacer",
+    "photo_url": "/edificios/873cc0b4-82cd-4f50-8f4b-5f7451abe8e7.jpg",
+    "note": "Grietas en las fachadas y a lo interno del urbanismo",
+    "created_at": "2026-06-25T16:29:41.76176+00:00"
+  },
+  {
+    "id": "29140203-81ad-46d9-8f55-3652aa3c2e11",
+    "lat": 10.5217422202354,
+    "lng": -66.9291253177643,
+    "severity": 3,
+    "place": "Bloque 1 de campo Elías! Muchas grietas en el edificio",
+    "photo_url": "/edificios/29140203-81ad-46d9-8f55-3652aa3c2e11.jpeg",
+    "note": null,
+    "created_at": "2026-06-25T16:15:51.000379+00:00"
+  },
+  {
+    "id": "8dd76e59-b118-4b61-8a67-728776b1f9cc",
+    "lat": 10.2529300488294,
+    "lng": -67.5908784197128,
+    "severity": 2,
+    "place": "Parroquia Caña de Azúcar, Municipio Iragorry",
+    "photo_url": "/edificios/8dd76e59-b118-4b61-8a67-728776b1f9cc.jpeg",
+    "note": "Mi edificio tiene forma de L, hay una gran grieta en el piso 2-3 que divide una ala de la otra",
+    "created_at": "2026-06-25T15:59:12.466659+00:00"
+  },
+  {
+    "id": "d8c3d42b-3467-4358-ac2e-17fd7467cb13",
+    "lat": 10.498100200391,
+    "lng": -66.8459527234631,
+    "severity": 4,
+    "place": null,
+    "photo_url": "/edificios/d8c3d42b-3467-4358-ac2e-17fd7467cb13.jpg",
+    "note": null,
+    "created_at": "2026-06-25T14:46:50.096707+00:00"
+  },
+  {
+    "id": "ee78f51a-d81d-4317-b4b0-2c89c1d2fa65",
+    "lat": 10.4806,
+    "lng": -66.9036,
+    "severity": 4,
+    "place": "Residencias Arichuna",
+    "photo_url": "/edificios/ee78f51a-d81d-4317-b4b0-2c89c1d2fa65.jpg",
+    "note": null,
+    "created_at": "2026-06-25T14:05:23.23228+00:00"
+  },
+  {
+    "id": "54b72369-607b-4649-b928-27e341f64c0d",
+    "lat": 10.4767507,
+    "lng": -66.8907407,
+    "severity": 2,
+    "place": "Res. Lucania, Calle Cristóbal Rojas, Santa Mónica, Los Rosales, Caracas, Parroquia San Pedro, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1041, Venezuela",
+    "photo_url": null,
+    "note": "Grietas en todos los pisos a nivel de los pasillos, algunos apartamentos y escaleras afectadas también por grietas",
+    "created_at": "2026-06-25T13:20:11.319423+00:00"
+  },
+  {
+    "id": "535855f5-70d3-49b4-b98c-b9baaff2871d",
+    "lat": 10.6160568205794,
+    "lng": -66.8381512826615,
+    "severity": 4,
+    "place": "Res. Palma Real, Urbanización Caribe, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "Segun lo dicho por los vecinos que lograron salir del edificio le cayeron encima el ph, piso 7 y piso 6 a los pisos de abajo de ambas torres. De ahí se desplomó todo lo demás. Piso 2 y piso 1 se hundieron al sótano. Está todo desplomado pero encuentran areas donde las columnas pudieron salvar a ma gente | Vecinos e Instagram",
+    "created_at": "2026-06-25T13:20:08.24196+00:00"
+  },
+  {
+    "id": "d2b97fc2-0334-4746-b722-3949cb08879f",
+    "lat": 10.6078845445813,
+    "lng": -67.0132560330658,
+    "severity": 4,
+    "place": "El Club, Avenida La Entrada, Playa Grande, Catia La Mar, Parroquia Urimare, Municipio Vargas, La Guaira, 1162, Venezuela",
+    "photo_url": null,
+    "note": "Colapso total, el tanque que estaba en el techo quedó a ras de calle. | Vecino",
+    "created_at": "2026-06-25T13:18:57.283256+00:00"
+  },
+  {
+    "id": "d883cdb4-bad6-4f4f-b158-0ce3301497e5",
+    "lat": 10.6163141,
+    "lng": -66.8449081,
+    "severity": 4,
+    "place": "Res. Breña sol, Avenida Principal de Caribe, Urbanización Caribe, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "Fotos, vecinos",
+    "created_at": "2026-06-25T13:18:46.201509+00:00"
+  },
+  {
+    "id": "67d77281-d0e1-46be-a4a2-4c94b0dd908c",
+    "lat": 10.4971494505575,
+    "lng": -66.8806129797056,
+    "severity": 3,
+    "place": "Opppe18, Avenida Las Acacias, Las Delicias, Los Caobos, Caracas, Parroquia El Recreo, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1050, Venezuela",
+    "photo_url": null,
+    "note": "Grietas por todo el edificio, edif visiblemente inclinado hacia atrás , todos los vecinos estamos afuera esperando asesoría | Vecino",
+    "created_at": "2026-06-25T13:18:38.047483+00:00"
+  },
+  {
+    "id": "b9201476-3f6b-4dc6-95f1-4d88ff00d669",
+    "lat": 10.4895353,
+    "lng": -66.8812216,
+    "severity": 2,
+    "place": "De Vinci, Centro Comercial Bello Monte, Avenida Principal de Bello Monte, Los Chaguaramos, Ciudad Universitaria, Caracas, Parroquia San Pedro, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1050, Venezuela",
+    "photo_url": null,
+    "note": "Paredes de la Terraza colapsaron y cayeron. Daños importantes en la fachada | Inquilino",
+    "created_at": "2026-06-25T13:18:06.856355+00:00"
+  },
+  {
+    "id": "5a7bec63-ceb4-44b0-a709-da9d1fabea0a",
+    "lat": 10.4831226,
+    "lng": -66.8917745,
+    "severity": 2,
+    "place": "Conjunto residencial el Saman, Calle Capanaparo, Valle Abajo, Los Rosales, Caracas, Parroquia San Pedro, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1041, Venezuela",
+    "photo_url": null,
+    "note": "Grandes grietas en la estructura del edificio | Foto tomada por mi",
+    "created_at": "2026-06-25T13:17:52.455017+00:00"
+  },
+  {
+    "id": "95d66fc4-ce4f-4819-8c13-59b0672bbad3",
+    "lat": 10.4970809,
+    "lng": -66.847558,
+    "severity": 2,
+    "place": "Edificio Nisolm, Calentadores Altamira 2010, 1.ª Avenida de Los Palos Grandes, Los Palos Grandes, La Floresta, Los Palos Grandes, Caracas, Municipio Chacao, Distrito Metropolitano de Caracas, Miranda, 1060, Venezuela",
+    "photo_url": null,
+    "note": "Fachada dañada",
+    "created_at": "2026-06-25T13:17:45.798089+00:00"
+  },
+  {
+    "id": "a6ec64d5-de5f-42f0-960e-3d5e14f337b3",
+    "lat": 10.6163141,
+    "lng": -66.8449081,
+    "severity": 4,
+    "place": "Bahía del Mar, Avenida Principal de Caribe, Urbanización Caribe, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "Edificio residencial de 12 pisos convertido en una pila de escombros. Colapso total.\n\nImagen tomada desde el edificio vecino, Laguna Beach. | Vecino",
+    "created_at": "2026-06-25T13:17:30.527214+00:00"
+  },
+  {
+    "id": "c68768b6-6a42-446f-9010-c67d0a48f11a",
+    "lat": 10.4864826,
+    "lng": -66.8712643,
+    "severity": 2,
+    "place": "San Carlos, Avenida Don Bosco, Valle Arriba, Bello Monte, Caracas, Parroquia Nuestra Señora del Rosario, Municipio Baruta, Distrito Metropolitano de Caracas, Miranda, 1080, Venezuela",
+    "photo_url": null,
+    "note": "Vecino",
+    "created_at": "2026-06-25T13:17:13.652531+00:00"
+  },
+  {
+    "id": "d99bf77a-59cc-4f81-94ab-8016a681bc2f",
+    "lat": 10.6101197,
+    "lng": -67.024316,
+    "severity": 3,
+    "place": "Conjunto Residencial Los 2 Delfines, Avenida Principal de Playa Grande, Ciudad Chávez, Playa Grande, Catia La Mar, Parroquia Urimare, Municipio Vargas, La Guaira, 1162, Venezuela",
+    "photo_url": null,
+    "note": "Paredes caídas estructura en pésimo estado | Video encontrado en Xy confirmación de testigos",
+    "created_at": "2026-06-25T13:17:05.965843+00:00"
+  },
+  {
+    "id": "98886456-3891-460e-ac37-d40dea942004",
+    "lat": 10.6140893958839,
+    "lng": -66.8380521089714,
+    "severity": 4,
+    "place": "Malibu Suite, Avenida Principal de Caribe, Urbanización Caribe, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "Desplome total | Propietaria",
+    "created_at": "2026-06-25T13:16:39.582958+00:00"
+  },
+  {
+    "id": "3210bd4e-b501-4b32-90f3-46ac9dffca9f",
+    "lat": 10.5095886125697,
+    "lng": -66.9105951623223,
+    "severity": 2,
+    "place": "Rosa elena, Avenida Este 5, Altagracia, Caracas, Parroquia Altagracia, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1010, Venezuela",
+    "photo_url": null,
+    "note": "Daños en los apartamentos, paredes caidas | Video",
+    "created_at": "2026-06-25T13:16:24.699096+00:00"
+  },
+  {
+    "id": "1f38ed4c-bbcc-448b-9ad0-7888b0d78de8",
+    "lat": 10.2782143645425,
+    "lng": -68.0158325384077,
+    "severity": 3,
+    "place": "Edificio de Aulas de ingeniería (Universidad de Carabobo), Calle Ingeniería UC, Bárbula, La Entrada, Parroquia Bárbula, Municipio Naguanagua, Carabobo, 2005, Venezuela",
+    "photo_url": null,
+    "note": "Se logran apreciar paredes afectadas tanto como por dentro y por fuera | Video",
+    "created_at": "2026-06-25T13:16:18.04819+00:00"
+  },
+  {
+    "id": "29309c4c-9139-4c15-ad88-a0b465ea3298",
+    "lat": 10.21583,
+    "lng": -67.9937481,
+    "severity": 2,
+    "place": "Residencia colonial, Calle Pocaterra, Parque El Trigal, El Trigal, Valencia, Parroquia San José, Municipio Valencia, Carabobo, 2001, Venezuela",
+    "photo_url": null,
+    "note": "Varias columnas afectadas en las planta baja | Vecino",
+    "created_at": "2026-06-25T13:16:11.283815+00:00"
+  },
+  {
+    "id": "be3f0b97-695a-46b2-8e15-988a7f673b1f",
+    "lat": 10.6183375,
+    "lng": -66.8498906,
+    "severity": 4,
+    "place": "Residencias CELTAMAR I, Avenida La Costanera, Los Corales, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "Video en noticias",
+    "created_at": "2026-06-25T13:16:02.314411+00:00"
+  },
+  {
+    "id": "82ffd26e-0f64-48c6-a869-011d80b1d3bd",
+    "lat": 10.5032727,
+    "lng": -66.9034081,
+    "severity": 2,
+    "place": "Doral plaza, Valldemoza, Avenida Este 2, La Candelaria, Caracas, Parroquia La Candelaria, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1010, Venezuela",
+    "photo_url": null,
+    "note": "Vecino",
+    "created_at": "2026-06-25T13:15:49.656432+00:00"
+  },
+  {
+    "id": "32f1f21a-da22-44a6-b07a-ef5b27f6bb2d",
+    "lat": 10.5073766,
+    "lng": -66.9049788,
+    "severity": 2,
+    "place": "Midoral, Avenida Este 3, La Candelaria, Caracas, Parroquia La Candelaria, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1011, Venezuela",
+    "photo_url": null,
+    "note": null,
+    "created_at": "2026-06-25T13:15:35.822578+00:00"
+  },
+  {
+    "id": "5cdec72c-bd72-4ad0-b8c7-e25aed7567f3",
+    "lat": 10.5070221,
+    "lng": -66.9174127,
+    "severity": 2,
+    "place": "Llaguaral, Avenida Baralt, Caño Amarillo, El Silencio, Caracas, Parroquia Catedral, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1012, Venezuela",
+    "photo_url": null,
+    "note": "Todos los pisos están agrietados y apartamentos, el tanque aéreo también roto | Propietaria",
+    "created_at": "2026-06-25T13:15:12.447421+00:00"
+  },
+  {
+    "id": "654b5e42-7b36-4479-ae6a-6034d68932eb",
+    "lat": 10.5059469,
+    "lng": -66.9108128,
+    "severity": 2,
+    "place": "Aldomar, Avenida Este 0, El Silencio, Caracas, Parroquia Catedral, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1012, Venezuela",
+    "photo_url": null,
+    "note": "Se agrietaron columnas | Vecino",
+    "created_at": "2026-06-25T13:14:59.049852+00:00"
+  },
+  {
+    "id": "546208f9-4b79-43a4-85f2-718e514a633b",
+    "lat": 10.4938852,
+    "lng": -66.9264191,
+    "severity": 3,
+    "place": "Edificio Centro Profesional Oeste, Avenida Machado, Las Quintas, Brisas del Paraíso, El Paraíso, Caracas, Parroquia El Paraíso, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1020, Venezuela",
+    "photo_url": null,
+    "note": "Reporte Tecnico de Daños Sismicos\nEl registro fotografico revela una degradacion estructural y arquitectonica severa en el inmueble por esfuerzos dinamicos horizontales que superaron el limite elastico.\n1 Envolvente Exterior\nLa fachada presenta una macrogrieta por corte diagonal desde la base del muro. Esta discontinuidad expone concentracion de tensiones en las esquinas, sugiriendo un desplazamiento diferencial entre el portico estructural y las paredes de cerramiento.\n2 Espacios Internos y Areas Comunes\nSe observa una condicion critica de fallas por traccion y corte diagonal.\nGrietas de separacion. Fracturas de gran apertura atraviesan las paredes interiores, comprometiendo la estabilidad del plano vertical en rutas de evacuacion y marcos de puertas.\nDescascaramiento mecanico. Desprendimiento de revestimiento y fragmentos de mamposteria en uniones pared techo y esquinas por el aplastamiento debido a la flexion del edificio.\nFisuramiento en puntos de rigidez. Fisuras secundarias junto a fosos de ascensores y luces de emergencia debido a la disipacion de la energia sismica en zonas no estructurales.\n3 Indicadores de Inestabilidad\nLa acumulacion de escombros y restos de concreto en oficinas y escaleras confirma que el agrietamiento es activo y reciente. Esto genera desestabilizacion y peligro de colapso de tabiques ante replicas.\nConclusion. El inmueble presenta daño no estructural severo con riesgo para la vida. Al perderse el confinamiento de la mamposteria, es obligatorio restringir el acceso de inmediato y realizar un escaneo estructural en los nodos principales. | Propietarios",
+    "created_at": "2026-06-25T13:14:32.955493+00:00"
+  },
+  {
+    "id": "c3c317ce-19e1-4e70-a1b9-32e8619b5b6a",
+    "lat": 10.6121779942591,
+    "lng": -66.8228633619856,
+    "severity": 4,
+    "place": "Porto Fino Beach, Tanaguarena, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "Vecino",
+    "created_at": "2026-06-25T13:13:56.019027+00:00"
+  },
+  {
+    "id": "a97c9ecd-4f85-4b0a-99ed-498b0d4c7f12",
+    "lat": 10.5125608,
+    "lng": -66.9010534,
+    "severity": 3,
+    "place": "Res Canaima, Avenida Galipán, San Bernardino, Caracas, Parroquia San Bernardino, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1011, Venezuela",
+    "photo_url": null,
+    "note": "Fosa de ascensores y daños a fachadas derumbres de paredes y grietas | Vecino",
+    "created_at": "2026-06-25T13:13:50.165164+00:00"
+  },
+  {
+    "id": "c494fb68-403a-4d5b-be64-0cd2e7f85162",
+    "lat": 10.2051708754231,
+    "lng": -68.0225327233104,
+    "severity": 2,
+    "place": "Res. Cristal I, Sabana Larga, Urbanización Valle de Camoruco, Prebo, Valencia, Parroquia San José, Municipio Valencia, Carabobo, 2001, Venezuela",
+    "photo_url": null,
+    "note": "Detalles visibles en el area del estacionamiento. Parece que no es grave pero igual lo reporto. | Vecino",
+    "created_at": "2026-06-25T13:13:45.720097+00:00"
+  },
+  {
+    "id": "684085fc-c088-4fad-af41-07b8c87c96bd",
+    "lat": 10.5104825948485,
+    "lng": -66.9072957889227,
+    "severity": 2,
+    "place": "Residencias Danoral, Avenida Norte 9, San José, Caracas, Parroquia San José, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1010, Venezuela",
+    "photo_url": null,
+    "note": "No lo vi personalmente, pero parece que hay mucha afectación en los primeros pisos (1,2 y 3), pero más allá de paredes caídas parece que no hay un daño estructural grave. Supongo que se debe evaluar a fondo antes de asegurarlo, parece que todo el mundo está bien. | Vecino",
+    "created_at": "2026-06-25T13:13:35.455324+00:00"
+  },
+  {
+    "id": "0f37fcd8-bd5a-4e59-b8e7-60d78ecfdb26",
+    "lat": 10.4832661556661,
+    "lng": -66.8945736537453,
+    "severity": 2,
+    "place": "San Rafael, Calle Caura, Valle Abajo, Los Rosales, Caracas, Parroquia San Pedro, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1041, Venezuela",
+    "photo_url": null,
+    "note": "Paredes externas caídas , fisuras visibles en fachada, puertas y rejas descuadradas, igualmente los s departamentos todos tienen fisuras y pedazos de pared caídas. | Vecino",
+    "created_at": "2026-06-25T13:13:14.325203+00:00"
+  },
+  {
+    "id": "be7d02a6-c500-4c38-95da-edcc11fbeabd",
+    "lat": 10.5107683,
+    "lng": -66.9007435,
+    "severity": 2,
+    "place": "Sorocaima, Avenida Panteón, San Bernardino, Caracas, Parroquia San Bernardino, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1011, Venezuela",
+    "photo_url": null,
+    "note": "Vecino",
+    "created_at": "2026-06-25T13:13:05.657147+00:00"
+  },
+  {
+    "id": "7d6f725f-bff0-4b36-b51d-5ed34617c8d0",
+    "lat": 10.4992567,
+    "lng": -66.8360282,
+    "severity": 2,
+    "place": "Edificio Oriente, Av. Principal de Sebucán, Sebucán, Montecristo, Santa Eduvigis, Caracas, Parroquia Leoncio Martínez, Municipio Sucre, Distrito Metropolitano de Caracas, Miranda, 1071, Venezuela",
+    "photo_url": null,
+    "note": "Agrietamiento parcial en paredes y techos en los apartamentos | Video enviado por familiar afectado",
+    "created_at": "2026-06-25T13:12:59.301301+00:00"
+  },
+  {
+    "id": "b60fdb5f-8051-4218-aae3-545776a7fa38",
+    "lat": 10.3741515,
+    "lng": -66.9608398,
+    "severity": 2,
+    "place": "Edificio Altair, Carretera Carrizal - San Diego, La Ermita, San Antonio de Los Altos, Municipio Los Salias, Miranda, 1204, Venezuela",
+    "photo_url": null,
+    "note": "Varias fracturas en plantas bajas del edificio. En espera de atención por parte de los bomberos de Los Salias para evaluación | Vecino",
+    "created_at": "2026-06-25T13:12:39.887677+00:00"
+  },
+  {
+    "id": "81b1144c-6cea-40bf-b78e-d0a0befa745a",
+    "lat": 10.21583,
+    "lng": -67.9937481,
+    "severity": 2,
+    "place": "Residencia colonial, Calle Pocaterra, Parque El Trigal, El Trigal, Valencia, Parroquia San José, Municipio Valencia, Carabobo, 2001, Venezuela",
+    "photo_url": null,
+    "note": "Varias columnas con grietas | Vecino",
+    "created_at": "2026-06-25T13:12:11.633494+00:00"
+  },
+  {
+    "id": "6289d7ad-a15e-4513-a8f2-2283489a0952",
+    "lat": 10.2600155,
+    "lng": -67.6199672,
+    "severity": 3,
+    "place": "Abitare 2002, Calle Colón, Barrio Coromoto, Maracay, Parroquia Los Tacariguas, Municipio Girardot, Aragua, 2104, Venezuela",
+    "photo_url": null,
+    "note": "Todo el edición fue afectado más q todo por dentro se cayen todas las paredes y las baldosas | Vecinos",
+    "created_at": "2026-06-25T13:11:04.760317+00:00"
+  },
+  {
+    "id": "860e685b-b397-4849-9006-b24c50e23094",
+    "lat": 10.6170585967237,
+    "lng": -66.8527351282113,
+    "severity": 4,
+    "place": "TAMIAMI, Avenida 7 de Los Corales, Los Corales, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "Colapso total 1ro y 2do piso en pie | Vecinos, fotos",
+    "created_at": "2026-06-25T13:10:49.025952+00:00"
+  },
+  {
+    "id": "9b557b7b-fe27-4213-a676-c24df62937e5",
+    "lat": 10.6166125,
+    "lng": -66.8575781,
+    "severity": 4,
+    "place": "residencias sol y mar, Avenida La Costanera, El Palmar Oeste, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "Edificio caido lateralmente, Alta posibilidad de sobrevivientes | Video",
+    "created_at": "2026-06-25T13:10:12.864146+00:00"
+  },
+  {
+    "id": "bb321a0c-155b-47eb-94b5-13b95fe3f142",
+    "lat": 10.4923942,
+    "lng": -66.9516315,
+    "severity": 2,
+    "place": "Edificio Nilo, Calle 12, Urbanización La Quebradita II, Barrio La Morán, Vista Alegre, Caracas, Parroquia El Paraíso, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1020, Venezuela",
+    "photo_url": null,
+    "note": "Afectaciones en paredes | Familiar",
+    "created_at": "2026-06-25T13:10:04.883265+00:00"
+  },
+  {
+    "id": "3499cde9-7277-44fa-9dc5-0f1ce85f8528",
+    "lat": 10.6107081,
+    "lng": -67.0097652,
+    "severity": 4,
+    "place": "Edificio Residencial Los Corsarios, Playa Grande, Catia La Mar, Parroquia Urimare, Municipio Vargas, La Guaira, 1162, Venezuela",
+    "photo_url": null,
+    "note": "El edificio se derrumbó y se vino abajo. Hay personas debajo que no se sabe en qué situación están | Yo misma",
+    "created_at": "2026-06-25T13:09:54.595429+00:00"
+  },
+  {
+    "id": "8dcdddef-7406-4e05-aabf-ebad6f642757",
+    "lat": 10.6113754479632,
+    "lng": -66.8210078003437,
+    "severity": 4,
+    "place": "Residencias Ibiza, Club Tanaguarena, Carretera Tanaguarenas - Naiguatá, Tanaguarena, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "Foto tomada desde el Club Tanaguarenas, se desplomó medio edificio. | Vecino",
+    "created_at": "2026-06-25T13:09:24.963533+00:00"
+  },
+  {
+    "id": "715b63dc-6dec-4e28-91ca-1027116734a9",
+    "lat": 10.4801582,
+    "lng": -68.0377475,
+    "severity": 3,
+    "place": "Sun and sea, Urbanización Cumboto Norte, Cumboto Norte, Puerto Cabello, Parroquia Juan José Flores, Municipio Puerto Cabello, Carabobo, 2050, Venezuela",
+    "photo_url": null,
+    "note": null,
+    "created_at": "2026-06-25T13:09:16.021572+00:00"
+  },
+  {
+    "id": "1426b7c4-9411-482d-94e4-83c774285d7c",
+    "lat": 10.5107683,
+    "lng": -66.9007435,
+    "severity": 3,
+    "place": "res. Sorocaima, Avenida Panteón, San Bernardino, Caracas, Parroquia San Bernardino, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1011, Venezuela",
+    "photo_url": null,
+    "note": "Detalles visibles, profundos, estructurales. Desalojados por orden de protección civil | primera mano",
+    "created_at": "2026-06-25T13:09:01.873669+00:00"
+  },
+  {
+    "id": "e5b25d75-f3b3-4f6a-b2de-582908ee3a31",
+    "lat": 10.4875278,
+    "lng": -66.9341111,
+    "severity": 2,
+    "place": "Toronkey, Avenida Santander, Barrio Sinaí, El Pinar, El Paraíso, Caracas, Parroquia El Paraíso, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1020, Venezuela",
+    "photo_url": null,
+    "note": "Paredes afectadas",
+    "created_at": "2026-06-25T13:05:35.844087+00:00"
+  },
+  {
+    "id": "5ae75cfa-6585-49f3-9b01-c5a53f6e0ac0",
+    "lat": 10.5133471,
+    "lng": -66.918535,
+    "severity": 3,
+    "place": "RESIDENCIA BEATRIZ JULIETA, Creaciones Goldy, Avenida Oeste 9, Sabana de Blanco, El Polvorín, La Pastora, Caracas, Parroquia Altagracia, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1010, Venezuela",
+    "photo_url": null,
+    "note": "Después del piso 13 separación de columnas y caída de paredes rejas ventanas la foto piso 15 | Vivimos alli",
+    "created_at": "2026-06-25T13:05:32.700561+00:00"
+  },
+  {
+    "id": "c2f1624a-eb79-4d27-b38f-004606e5d9be",
+    "lat": 10.5184416,
+    "lng": -66.9418457,
+    "severity": 2,
+    "place": "Conjunto Residencial La Fundación, Avenida Principal de Altavista, El Refugio, Alta Vista, Caracas, Parroquia Sucre, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1014, Venezuela",
+    "photo_url": null,
+    "note": "La junta de dilatación se despegó el apartamento quedó separado como 10 cm del edificio | Vivo en el apartamento",
+    "created_at": "2026-06-25T13:05:29.70733+00:00"
+  },
+  {
+    "id": "090d96b3-8353-4c89-9a69-faa63d93c877",
+    "lat": 10.5061223780021,
+    "lng": -66.9034779608291,
+    "severity": 2,
+    "place": "Urapal, Sede del Banco Exterior, Avenida Urdaneta, La Candelaria, Caracas, Parroquia La Candelaria, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1010, Venezuela",
+    "photo_url": null,
+    "note": "Edificio vecino",
+    "created_at": "2026-06-25T13:05:27.060447+00:00"
+  },
+  {
+    "id": "d996797f-7061-4901-8595-f1be534ae6bf",
+    "lat": 10.4854981,
+    "lng": -66.9467498,
+    "severity": 2,
+    "place": "Edificio Simari",
+    "photo_url": "/edificios/d996797f-7061-4901-8595-f1be534ae6bf.heic",
+    "note": "Grietas en todo el edificio, se cayeron muchos escombros y todos los apartamentos tienen grietas",
+    "created_at": "2026-06-25T12:42:50.846038+00:00"
+  },
+  {
+    "id": "20270797-daf9-4e9e-91c1-e8d0f2c1db87",
+    "lat": 10.5121667790618,
+    "lng": -66.9004331693242,
+    "severity": 3,
+    "place": "Residencias Doralta",
+    "photo_url": "/edificios/20270797-daf9-4e9e-91c1-e8d0f2c1db87.jpg",
+    "note": "Parte de la fachada frontal caída, rajas en la placa inferior, fachada trasera en planta baja también caída, primeros pisos ya inhabitables",
+    "created_at": "2026-06-25T11:58:45.151555+00:00"
+  },
+  {
+    "id": "eb767dc0-9dba-4416-aa74-a0a5788b164f",
+    "lat": 10.5038478,
+    "lng": -66.9040054,
+    "severity": 3,
+    "place": "Edificio Torre carabobo, Edificio Sur 15, 23-1, Avenida Sur 15, La Candelaria, Caracas, Parroquia La Candelaria, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1010, Venezuela",
+    "photo_url": null,
+    "note": "Paredes sumamente agrietadas tantos internas como externas pudiendo ver hacia el otro lado.",
+    "created_at": "2026-06-25T11:38:26.018374+00:00"
+  },
+  {
+    "id": "877ef1d2-d23c-49fa-83f5-490889f2a099",
+    "lat": 10.462773,
+    "lng": -66.5845278,
+    "severity": 3,
+    "place": "Ribera 7A, Avenida San Pablo, Ciudad de Los Muchachos, Nueva Casarapa, Guarenas, Parroquia Guarenas, Municipio Plaza, Miranda, 1220, Venezuela",
+    "photo_url": null,
+    "note": "Vecino",
+    "created_at": "2026-06-25T11:37:53.536429+00:00"
+  },
+  {
+    "id": "e80b432c-f2fc-49ad-9fd8-821940c00de0",
+    "lat": 10.6163141,
+    "lng": -66.8449081,
+    "severity": 4,
+    "place": "Residencias Mar de Leva, Avenida Principal de Caribe, Urbanización Caribe, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "Todo el edificio se desplomó pero algunos vecinos que vivían en el piso 6 lograron escapar. Hay una persona viva con piernas atrapadas. Se escuchan otras | Vecinos y familia que viajo de Caracas a verificar",
+    "created_at": "2026-06-25T11:37:46.251077+00:00"
+  },
+  {
+    "id": "c613c20d-9306-48ac-b3e5-6ebc9dada868",
+    "lat": 9.9149875,
+    "lng": -68.3087344,
+    "severity": 2,
+    "place": "Iglesia Nuestra Señora del Socorro, Iglesia de Nuestra Señora del Socorro, Calle Silva, Casco Central, Tinaquillo, Parroquia Tinaquillo, Municipio Tinaquillo, Cojedes, 2209, Venezuela",
+    "photo_url": null,
+    "note": "Daños en el pináculo de la torre del campanario. | Cojedes a Diario (@cojedesadiario en Instagram): https://www.instagram.com/p/DZ_k3h9sONm/",
+    "created_at": "2026-06-25T11:37:37.817082+00:00"
+  },
+  {
+    "id": "fce7ed91-bb7b-440e-9952-b0848fe55624",
+    "lat": 10.5107001,
+    "lng": -66.9044657,
+    "severity": 2,
+    "place": "Residencias Roda, Avenida Panteón, San José, Caracas, Parroquia San José, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1010, Venezuela",
+    "photo_url": null,
+    "note": "Columnas Agrietadas, paredes internas agrietadas | Propietario",
+    "created_at": "2026-06-25T11:37:32.982828+00:00"
+  },
+  {
+    "id": "c90eb166-e97a-435d-b339-e4a1ee2ebbd8",
+    "lat": 10.484770384465,
+    "lng": -66.9428520686363,
+    "severity": 2,
+    "place": "Las fuentes del paraíso, Tía Nicoleta, Avenida Las Fuentes, Urbanización, Urbanización Washington, La Quebradita, Caracas, Parroquia El Paraíso, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1020, Venezuela",
+    "photo_url": null,
+    "note": "Paredes de la escaleras afectadas | Personal",
+    "created_at": "2026-06-25T11:37:30.241405+00:00"
+  },
+  {
+    "id": "7791f6c3-e1df-4299-b6ac-0a8738bca264",
+    "lat": 10.4988983,
+    "lng": -66.8344402,
+    "severity": 2,
+    "place": "Yutaje, BBVA Provincial, Avenida Sucre, Los Dos Caminos, Los Chorros, Sector Los Chorros, Caracas, Parroquia Leoncio Martínez, Municipio Libertador, Distrito Metropolitano de Caracas, Miranda, 1071, Venezuela",
+    "photo_url": null,
+    "note": "Grietas en la estructura de las torres, escaleras y paredes de los apartamentos | Vecino",
+    "created_at": "2026-06-25T11:37:13.508461+00:00"
+  },
+  {
+    "id": "aa8fccba-6fe2-4196-8636-7d6fc9290b2a",
+    "lat": 10.610879,
+    "lng": -66.8213655,
+    "severity": 2,
+    "place": "Anduriña Mar, Tanaguarena, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "Si alguien tiene información de este edificio por favor informar,  amigos y familiares viven en ese lugar y no hay noticias.",
+    "created_at": "2026-06-25T11:37:06.301747+00:00"
+  },
+  {
+    "id": "b54b4f46-29c4-4272-9946-336140a80422",
+    "lat": 10.6095938,
+    "lng": -67.0110387,
+    "severity": 3,
+    "place": "Residencias Altomar - Alto mar, Playa Grande, Catia La Mar, Parroquia Urimare, Municipio Vargas, La Guaira, 1162, Venezuela",
+    "photo_url": null,
+    "note": "Vecino",
+    "created_at": "2026-06-25T11:36:59.129032+00:00"
+  },
+  {
+    "id": "bd0dea87-00c3-404f-a3cb-0d16202e6d06",
+    "lat": 10.2610483,
+    "lng": -68.013696,
+    "severity": 2,
+    "place": "Residencias Nagua 2, Tarapío, La Campiña, Valencia, Parroquia Naguanagua, Municipio Naguanagua, Carabobo, 2005, Venezuela",
+    "photo_url": null,
+    "note": "estructuras agriestadas en varios sitios en la Torre D y Torre C | vecino",
+    "created_at": "2026-06-25T11:36:47.70779+00:00"
+  },
+  {
+    "id": "587c770a-4cf1-40aa-a2e4-7d0178bc204a",
+    "lat": 10.6140159,
+    "lng": -66.8493452,
+    "severity": 2,
+    "place": "Edificio Avila Mar, El Palmar Este, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "Familiar",
+    "created_at": "2026-06-25T11:36:33.623888+00:00"
+  },
+  {
+    "id": "08a4e7c7-0042-481c-9c22-568a7a9e26ee",
+    "lat": 10.6088372,
+    "lng": -67.0159933,
+    "severity": 4,
+    "place": "Playa Grande",
+    "photo_url": "/edificios/08a4e7c7-0042-481c-9c22-568a7a9e26ee.jpeg",
+    "note": "Edificio Colapsado",
+    "created_at": "2026-06-25T11:21:23.812175+00:00"
+  },
+  {
+    "id": "9b79101a-4ec8-4606-9e78-fd03f35c3184",
+    "lat": 10.5123207,
+    "lng": -66.9021365,
+    "severity": 4,
+    "place": "Edificio Juvenal",
+    "photo_url": "/edificios/9b79101a-4ec8-4606-9e78-fd03f35c3184.jpeg",
+    "note": "Edifici Colapsado",
+    "created_at": "2026-06-25T11:13:54.204716+00:00"
+  },
+  {
+    "id": "b631963d-4712-42a4-9f26-1838b8e9767c",
+    "lat": 10.5068029,
+    "lng": -66.9102658,
+    "severity": 2,
+    "place": "Centro urdaneta, Avenida Norte 5, Altagracia, Caracas, Parroquia Catedral, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1012, Venezuela",
+    "photo_url": null,
+    "note": "Fisuras externas internas ,escaleras piso 1 .mezanina | Milicia",
+    "created_at": "2026-06-25T11:11:08.483595+00:00"
+  },
+  {
+    "id": "56dff8eb-5223-4948-b50b-51e9688c07a3",
+    "lat": 10.6095417,
+    "lng": -67.0078666,
+    "severity": 4,
+    "place": "Residencias Orca, Playa Grande, Catia La Mar, Parroquia Urimare, Municipio Vargas, La Guaira, 1162, Venezuela",
+    "photo_url": null,
+    "note": null,
+    "created_at": "2026-06-25T11:08:37.791558+00:00"
+  },
+  {
+    "id": "c3b9aaef-e8d4-46ef-b44d-4dde74a84384",
+    "lat": 7.8899454799423,
+    "lng": -67.4713145040656,
+    "severity": 3,
+    "place": "Fenisia, Paseo Libertador, Centro, Villa de San Fernando del Paso Real de apure, Parroquia San Fernando, Municipio San Fernando, Apure, 7001, Venezuela",
+    "photo_url": null,
+    "note": "Noticia",
+    "created_at": "2026-06-25T11:07:54.3069+00:00"
+  },
+  {
+    "id": "901f8885-7c97-4440-89b0-9946044f2e31",
+    "lat": 10.5149165,
+    "lng": -66.9010364,
+    "severity": 2,
+    "place": "Edificio Excelsior, Avenida Cristóbal Mendoza, San Bernardino, Caracas, Parroquia San Bernardino, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1011, Venezuela",
+    "photo_url": null,
+    "note": "Daños dentro del edificio, multiples grietas, y paredes dañadas, paredes parcialmente caidas | Vecino, video",
+    "created_at": "2026-06-25T11:07:43.759423+00:00"
+  },
+  {
+    "id": "36311337-95b5-4163-b896-15befabb29d4",
+    "lat": 10.510494928563,
+    "lng": -66.9039538482781,
+    "severity": 3,
+    "place": "San Bernardino Plaza, Avenida Panteón, San José, Caracas, Parroquia San José, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1010, Venezuela",
+    "photo_url": null,
+    "note": "Fachada con daños severos y grietas en paredes internas. No se visualiza daños en columnas o vigas, pero muchas grietas en paredes. | Padres",
+    "created_at": "2026-06-25T11:07:41.074325+00:00"
+  },
+  {
+    "id": "fb4c142a-23c9-42ba-b5f3-f7ce35ef6181",
+    "lat": 10.4960855,
+    "lng": -66.8527062,
+    "severity": 2,
+    "place": "Edificio Imper, Calle Miranda, Barrio Bello Campo, La Floresta, Chacao, Caracas, Municipio Chacao, Distrito Metropolitano de Caracas, Miranda, 1060, Venezuela",
+    "photo_url": null,
+    "note": "familiar",
+    "created_at": "2026-06-25T11:00:41.649698+00:00"
+  },
+  {
+    "id": "e07e4f3b-15fc-40aa-a6e4-0440765e38a4",
+    "lat": 10.4855575793363,
+    "lng": -66.9011473692247,
+    "severity": 2,
+    "place": "Edificio Gladys, Avenida Presidente Medina, Valle Abajo, Las Acacias, Caracas, Parroquia San Pedro, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1040, Venezuela",
+    "photo_url": null,
+    "note": "Muchas grietas posibles columnas afectadas | Vivo aquí",
+    "created_at": "2026-06-25T10:53:37.972341+00:00"
+  },
+  {
+    "id": "a1eec4e7-5a97-41f1-85c3-49f5715820e6",
+    "lat": 10.5091241,
+    "lng": -66.904494,
+    "severity": 2,
+    "place": "Residencias Darijak 1, Avenida Norte 13, La Candelaria, Caracas, Parroquia La Candelaria, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1011, Venezuela",
+    "photo_url": null,
+    "note": null,
+    "created_at": "2026-06-25T10:53:36.384208+00:00"
+  },
+  {
+    "id": "25eb2082-9c92-46d3-a93f-3ecdcede62e1",
+    "lat": 10.6111888243396,
+    "lng": -66.8842349284945,
+    "severity": 4,
+    "place": "Residencias Puerto Coral, Puerto Coral, Avenida La Playa, El Teleférico, Macuto, Parroquia Macuto, Municipio Vargas, La Guaira, 1164, Venezuela",
+    "photo_url": null,
+    "note": "Vecinos",
+    "created_at": "2026-06-25T10:53:34.307674+00:00"
+  },
+  {
+    "id": "520a0027-11a2-43e7-abe5-63922f878bca",
+    "lat": 10.6081787,
+    "lng": -66.8674774,
+    "severity": 3,
+    "place": "Residencia Cima Del Mar, Guamacho, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "Familiar",
+    "created_at": "2026-06-25T10:53:32.634038+00:00"
+  },
+  {
+    "id": "cd14a7e8-d1d0-4180-8925-b874ae08c8ff",
+    "lat": 10.5169366,
+    "lng": -66.9466797,
+    "severity": 2,
+    "place": "Edificio MIRANDA 20A, Calle Argentina, Nueva Caracas, Catia, Caracas, Parroquia Sucre, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1014, Venezuela",
+    "photo_url": null,
+    "note": "se abrieron las paredes internadas se fracturaron los bloques y todo las porcelanas frente se cayeron, columnas afectadas | yo",
+    "created_at": "2026-06-25T10:53:30.6166+00:00"
+  },
+  {
+    "id": "07da7ec8-cf2c-4c96-a345-78d155b34f3b",
+    "lat": 10.6103814781865,
+    "lng": -67.0108647475865,
+    "severity": 4,
+    "place": "Solymar, Playa Grande, Catia La Mar, Parroquia Urimare, Municipio Vargas, La Guaira, 1162, Venezuela",
+    "photo_url": null,
+    "note": "2,5 de los 5 edificios colapsados totalmente y los restantes se hundieron 2 pisos hacia el estacionamiento subterráneo | Video en red social y familia presente en el área",
+    "created_at": "2026-06-25T10:53:28.810137+00:00"
+  },
+  {
+    "id": "38811f4a-e857-4528-822f-03106f425997",
+    "lat": 10.4977673,
+    "lng": -66.9087526,
+    "severity": 4,
+    "place": "Gigante de Latinoamérica, Avenida Sur 9 Bis, Hornos de Cal, San Agustín Norte, Caracas, Parroquia San Agustín, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1014, Venezuela",
+    "photo_url": null,
+    "note": "Inavible | Fotos",
+    "created_at": "2026-06-25T10:53:27.255974+00:00"
+  },
+  {
+    "id": "85584d03-f02f-4eb5-be47-80ef7bb43cc8",
+    "lat": 10.2374435,
+    "lng": -66.6677905,
+    "severity": 3,
+    "place": "Club Altamira. Torre B, El Habanero, Parroquia Santa Teresa, Municipio Independencia, Miranda, 1215, Venezuela",
+    "photo_url": null,
+    "note": "Familiar, noticias",
+    "created_at": "2026-06-25T10:53:23.129169+00:00"
+  },
+  {
+    "id": "12a5f239-16ff-43ad-b3b3-5083fb20f8f3",
+    "lat": 10.1937264,
+    "lng": -64.6886,
+    "severity": 2,
+    "place": "Bahía Real, Calle Arismendi, Parcelamiento Rómulo Gallegos, Parcelamiento Las Palmeras, Casco Central, Lechería, Parroquia Lechería, Municipio Urbaneja, Anzoátegui, 6016, Venezuela",
+    "photo_url": null,
+    "note": "Grietas visibles en varios paredes internas, personas evacuadas solo como precaución | Noticias",
+    "created_at": "2026-06-25T10:32:17.098233+00:00"
+  },
+  {
+    "id": "8ba269a5-d33c-40ff-af9b-21571512fa0e",
+    "lat": 10.514223,
+    "lng": -66.8978805,
+    "severity": 3,
+    "place": "Edificio Delta, San Bernardino, Caracas, Parroquia San Bernardino, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1011, Venezuela",
+    "photo_url": null,
+    "note": "Fotos del dueño apto/familiares",
+    "created_at": "2026-06-25T10:28:41.263525+00:00"
+  },
+  {
+    "id": "4c9b1a0f-6978-45bc-86fb-371ffbba6d1a",
+    "lat": 10.6174339851814,
+    "lng": -66.8474495637543,
+    "severity": 4,
+    "place": "El Palmar Este, El Palmar Este, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "Foto familiar",
+    "created_at": "2026-06-25T10:18:03.177395+00:00"
+  },
+  {
+    "id": "1a4b76e5-d48e-4f6c-bd82-41086b5439fe",
+    "lat": 10.6093283083625,
+    "lng": -67.0313987325972,
+    "severity": 4,
+    "place": "Residencias Aquarium, Avenida Club Náutico, La Atlántida, Parroquia Catia La Mar, Municipio Vargas, La Guaira, 1162, Venezuela",
+    "photo_url": null,
+    "note": "Familiar",
+    "created_at": "2026-06-25T10:18:01.161189+00:00"
+  },
+  {
+    "id": "74bcfd40-e6e3-4de9-a793-bf1e4406ef80",
+    "lat": 10.4874261,
+    "lng": -66.9469358,
+    "severity": 2,
+    "place": "Edificio Miranda, Calle 1, La Paz, Urbanización La Paz, La Quebradita, Caracas, Parroquia El Paraíso, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1020, Venezuela",
+    "photo_url": null,
+    "note": null,
+    "created_at": "2026-06-25T10:17:54.188881+00:00"
+  },
+  {
+    "id": "9f8895a1-8ebd-425d-bed1-3c22aacef759",
+    "lat": 10.611547,
+    "lng": -67.0071144,
+    "severity": 2,
+    "place": "Marina grande I, Calle Real de Playa Verde, Playa Grande, Catia La Mar, Parroquia Urimare, Municipio Vargas, La Guaira, 1162, Venezuela",
+    "photo_url": null,
+    "note": null,
+    "created_at": "2026-06-25T10:17:51.550373+00:00"
+  },
+  {
+    "id": "0c8b2bbc-015d-4bc9-8805-fb61aa9c84db",
+    "lat": 10.4819196,
+    "lng": -66.8626048,
+    "severity": 2,
+    "place": "Residencias Palma Real, Calle California, Las Mercedes, Caracas, Parroquia Nuestra Señora del Rosario, Municipio Baruta, Distrito Metropolitano de Caracas, Miranda, 1080, Venezuela",
+    "photo_url": null,
+    "note": "Vecino",
+    "created_at": "2026-06-25T10:17:48.449226+00:00"
+  },
+  {
+    "id": "6bbb18f7-df9a-44ee-8c47-9ea1b124ca86",
+    "lat": 10.6119006314788,
+    "lng": -66.8467454301636,
+    "severity": 4,
+    "place": "CARABALLEDA SOL, El Palmar Este, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "No queda nada del edificio, solo escombros | Vecino",
+    "created_at": "2026-06-25T10:17:41.596168+00:00"
+  },
+  {
+    "id": "227f846b-9db1-4c81-a747-cdae0df3bd50",
+    "lat": 10.6187094648081,
+    "lng": -66.8532497295777,
+    "severity": 4,
+    "place": "Mar de Leva, Avenida La Playa, Los Corales, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "Familiar de los residentes",
+    "created_at": "2026-06-25T09:45:49.623642+00:00"
+  },
+  {
+    "id": "eae3ad10-5bb3-4c2e-b29a-ff42d9647b2a",
+    "lat": 10.2406287411164,
+    "lng": -67.55837982481,
+    "severity": 3,
+    "place": "Solymar, San Jacinto, Maracay, Parroquia María de San José, Municipio Girardot, Aragua, 2102, Venezuela",
+    "photo_url": null,
+    "note": "Vecino",
+    "created_at": "2026-06-25T09:45:48.247608+00:00"
+  },
+  {
+    "id": "49d31f5e-1c86-47ce-b41c-1d966235aaa7",
+    "lat": 10.507605472646,
+    "lng": -66.9030454224594,
+    "severity": 2,
+    "place": "Residencia Roda, Calle Corao, La Candelaria, Caracas, Parroquia La Candelaria, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1011, Venezuela",
+    "photo_url": null,
+    "note": "Detalles visibles, daños en todos los pisos | Vecino",
+    "created_at": "2026-06-25T09:45:46.320273+00:00"
+  },
+  {
+    "id": "15b6dccf-290d-46ee-93d8-0f0b9e05149e",
+    "lat": 10.6102653,
+    "lng": -66.824576,
+    "severity": 2,
+    "place": "Espomar, Carretera Tanaguarenas - Naiguatá, Tanaguarena, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "Videos",
+    "created_at": "2026-06-25T09:41:22.018233+00:00"
+  },
+  {
+    "id": "51ce76d1-79eb-4a80-9a72-29da18f8919e",
+    "lat": 10.5042703755472,
+    "lng": -66.9492544884995,
+    "severity": 2,
+    "place": "Residencias atlantico, Catia, caracas, Torre A, Calle Argentina, Pérez Bonalde, Catia, Caracas, Parroquia Sucre, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1014, Venezuela",
+    "photo_url": null,
+    "note": "Paredes fracturadas y posibles danos estructurales en columnas. | Familiares",
+    "created_at": "2026-06-25T09:41:19.688318+00:00"
+  },
+  {
+    "id": "b32b3469-4ce0-420b-9d13-87a4d41320e3",
+    "lat": 10.6094154154349,
+    "lng": -67.0135620765204,
+    "severity": 3,
+    "place": "Edificio cambural, Playa Grande, Catia La Mar, Parroquia Urimare, Municipio Vargas, La Guaira, 1162, Venezuela",
+    "photo_url": null,
+    "note": "Está tapizado con 2 pisos y les cuesta respirar | Familiar",
+    "created_at": "2026-06-25T09:40:13.409007+00:00"
+  },
+  {
+    "id": "9b4721d6-c9f3-4e85-b885-4c20fb8fbec7",
+    "lat": 10.6190982,
+    "lng": -66.8493194,
+    "severity": 4,
+    "place": "Residencia auro, Avenida La Playa, Los Corales, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "Noticia",
+    "created_at": "2026-06-25T09:40:09.530897+00:00"
+  },
+  {
+    "id": "3e3c736c-6c15-4cef-80c8-8f01eaab69fd",
+    "lat": 10.2485203,
+    "lng": -68.0124041,
+    "severity": 3,
+    "place": "Residencias Villas Sol, Calle Paseo Valencia;Calle 179, Las Quintas, Mañongo, Valencia, Parroquia Naguanagua, Municipio Naguanagua, Carabobo, 2005, Venezuela",
+    "photo_url": null,
+    "note": "Desprendimiento de fachadas y muros interiores, grietas diagonales en paredes. Evacuación preventiva del edificio.\n\nFuentes: https://www.instagram.com/reel/DZ_YhPkRKQ4/\nhttps://www.instagram.com/reel/DZ_KF-gOu-A/ | Videos en redes sociales",
+    "created_at": "2026-06-25T09:40:08.110833+00:00"
+  },
+  {
+    "id": "1e290a57-f889-4776-8cd9-98fe30451ea0",
+    "lat": 10.4971928,
+    "lng": -66.8453127,
+    "severity": 3,
+    "place": "Edificio San Bosco, Avenida Andrés Bello, Los Palos Grandes, La Floresta, Los Palos Grandes, Caracas, Municipio Chacao, Distrito Metropolitano de Caracas, Miranda, 1060, Venezuela",
+    "photo_url": null,
+    "note": null,
+    "created_at": "2026-06-25T09:40:04.645595+00:00"
+  },
+  {
+    "id": "43a77e76-9744-46ae-b5e0-97909e5600f7",
+    "lat": 10.6160475,
+    "lng": -66.8388201,
+    "severity": 4,
+    "place": "Marianamar, Urbanización Caribe, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": null,
+    "created_at": "2026-06-25T09:40:02.914657+00:00"
+  },
+  {
+    "id": "6630d546-3b09-4fdb-ba09-99a2b1c01490",
+    "lat": 10.5023021764155,
+    "lng": -66.9058951572769,
+    "severity": 3,
+    "place": "Edificio rosella, CICPC Parque Carabobo, Avenida Este 6, Casco Central de Santa Rosalía, Caracas, Parroquia Catedral, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1010, Venezuela",
+    "photo_url": null,
+    "note": "Las paredes se abrieron y todos los apartamentos tienen una grietas fuertes atravesando paredes, columnas y paredes de los pasillos n | Familiar",
+    "created_at": "2026-06-25T09:28:28.083577+00:00"
+  },
+  {
+    "id": "0d87e532-114f-4519-8941-0aedad10df04",
+    "lat": 10.2460546,
+    "lng": -68.0104317,
+    "severity": 2,
+    "place": "Centro Comercial Concepto La Granja, SAAS, Avenida Salvador Feo La Cruz Norte - Sur, Cantapiedra, Las Quintas, Mañongo, Valencia, Parroquia Naguanagua, Municipio Naguanagua, Carabobo, 2005, Venezuela",
+    "photo_url": null,
+    "note": "Desprendimiento y caída de algunos revestimientos exteriores | Visual, transeúnte de la zona",
+    "created_at": "2026-06-25T09:28:26.95548+00:00"
+  },
+  {
+    "id": "6d4107ed-376b-4d35-8464-732d815d5ed1",
+    "lat": 10.6086894872332,
+    "lng": -67.0149322715337,
+    "severity": 2,
+    "place": "Los Monjes, Calle 3, Playa Grande, Catia La Mar, Parroquia Urimare, Municipio Vargas, La Guaira, 1162, Venezuela",
+    "photo_url": null,
+    "note": null,
+    "created_at": "2026-06-25T09:28:24.659352+00:00"
+  },
+  {
+    "id": "088d3582-1cf8-4735-bd6b-4adbe5b41e3e",
+    "lat": 10.6000434,
+    "lng": -67.0247333,
+    "severity": 2,
+    "place": "Bloque 3, Las Angustias, La Páez, Parroquia Catia La Mar, Municipio Vargas, La Guaira, 1162, Venezuela",
+    "photo_url": null,
+    "note": null,
+    "created_at": "2026-06-25T09:28:22.502855+00:00"
+  },
+  {
+    "id": "b4f05d34-10f4-4b8e-acb6-309426c50465",
+    "lat": 10.5169366,
+    "lng": -66.9466797,
+    "severity": 2,
+    "place": "Urbanización la rinconada 2, Calle Argentina, Nueva Caracas, Catia, Caracas, Parroquia Sucre, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1014, Venezuela",
+    "photo_url": null,
+    "note": "Viví en planta baja y muchas paredes afectadas vuelve a temblar y la estructura puede ser",
+    "created_at": "2026-06-25T09:28:21.473021+00:00"
+  },
+  {
+    "id": "56234053-5eaa-40de-ba51-2d8b4f0a23ad",
+    "lat": 10.6146630271259,
+    "lng": -66.8417376050323,
+    "severity": 4,
+    "place": "Residencias Perlamar, Avenida Principal de Caribe, Urbanización Caribe, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "el edificio de 10 pisos colapso totalmente, posiblemente vecinos tapeados segun informaciones del grupo de junta de condominio via whatsapp | noticias, familiares, junta de condominio,",
+    "created_at": "2026-06-25T09:20:02.05233+00:00"
+  },
+  {
+    "id": "41b574fe-4150-439f-ad33-81a230c7cb47",
+    "lat": 10.6122196,
+    "lng": -66.8437053,
+    "severity": 4,
+    "place": "Residencias El Molino, Urbanización Caribe, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "Edificio completamente colapsado. | Amigos y familiares",
+    "created_at": "2026-06-25T09:20:00.568327+00:00"
+  },
+  {
+    "id": "ec800b06-8ba9-4779-8e2f-66aed3fe16e3",
+    "lat": 10.6182499,
+    "lng": -66.8568863,
+    "severity": 3,
+    "place": "Res Caribe mar, Avenida La Playa, Los Corales, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": null,
+    "created_at": "2026-06-25T09:16:50.826124+00:00"
+  },
+  {
+    "id": "3810efc1-a334-4afc-a35e-b631fc7ac20e",
+    "lat": 10.6000434,
+    "lng": -67.0247333,
+    "severity": 4,
+    "place": "Bloque 3 la Paez, Las Angustias, La Páez, Parroquia Catia La Mar, Municipio Vargas, La Guaira, 1162, Venezuela",
+    "photo_url": null,
+    "note": "Contactos que tengo allá desde España",
+    "created_at": "2026-06-25T09:11:38.392016+00:00"
+  },
+  {
+    "id": "dd5a9f45-7abd-464b-8e38-2fce345a63c6",
+    "lat": 10.6081931396967,
+    "lng": -67.0166976677602,
+    "severity": 4,
+    "place": "Residencial Pelícanos, Calle 4, Playa Grande, Catia La Mar, Parroquia Urimare, Municipio Vargas, La Guaira, 1162, Venezuela",
+    "photo_url": null,
+    "note": "El edificio se derrumbó completamente, mi familia está atrapada bajo de los escombros | Una de las víctimas pudo salir pero toda su familia quedó atrapada",
+    "created_at": "2026-06-25T09:11:33.651415+00:00"
+  },
+  {
+    "id": "9583276c-5173-4bed-90bf-453aeea51489",
+    "lat": 10.6091852,
+    "lng": -67.0151832,
+    "severity": 4,
+    "place": "Residencia Bello horizonte, Club deportivo Ariel, Calle 3, Playa Grande, Catia La Mar, Parroquia Urimare, Municipio Vargas, La Guaira, 1162, Venezuela",
+    "photo_url": null,
+    "note": "Derrumbe | Noticia",
+    "created_at": "2026-06-25T09:11:31.53057+00:00"
+  },
+  {
+    "id": "256d1faa-62b3-4f26-a66c-0e98e8598655",
+    "lat": 10.5072278645789,
+    "lng": -66.9096661129109,
+    "severity": 2,
+    "place": "Edificio Serenata, Altagracia, Caracas, Parroquia Altagracia, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1010, Venezuela",
+    "photo_url": null,
+    "note": "paredes resquebrajadas | vecinos",
+    "created_at": "2026-06-25T09:11:27.283711+00:00"
+  },
+  {
+    "id": "9e2cdbea-8d34-44b0-a51e-3400444a1319",
+    "lat": 10.4681827,
+    "lng": -66.5409632,
+    "severity": 2,
+    "place": "Salerno, Calle Páez, El Desvío, Parroquia Guatire, Municipio Zamora, Miranda, 1221, Venezuela",
+    "photo_url": null,
+    "note": "El edificio se agretio | Vecino",
+    "created_at": "2026-06-25T09:11:24.242268+00:00"
+  },
+  {
+    "id": "dfc25157-64b3-4e11-8a69-0e16bc5e0d9e",
+    "lat": 10.6163141,
+    "lng": -66.8449081,
+    "severity": 3,
+    "place": "Mansion Club Caraballeda, Avenida Principal de Caribe, Urbanización Caribe, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "El ala este dividida por las escaleras colapsó totalmente | Video",
+    "created_at": "2026-06-25T09:11:21.246891+00:00"
+  },
+  {
+    "id": "2faf2caf-d36f-48ff-b6b8-3fddfbe2bacb",
+    "lat": 10.5060450492925,
+    "lng": -66.9090222831163,
+    "severity": 3,
+    "place": "edificio de Oro, Avenida Sur 7, La Candelaria, Caracas, Parroquia La Candelaria, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1011, Venezuela",
+    "photo_url": null,
+    "note": "paredes agrietadas, tuberías rotas inundaron apartamentos | vecino",
+    "created_at": "2026-06-25T09:11:17.924997+00:00"
+  },
+  {
+    "id": "3c602875-4417-40e8-81a6-14936fd22208",
+    "lat": 10.612998,
+    "lng": -66.8321206,
+    "severity": 4,
+    "place": "Res. Mansión del Mar, Tanaguarena, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "Vecino",
+    "created_at": "2026-06-25T08:52:32.414083+00:00"
+  },
+  {
+    "id": "28dc36a6-1d6d-464f-9f38-6bb5f829bdd7",
+    "lat": 10.511771737472,
+    "lng": -66.907409756711,
+    "severity": 3,
+    "place": "Castol, Avenida Panteón, San José, Caracas, Parroquia San José, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1010, Venezuela",
+    "photo_url": null,
+    "note": "Vecino",
+    "created_at": "2026-06-25T08:48:27.039955+00:00"
+  },
+  {
+    "id": "5d2bc2fc-371a-45a7-84a0-90d326f0ed61",
+    "lat": 10.6116848878978,
+    "lng": -66.8218010205443,
+    "severity": 4,
+    "place": "Portofino Beach, Tanaguarena, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "Vecino",
+    "created_at": "2026-06-25T08:46:50.408334+00:00"
+  },
+  {
+    "id": "7dcb75ef-9a75-4fcc-a3a1-e09d14642863",
+    "lat": 10.6130481705825,
+    "lng": -67.0222138599446,
+    "severity": 4,
+    "place": "Nautilus, Calle Real de Playa Verde, Ciudad Chávez, Playa Grande, Catia La Mar, Parroquia Urimare, Municipio Vargas, La Guaira, 1162, Venezuela",
+    "photo_url": null,
+    "note": "Totalmente destruído | Vecino, videos",
+    "created_at": "2026-06-25T08:38:48.697661+00:00"
+  },
+  {
+    "id": "f00b865a-192b-4934-95a3-673e74c7492f",
+    "lat": 10.2626998840581,
+    "lng": -67.6075976380856,
+    "severity": 2,
+    "place": "Res Cham Palace, Av. 19 de Abril, La Esperanza, Maracay, Parroquia Andrés Eloy Blanco, Municipio Girardot, Aragua, 2101, Venezuela",
+    "photo_url": null,
+    "note": null,
+    "created_at": "2026-06-25T08:38:47.276269+00:00"
+  },
+  {
+    "id": "3dc44d11-3c4a-42bc-8c01-4f8edafd5853",
+    "lat": 10.6082267,
+    "lng": -67.0297164,
+    "severity": 4,
+    "place": "Residencias Mediterranee, La Lucha, Catia La Mar, Parroquia Urimare, Municipio Vargas, La Guaira, 1162, Venezuela",
+    "photo_url": null,
+    "note": "Colapso total del edificio con multiples personas bajo los escombros, incluyendo mis familiares del piso 2\n\nOderys Rodriguez Carmauta\nBarbara Arcila Carmauta\n\nEl reporte fue via telefonica, no poseo material grafico. | NA",
+    "created_at": "2026-06-25T08:26:31.521318+00:00"
+  },
+  {
+    "id": "c99b020e-fe2e-434d-aa1f-7a826a29ec56",
+    "lat": 10.50035,
+    "lng": -66.9078674,
+    "severity": 4,
+    "place": "5 héroes, Museo Carlos Cruz Díez, Avenida Bolívar, El Conde, Hornos de Cal, San Agustín Norte, Caracas, Parroquia San Agustín, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1010, Venezuela",
+    "photo_url": null,
+    "note": "Columnas estructuras afectadas | Noticias",
+    "created_at": "2026-06-25T08:26:22.437227+00:00"
+  },
+  {
+    "id": "67425c03-330c-471f-b31a-1d03dbb0218d",
+    "lat": 10.4907942810718,
+    "lng": -66.8275832295754,
+    "severity": 2,
+    "place": "Jardín Los Ruices, Torre Cinética, Avenida Francisco de Miranda, Parcelamiento Don Bosco, Los Ruices, Sector Los Ruices, Caracas, Parroquia Leoncio Martínez, Municipio Sucre, Distrito Metropolitano de Caracas, Miranda, 1071, Venezuela",
+    "photo_url": null,
+    "note": "Se cayeron paredes de varios pisos en la fachada. El edificio fue desalojado hasta evaluar los daños. | Spy habitante del edificio",
+    "created_at": "2026-06-25T08:26:20.653215+00:00"
+  },
+  {
+    "id": "80f15589-1aa7-49ac-9647-ea07f5937134",
+    "lat": 10.4873393,
+    "lng": -66.8787021,
+    "severity": 2,
+    "place": "Residencias Urama, Avenida Sorbona, Colinas de Bello Monte, Bello Monte, Caracas, Parroquia Nuestra Señora del Rosario, Municipio Baruta, Distrito Metropolitano de Caracas, Miranda, 1080, Venezuela",
+    "photo_url": null,
+    "note": "Paredes afectadas, apartamentos agrietados. | Vecino",
+    "created_at": "2026-06-25T08:26:19.675442+00:00"
+  },
+  {
+    "id": "382b4df9-fc61-4a8f-9c21-371516a847e9",
+    "lat": 10.6117875,
+    "lng": -66.8318281,
+    "severity": 4,
+    "place": "Edificio Sayemar, Tanaguarena, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "Está desplomado! | Instagram: @jsolorzano",
+    "created_at": "2026-06-25T08:18:46.198899+00:00"
+  },
+  {
+    "id": "def270e2-8310-4be0-87d0-88fba94c6f54",
+    "lat": 10.4513556,
+    "lng": -66.8622659,
+    "severity": 4,
+    "place": "Residencia contigua a Carmelandia Las Minas de Baruta, Avenida Principal de Las Minas, Las Minas de Baruta, Caracas, Parroquia Las Minas, Municipio Baruta, Distrito Metropolitano de Caracas, Miranda, 1080, Venezuela",
+    "photo_url": null,
+    "note": "Rescatados y heridos en sitio reportados por la Alcaldía del Municipio Baruta que prestó socorro | Foto de vecino",
+    "created_at": "2026-06-25T08:16:11.365437+00:00"
+  },
+  {
+    "id": "e7db9724-62f8-4125-99f3-834a1e2f38a7",
+    "lat": 10.4939006,
+    "lng": -66.8558907,
+    "severity": 2,
+    "place": "Astra, Avenida San Ignacio de Loyola, Estado Leal, Chacao, Caracas, Municipio Chacao, Distrito Metropolitano de Caracas, Miranda, 1060, Venezuela",
+    "photo_url": null,
+    "note": "Mi casa",
+    "created_at": "2026-06-25T08:16:03.992031+00:00"
+  },
+  {
+    "id": "a446ed13-6a24-4217-9674-3fc62040cb18",
+    "lat": 10.6160566,
+    "lng": -66.8368547,
+    "severity": 4,
+    "place": "Palma Real, Aterrizadero Vive Parapente, Avenida Playa Los Cocos, Urbanización Caribe, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "Vecino",
+    "created_at": "2026-06-25T08:11:06.189738+00:00"
+  },
+  {
+    "id": "9fe14b8d-cf21-4c62-8be1-61d378182d8b",
+    "lat": 10.5180816,
+    "lng": -66.8998495,
+    "severity": 3,
+    "place": "Residencias Palma Li, Avenida Manuel Felipe Tovar, San Bernardino, Caracas, Parroquia San Bernardino, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1011, Venezuela",
+    "photo_url": null,
+    "note": "Columnas del sótano intactas, puertas de varios apartamentos descuadradas, puerta de entrada al edificio doblada e imposible de abrir, grietas amplias en toda la estructura, paredes del 1-B destrozadas, sobre todo las del ascensor. Se notó una inclinación fuerte y gran compresión de un lado del edificio durante el temblor. | Dueño del 1-B",
+    "created_at": "2026-06-25T08:11:03.839351+00:00"
+  },
+  {
+    "id": "487840ff-71d8-4779-a0f1-1eed78a9d558",
+    "lat": 10.6117875,
+    "lng": -66.8318281,
+    "severity": 4,
+    "place": "Edificio Sayemar, Tanaguarena, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "Totalmente desplomado | Instagram: @jsolorzano",
+    "created_at": "2026-06-25T08:10:59.622303+00:00"
+  },
+  {
+    "id": "6fc9385e-12b2-4a08-b542-5ed3b6968969",
+    "lat": 10.27085,
+    "lng": -66.7041197,
+    "severity": 2,
+    "place": "Altamira, Los Güires, Cartanal, Parroquia Cartanal, Municipio Independencia, Miranda, 1215, Venezuela",
+    "photo_url": null,
+    "note": "Vecinos",
+    "created_at": "2026-06-25T08:10:49.782899+00:00"
+  },
+  {
+    "id": "1a35ffbb-6f1b-42ff-851a-d410a25e68e2",
+    "lat": 10.6117875,
+    "lng": -66.8318281,
+    "severity": 2,
+    "place": "Edificio Sayemar, Tanaguarena, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "Instagram: @jsolorzano",
+    "created_at": "2026-06-25T08:10:43.669844+00:00"
+  },
+  {
+    "id": "24f6a739-3548-4dc7-a472-403cf9813972",
+    "lat": 10.5970481,
+    "lng": -67.0405981,
+    "severity": 3,
+    "place": "Torre F Catia La Mar, Marapa Marina, Catamare, Parroquia Catia La Mar, Municipio Vargas, La Guaira, 1162, Venezuela",
+    "photo_url": null,
+    "note": "Se observa un video desde el interior del edificio de la torre F con personas evacuando | video de vecino: https://x.com/VzlaLibre0025/status/2069980308607213627?s=20",
+    "created_at": "2026-06-25T08:10:42.293659+00:00"
+  },
+  {
+    "id": "011a1b32-475c-4591-89d7-3bc664f2e29f",
+    "lat": 10.587508,
+    "lng": -66.9213628,
+    "severity": 4,
+    "place": "La Guaira, Chacón, San Juan de Dios, La Guaira, Parroquia La Guaira, Municipio Vargas, La Guaira, 1160, Venezuela",
+    "photo_url": null,
+    "note": "Edificio derrumbado",
+    "created_at": "2026-06-25T08:06:51.872652+00:00"
+  },
+  {
+    "id": "56004838-3c3c-4292-96bd-1b5296004742",
+    "lat": 10.4876176,
+    "lng": -66.8733508,
+    "severity": 2,
+    "place": "Orinoco, Autopista Gran Cacique Guaicaipuro, Chacaíto, Caracas, Parroquia El Recreo, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1050, Venezuela",
+    "photo_url": null,
+    "note": "Dios ayudanos | Nose",
+    "created_at": "2026-06-25T08:06:29.662856+00:00"
+  },
+  {
+    "id": "ebef9e72-088d-4979-9e04-be7f6d71284a",
+    "lat": 10.6095652293901,
+    "lng": -66.8816347672282,
+    "severity": 3,
+    "place": "Residencias Brisamar, El Teleférico, Macuto, Parroquia Macuto, Municipio Vargas, La Guaira, 1164, Venezuela",
+    "photo_url": null,
+    "note": "Daños visibles en la estructura, colapsó el centro del edificio por razón de dos fracturas estructurales que dividieron el edificio en 3 partes, desplazamiento aproximado de  1,5 metros | Vecino",
+    "created_at": "2026-06-25T08:06:26.126478+00:00"
+  },
+  {
+    "id": "31028967-a054-49c9-a29b-a8a2cd9cf7e0",
+    "lat": 10.6197749450075,
+    "lng": -66.8463546588764,
+    "severity": 4,
+    "place": "Bahia del mar, Bahía, Avenida La Playa, Los Corales, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "Colapso total | Twitter X",
+    "created_at": "2026-06-25T07:47:36.27849+00:00"
+  },
+  {
+    "id": "7eba7353-8190-4c16-a063-7db6347c2926",
+    "lat": 10.4748272,
+    "lng": -67.004133,
+    "severity": 4,
+    "place": "Casa, Barrio 5 de Julio, El Guamal, Caracas, Parroquia El Junquito, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1100, Venezuela",
+    "photo_url": null,
+    "note": "Es una casa de 3 pisos todas cayeron no sabemos si hay personas entre los escombros, nos encontramos refugiados en la escuela | Dueña",
+    "created_at": "2026-06-25T07:47:35.328932+00:00"
+  },
+  {
+    "id": "1c5ba383-8e0d-40b2-a7f0-6f47e2034b43",
+    "lat": 10.3703849,
+    "lng": -66.9757177,
+    "severity": 2,
+    "place": "Edificio jardín minalta, Calle Orinoco, Las Minas Sur, San Antonio de Los Altos, Municipio Los Salias, Miranda, 1204, Venezuela",
+    "photo_url": null,
+    "note": null,
+    "created_at": "2026-06-25T07:47:28.698668+00:00"
+  },
+  {
+    "id": "6023a56d-f27c-4a39-960a-53eef596ca38",
+    "lat": 10.521055,
+    "lng": -66.9206342,
+    "severity": 2,
+    "place": "Nuevo Catuche, Iglesia San Judas Tadeo, Avenida Norte 10, Sabana de Blanco, El Polvorín, Los Mecedores, Conejo Blanco, Caracas, Parroquia La Pastora, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1010, Venezuela",
+    "photo_url": null,
+    "note": "Bloques dañados, no hay vigas ni columnas dañadas | Vivo en las residencias",
+    "created_at": "2026-06-25T07:47:27.207183+00:00"
+  },
+  {
+    "id": "f30bf6c5-7252-4a5d-8b28-1304af9a8ca3",
+    "lat": 10.4961901,
+    "lng": -66.9136591,
+    "severity": 2,
+    "place": "Residencia Punta de Piedra torre “A”, Avenida Este 16, Casco Central de Santa Rosalía, Caracas, Parroquia Santa Rosalia, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1014, Venezuela",
+    "photo_url": null,
+    "note": "Muros de fachadas caidos, desconozco grietas | Vecino",
+    "created_at": "2026-06-25T07:43:51.605249+00:00"
+  },
+  {
+    "id": "1815bec8-54f7-48a2-b96f-329449f97e66",
+    "lat": 10.6115211,
+    "lng": -66.8285722,
+    "severity": 3,
+    "place": "Residencias Newport, Tanaguarena, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": null,
+    "created_at": "2026-06-25T07:43:50.03462+00:00"
+  },
+  {
+    "id": "74be0527-d698-45d8-9e5a-eb28404a8282",
+    "lat": 10.6102653,
+    "lng": -66.824576,
+    "severity": 4,
+    "place": "Edificio celtamar 1, Carretera Tanaguarenas - Naiguatá, Tanaguarena, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "No sé sabe si fue evacuado, derrumbe total. Personas desaparecida | Video",
+    "created_at": "2026-06-25T07:43:46.444188+00:00"
+  },
+  {
+    "id": "0e9e9161-a56d-4797-9332-cfd287d328ce",
+    "lat": 10.6170835,
+    "lng": -66.8580591,
+    "severity": 4,
+    "place": "Residencias Arichuna Los Corales, Los Corales, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "solicitan apoyo de rescatistas y maquinaria para rescate | Foto de residente https://x.com/VicDDP/status/2070046340537557444?s=20",
+    "created_at": "2026-06-25T07:43:43.362494+00:00"
+  },
+  {
+    "id": "36f3ff82-7d20-4110-bffe-5179ee508eea",
+    "lat": 10.5075915,
+    "lng": -66.8900919,
+    "severity": 2,
+    "place": "Bloque 28 el plan, Pinto Salinas, Guaicaipuro, Maripérez, Caracas, Parroquia El Recreo, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1050, Venezuela",
+    "photo_url": null,
+    "note": null,
+    "created_at": "2026-06-25T07:40:21.796233+00:00"
+  },
+  {
+    "id": "8fc3c955-ae27-46db-8385-1c3929d1a613",
+    "lat": 10.6006352,
+    "lng": -67.0392339,
+    "severity": 2,
+    "place": "Maria Andreina Castillo en Velo horizonte, Avenida El Ejército, La Zorra, Las Colinas, Parroquia Catia La Mar, Municipio Vargas, La Guaira, 1162, Venezuela",
+    "photo_url": null,
+    "note": null,
+    "created_at": "2026-06-25T07:40:19.87543+00:00"
+  },
+  {
+    "id": "c107a094-76fd-448e-ab20-a5eb99fac546",
+    "lat": 10.5104775600522,
+    "lng": -66.9020742821396,
+    "severity": 3,
+    "place": "Edificio Costa Azul, Avenida Cajigal, San Bernardino, Caracas, Parroquia San Bernardino, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1011, Venezuela",
+    "photo_url": null,
+    "note": "Columnas totalmente afectadas y paredes agrietadas se ve de un piso a otro. Filtrado de agua por todas las grietas. Fachada y vidrios rotos | Vecino",
+    "created_at": "2026-06-25T07:40:17.219357+00:00"
+  },
+  {
+    "id": "67ea5ed9-852a-42d1-b097-9ff36f841140",
+    "lat": 10.4949679303202,
+    "lng": -66.8784982455787,
+    "severity": 2,
+    "place": "Edificio asuncion, Calle Villaflor, Las Delicias, Sabana Grande, Caracas, Parroquia El Recreo, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1050, Venezuela",
+    "photo_url": null,
+    "note": "Daños visitblws grietas interiores grandes | Vecina",
+    "created_at": "2026-06-25T07:40:14.673583+00:00"
+  },
+  {
+    "id": "133475ec-1f09-41d8-94d8-77a17d3111fd",
+    "lat": 10.4988796665959,
+    "lng": -66.8486957709136,
+    "severity": 4,
+    "place": "Residencias Obelisco, Altamira, La Floresta, Los Palos Grandes, Caracas, Municipio Chacao, Distrito Metropolitano de Caracas, Miranda, 1060, Venezuela",
+    "photo_url": null,
+    "note": "Noticias y videos",
+    "created_at": "2026-06-25T07:40:13.12027+00:00"
+  },
+  {
+    "id": "0cd44cf9-2734-45c5-9b8c-411cc106f95c",
+    "lat": 10.6104075038265,
+    "lng": -67.0103009197719,
+    "severity": 4,
+    "place": "Residencias Vistamar, Playa Grande, Catia La Mar, Parroquia Urimare, Municipio Vargas, La Guaira, 1162, Venezuela",
+    "photo_url": null,
+    "note": "Colapso Total | https://x.com/DaniArguinzones/status/2069998916427296929?s=20",
+    "created_at": "2026-06-25T07:40:09.641334+00:00"
+  },
+  {
+    "id": "aa76f873-9207-4944-91d7-cbca39b16f5c",
+    "lat": 10.6112764,
+    "lng": -66.8854499,
+    "severity": 4,
+    "place": "Edificio Las Palmas o punta piedra (ver video), El Teleférico, Macuto, Parroquia Macuto, Municipio Vargas, La Guaira, 1164, Venezuela",
+    "photo_url": null,
+    "note": "Se observa en el video, el colapso de edificios mencionados: las palmas, punta brisas, no se aclara si punta piedras también | video de vecino https://x.com/joseangel92/status/2069992045469409603?s=20",
+    "created_at": "2026-06-25T07:40:03.653542+00:00"
+  },
+  {
+    "id": "7bbef1ec-d193-4876-8d1c-68c20f55d4de",
+    "lat": 10.4972353124309,
+    "lng": -66.9555364656033,
+    "severity": 3,
+    "place": "Proyecto la esperanza, Barrio Adentro, Avenida Principal de Casalta, Casalta III, Casalta II, Propatria, Caracas, Parroquia Sucre, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1100, Venezuela",
+    "photo_url": null,
+    "note": "Estructura de hierro, las patas sontienen 3 apartamentos , el.edificio se inclino. | Consejo comunal",
+    "created_at": "2026-06-25T07:39:58.248032+00:00"
+  },
+  {
+    "id": "0a4ba3b1-f7d0-4066-be03-62182aa4b408",
+    "lat": 10.4964372747828,
+    "lng": -66.9160598084658,
+    "severity": 2,
+    "place": "Residencias Misamac, Avenida Sur 0, Quinta Crespo, Caracas, Parroquia Santa Teresa, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1014, Venezuela",
+    "photo_url": null,
+    "note": "Columnas agrietados, techos y muros con grietas profundas | Propietaria",
+    "created_at": "2026-06-25T07:39:53.308327+00:00"
+  },
+  {
+    "id": "bb712687-90f7-4cdf-87f0-7ecebe4eae79",
+    "lat": 10.6052593540736,
+    "lng": -66.9003567997223,
+    "severity": 4,
+    "place": "La Estrella, Calle 1, Urbanización Álamo, Macuto, Parroquia Macuto, Municipio Vargas, La Guaira, 1164, Venezuela",
+    "photo_url": null,
+    "note": "Twitter",
+    "created_at": "2026-06-25T07:39:50.981244+00:00"
+  },
+  {
+    "id": "bc528d5b-a0c1-46f5-bbc8-5c32e0218bfa",
+    "lat": 10.4806,
+    "lng": -66.9036,
+    "severity": 4,
+    "place": null,
+    "photo_url": null,
+    "note": null,
+    "created_at": "2026-06-25T07:33:39.457252+00:00"
+  },
+  {
+    "id": "594c26cd-5cfc-494b-ae5f-8c5736401207",
+    "lat": 10.5023825,
+    "lng": -66.9063956,
+    "severity": 2,
+    "place": "Aldoral, El Esquisito Menú Vegetariano, Avenida Universidad, La Candelaria, Caracas, Parroquia La Candelaria, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1010, Venezuela",
+    "photo_url": null,
+    "note": "Evacuación, daños visibles | Vecino, fotos y videos",
+    "created_at": "2026-06-25T07:24:55.994462+00:00"
+  },
+  {
+    "id": "d45c2d2f-afac-4b57-867a-1300d4fb0ca0",
+    "lat": 10.6108924847967,
+    "lng": -67.0118516913444,
+    "severity": 4,
+    "place": "Residencias Bucaneros, Playa Grande, Catia La Mar, Parroquia Urimare, Municipio Vargas, La Guaira, 1162, Venezuela",
+    "photo_url": null,
+    "note": "Colapso Total | https://x.com/AZ_Intel_/status/2069921299867050245?s=20",
+    "created_at": "2026-06-25T07:23:32.2327+00:00"
+  },
+  {
+    "id": "685d749d-914b-4e92-8d0d-93a1da51ae28",
+    "lat": 10.6103913489432,
+    "lng": -67.0083787884168,
+    "severity": 4,
+    "place": "Edificio El Jurel, Playa Grande, Catia La Mar, Parroquia Urimare, Municipio Vargas, La Guaira, 1162, Venezuela",
+    "photo_url": null,
+    "note": "Mitad superior del edificio colapsada | Video tomado desde la Marina Deportiva",
+    "created_at": "2026-06-25T07:21:28.960722+00:00"
+  },
+  {
+    "id": "2d43f0b3-d6cb-48e0-a0cb-966e1b6ba232",
+    "lat": 10.6109267033182,
+    "lng": -67.0102262700144,
+    "severity": 4,
+    "place": "Residencias Cumanagoto, Playa Grande, Catia La Mar, Parroquia Urimare, Municipio Vargas, La Guaira, 1162, Venezuela",
+    "photo_url": null,
+    "note": "Colapso Total | Video tomado desde la Marina Deportiva",
+    "created_at": "2026-06-25T07:21:28.004506+00:00"
+  },
+  {
+    "id": "7f2967bd-987c-4308-99d8-f69989dda17c",
+    "lat": 10.6102195,
+    "lng": -66.8409544,
+    "severity": 4,
+    "place": "Mediterraneo, Urbanización Caribe, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "Desplomado | Vecino",
+    "created_at": "2026-06-25T07:21:26.672587+00:00"
+  },
+  {
+    "id": "b3473619-2a0e-435d-9c1a-eb6db1e1384a",
+    "lat": 10.6111382,
+    "lng": -67.0177941,
+    "severity": 4,
+    "place": "Aguja Azul Maiquetía, Playa Grande, Catia La Mar, Parroquia Urimare, Municipio Vargas, La Guaira, 1162, Venezuela",
+    "photo_url": null,
+    "note": "Se observa el derrumbe del edificio, la fotografía es tomada desde torre marina, se observa el edificio Carite aun en pie, y colapsados Aguja azul y pez vela | Foto de residente https://x.com/elgatoblu1/status/2070018882098573588?s=20",
+    "created_at": "2026-06-25T07:21:25.368252+00:00"
+  },
+  {
+    "id": "e6d158e5-a8f7-40a8-b35d-dcabedf2b1e6",
+    "lat": 10.6114522296536,
+    "lng": -66.8656498381184,
+    "severity": 3,
+    "place": "Playa Alí Babá, Guamacho, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": null,
+    "created_at": "2026-06-25T07:21:23.483547+00:00"
+  },
+  {
+    "id": "a8b6656c-d3ef-42bf-b2b9-cc994cf17bb7",
+    "lat": 10.4345686,
+    "lng": -66.9712733,
+    "severity": 2,
+    "place": "Residencia Mi querencia bloque 13 Esc 2, Bloque 10, Avenida Principal de La Haciendita, Urbanización UD-6, La Hacienda, Caricuao, Caracas, Parroquia Caricuao, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1000, Venezuela",
+    "photo_url": null,
+    "note": "Daño en el edificio, columnas antisísmicas | Vecino",
+    "created_at": "2026-06-25T07:10:40.230569+00:00"
+  },
+  {
+    "id": "81cb205f-122e-45f9-9a2c-7a8a4047c65c",
+    "lat": 10.5125608,
+    "lng": -66.9010534,
+    "severity": 4,
+    "place": "La Rita, Avenida Galipán, San Bernardino, Caracas, Parroquia San Bernardino, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1011, Venezuela",
+    "photo_url": null,
+    "note": "Amigos",
+    "created_at": "2026-06-25T07:10:38.687391+00:00"
+  },
+  {
+    "id": "03efc6e9-3cb2-4b6a-b683-8f827bb3382a",
+    "lat": 10.4852035,
+    "lng": -66.9403029,
+    "severity": 4,
+    "place": "Edificio SJT, Edificio SJT, Avenida Las Fuentes, Urbanización, Urbanización Washington, La Quebradita, Caracas, Parroquia El Paraíso, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1020, Venezuela",
+    "photo_url": null,
+    "note": "Vecino",
+    "created_at": "2026-06-25T07:10:35.329252+00:00"
+  },
+  {
+    "id": "069ca6e6-2bdd-468b-8128-ab3353e8e124",
+    "lat": 10.4968726204975,
+    "lng": -66.8251511687687,
+    "severity": 3,
+    "place": "Edificio monseñor, 5.ª Avenida de Montecristo, Montecristo, Sector Montecristo, Caracas, Parroquia Leoncio Martínez, Municipio Sucre, Distrito Metropolitano de Caracas, Miranda, 1071, Venezuela",
+    "photo_url": null,
+    "note": null,
+    "created_at": "2026-06-25T07:00:21.176562+00:00"
+  },
+  {
+    "id": "a3d49cb0-0c33-4275-97a6-2ffdb32f3cd8",
+    "lat": 10.6045528,
+    "lng": -66.9021056,
+    "severity": 4,
+    "place": "Edificio Arcángel, Avenida La Playa, Urbanización Álamo, Macuto, Parroquia Macuto, Municipio Vargas, La Guaira, 1164, Venezuela",
+    "photo_url": null,
+    "note": "Totalmente derrumbado | Video",
+    "created_at": "2026-06-25T07:00:19.252441+00:00"
+  },
+  {
+    "id": "e5495fb3-44bb-4d28-a191-3fad37257303",
+    "lat": 10.6110942157179,
+    "lng": -66.8211715364134,
+    "severity": 3,
+    "place": "Ibiza, Club Tanaguarena, Carretera Tanaguarenas - Naiguatá, Tanaguarena, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "Mitad del edificio colapsado. | Vecino",
+    "created_at": "2026-06-25T06:55:15.842714+00:00"
+  },
+  {
+    "id": "5f9b6c64-f90c-4850-8eb3-525228a8ab7c",
+    "lat": 10.4927008,
+    "lng": -66.8542758,
+    "severity": 2,
+    "place": "Edificio Los Maristas, Callejón Maristas, Barrio La Cruz, La Floresta, Bello Campo, Caracas, Municipio Chacao, Distrito Metropolitano de Caracas, Miranda, 1060, Venezuela",
+    "photo_url": null,
+    "note": "Vecino",
+    "created_at": "2026-06-25T06:55:14.173732+00:00"
+  },
+  {
+    "id": "31a068b2-1024-42f5-aa7a-74b0f9ffe376",
+    "lat": 10.5120921,
+    "lng": -66.8887091,
+    "severity": 4,
+    "place": "Bloque 2 de simon rodriguez, Avenida Trujillo, Simón Rodríguez, Guaicaipuro, Maripérez, Caracas, Parroquia El Recreo, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1050, Venezuela",
+    "photo_url": null,
+    "note": "Detalles visibles, columnas afectadas, grietas severas desde el piso 14 al piso 2 | Vecino",
+    "created_at": "2026-06-25T06:55:13.121077+00:00"
+  },
+  {
+    "id": "c868e021-a4d8-4522-b5fb-f0190df07b8f",
+    "lat": 10.6099647,
+    "lng": -67.0112533,
+    "severity": 3,
+    "place": "Resd Mar Azul, Playa Grande, Catia La Mar, Parroquia Urimare, Municipio Vargas, La Guaira, 1162, Venezuela",
+    "photo_url": null,
+    "note": "Se observan grandes grietas pero el edificio no colapsó | Foto de vecino: https://x.com/mbtroco/status/2069982473014984971?s=20",
+    "created_at": "2026-06-25T06:55:12.128817+00:00"
+  },
+  {
+    "id": "0f0a1aec-be2e-43d9-8a67-d0c717936d84",
+    "lat": 10.4918994,
+    "lng": -66.833746,
+    "severity": 2,
+    "place": "Edificio París, Avenida B, Sector La Carlota, Caracas, Parroquia Leoncio Martínez, Municipio Sucre, Distrito Metropolitano de Caracas, Miranda, 1071, Venezuela",
+    "photo_url": null,
+    "note": "Paredes y escaleras agrietadas,",
+    "created_at": "2026-06-25T06:48:40.66673+00:00"
+  },
+  {
+    "id": "c67ca8a6-36bb-410f-980b-8bb8d76d5b9a",
+    "lat": 10.5159181,
+    "lng": -66.9011969,
+    "severity": 4,
+    "place": "Rita, Pet Shop Lac-Ram, PB, LOC 1, Avenida Los Próceres, San Bernardino, Caracas, Parroquia San Bernardino, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1010, Venezuela",
+    "photo_url": null,
+    "note": "Vecino",
+    "created_at": "2026-06-25T06:48:20.789348+00:00"
+  },
+  {
+    "id": "af4613b7-a83f-46d7-bee2-386b515b038f",
+    "lat": 10.5149257541942,
+    "lng": -66.9027135722896,
+    "severity": 2,
+    "place": "Rocio, Colegio Ohr Jabad, Avenida Anauco, San Bernardino, Caracas, Parroquia San Bernardino, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1010, Venezuela",
+    "photo_url": null,
+    "note": "Daño estructural | Vecino",
+    "created_at": "2026-06-25T06:48:15.748958+00:00"
+  },
+  {
+    "id": "1c41a06a-2659-4b03-9fa9-92004e04dcc5",
+    "lat": 10.4990842,
+    "lng": -66.8717747,
+    "severity": 2,
+    "place": "Edificio Premier la Arboleda",
+    "photo_url": "/edificios/1c41a06a-2659-4b03-9fa9-92004e04dcc5.jpg",
+    "note": "Grietas en la fachada",
+    "created_at": "2026-06-25T06:45:42.916017+00:00"
+  },
+  {
+    "id": "cdab2b6d-e4bf-44de-acee-5e948a7fb4f9",
+    "lat": 10.6111407,
+    "lng": -66.8448369,
+    "severity": 4,
+    "place": "Residencias Golf Mar, El Palmar Este, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "Colapso de estructura con 5 pisos bajo tierra | video de vecino: https://x.com/lillacraa/status/2070015671308632146?s=20",
+    "created_at": "2026-06-25T06:40:32.270325+00:00"
+  },
+  {
+    "id": "83362100-d3f0-423c-b1cf-45998d014ba0",
+    "lat": 10.5140067728181,
+    "lng": -66.90646354548,
+    "severity": 2,
+    "place": "Residencias Serenísima Sur, Avenida Norte 9, San José, Caracas, Parroquia San José, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1010, Venezuela",
+    "photo_url": null,
+    "note": "Escaleras y pasillos con daños de grietas en paredes en forma de \"X\" | Vecino",
+    "created_at": "2026-06-25T06:40:31.492522+00:00"
+  },
+  {
+    "id": "e9cff36b-74cd-44ec-b2a5-afe9463a31fe",
+    "lat": 10.6162953,
+    "lng": -66.8366737,
+    "severity": 2,
+    "place": "Oppe 26 torre c apto2-05, Aterrizadero Vive Parapente, Avenida Playa Los Cocos, Urbanización Caribe, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": null,
+    "created_at": "2026-06-25T06:40:30.270677+00:00"
+  },
+  {
+    "id": "00e62147-7042-4a6e-adf3-4d76ea4aef5b",
+    "lat": 10.3430475396616,
+    "lng": -67.0032020766735,
+    "severity": 3,
+    "place": "Las palmas, Sector Los Caneyes, Carrizal, Parroquia Carrizal, Municipio Carrizal, Miranda, 1203, Venezuela",
+    "photo_url": null,
+    "note": "Afectación por fuera paredes agretiadas afectación por dentro de la edificación | Vecinos y teléfonos sonaban",
+    "created_at": "2026-06-25T06:37:57.693271+00:00"
+  },
+  {
+    "id": "c6f5e875-3320-4c67-84f1-78541ea775f5",
+    "lat": 10.4976624365265,
+    "lng": -66.8454471250258,
+    "severity": 3,
+    "place": "Residencias Morgana, Avenida Andrés Bello, Los Palos Grandes, La Floresta, Los Palos Grandes, Caracas, Municipio Chacao, Distrito Metropolitano de Caracas, Miranda, 1060, Venezuela",
+    "photo_url": null,
+    "note": "Grietas en toda la pared lateral del edificio, frontal y 6 paredes totalmente caídas de 2 apartamentos. | Vivo ahí. Mi apartamento quedó destruido",
+    "created_at": "2026-06-25T06:37:09.342738+00:00"
+  },
+  {
+    "id": "7741e71f-e53f-4ef2-9e0f-f9b5dae7fbc4",
+    "lat": 10.343181707413,
+    "lng": -67.0023425510776,
+    "severity": 3,
+    "place": "Las palmas, Sector Los Caneyes, Carrizal, Parroquia Carrizal, Municipio Carrizal, Miranda, 1203, Venezuela",
+    "photo_url": null,
+    "note": "Edificios agretiados daños por dentro | Vecinos, teléfonos",
+    "created_at": "2026-06-25T06:35:13.340662+00:00"
+  },
+  {
+    "id": "0d25c109-aab2-49b9-9f32-522a4de67ed3",
+    "lat": 10.5140103187763,
+    "lng": -66.9064306376698,
+    "severity": 2,
+    "place": "Residencias Serenísima Sur, Avenida Norte 9, San José, Caracas, Parroquia San José, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1010, Venezuela",
+    "photo_url": null,
+    "note": "Grietas externas | Vecino",
+    "created_at": "2026-06-25T06:34:01.290319+00:00"
+  },
+  {
+    "id": "669fdedb-3ddb-4123-a9f6-da3b3efb0ca1",
+    "lat": 10.4974307818399,
+    "lng": -66.8379343730036,
+    "severity": 2,
+    "place": "Res. Parque Sebucán, Avenida Rómulo Gallegos, Sector Parque Miranda, Caracas, Parroquia Leoncio Martínez, Municipio Sucre, Distrito Metropolitano de Caracas, Miranda, 1071, Venezuela",
+    "photo_url": null,
+    "note": "Columnas afectadas y paredes desprendidas | Vecino",
+    "created_at": "2026-06-25T06:34:00.14544+00:00"
+  },
+  {
+    "id": "81a7219d-5875-46bd-ac02-fd475f33e0ad",
+    "lat": 10.5154134053963,
+    "lng": -66.8991668164398,
+    "severity": 3,
+    "place": "Edificio Residencia La quinta, Avenida Los Próceres, San Bernardino, Caracas, Parroquia San Bernardino, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1011, Venezuela",
+    "photo_url": null,
+    "note": "Daños visibles externo, daños internos muy graves. | Vecino",
+    "created_at": "2026-06-25T06:33:52.554402+00:00"
+  },
+  {
+    "id": "07265e74-c517-4ca0-9503-a033198af822",
+    "lat": 10.4881660542195,
+    "lng": -66.5628419582726,
+    "severity": 2,
+    "place": "Bloque 2, Urb Parque Alto, San José, Parroquia Guatire, Municipio Zamora, Miranda, 1221, Venezuela",
+    "photo_url": null,
+    "note": "Juntas de dilatación agrietadas en uniones de escaleras y pasillos, paredes con figuras notables | Vecino",
+    "created_at": "2026-06-25T06:33:51.386087+00:00"
+  },
+  {
+    "id": "4feb37f6-47fb-42f3-ba5e-74687f96b8ca",
+    "lat": 10.4936136447295,
+    "lng": -66.9256592164673,
+    "severity": 2,
+    "place": "Edificio Caroni, Avenida Machado, Las Quintas, Brisas del Paraíso, El Paraíso, Caracas, Parroquia El Paraíso, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1020, Venezuela",
+    "photo_url": null,
+    "note": "Paredes | Habitante",
+    "created_at": "2026-06-25T06:33:50.243721+00:00"
+  },
+  {
+    "id": "23e53a3b-9b7b-44d5-b931-f679ecdc0908",
+    "lat": 10.6171403,
+    "lng": -66.8568576,
+    "severity": 4,
+    "place": "Edificio costa brava los corales, Avenida La Costanera, El Palmar Oeste, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "Colapso total | Foto de residente https://x.com/xvafc_/status/2070028934880588201?s=20",
+    "created_at": "2026-06-25T06:33:49.026096+00:00"
+  },
+  {
+    "id": "fae9b1b1-f649-478e-87c7-03f769cbb662",
+    "lat": 10.6093031008774,
+    "lng": -67.0266700824583,
+    "severity": 4,
+    "place": "Belo Horizonte, Avenida Principal de Playa Grande, Ciudad Chávez, Playa Grande, Catia La Mar, Parroquia Urimare, Municipio Vargas, La Guaira, 1162, Venezuela",
+    "photo_url": null,
+    "note": null,
+    "created_at": "2026-06-25T06:33:46.892567+00:00"
+  },
+  {
+    "id": "097bad3d-d5d7-4e59-b82e-65f77ce20176",
+    "lat": 10.7662308643304,
+    "lng": -68.3246063377802,
+    "severity": 4,
+    "place": "tucacas",
+    "photo_url": null,
+    "note": "completamente desplomado",
+    "created_at": "2026-06-25T06:30:53.994241+00:00"
+  },
+  {
+    "id": "710db9f0-cd95-4374-9f4f-1305fc1b53a2",
+    "lat": 10.6094814,
+    "lng": -66.8483993,
+    "severity": 4,
+    "place": "Res Mariola y maribel, El Palmar Este, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "Edif inclinado y derrumbado | Vecino",
+    "created_at": "2026-06-25T06:26:50.601114+00:00"
+  },
+  {
+    "id": "a1802750-64a1-4024-a0d2-76006c5147d3",
+    "lat": 10.6154530830394,
+    "lng": -66.8444832335137,
+    "severity": 4,
+    "place": "Res. Gran Terraza, Provincial, Avenida Principal de Caribe, Urbanización Caribe, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "Vecino",
+    "created_at": "2026-06-25T06:24:33.602625+00:00"
+  },
+  {
+    "id": "b878f23e-c9c2-41e7-a508-11148ee4a987",
+    "lat": 10.514005,
+    "lng": -66.9063522,
+    "severity": 2,
+    "place": "Residencias Serenísima Sur, Avenida Norte 9, San José, Caracas, Parroquia San José, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1010, Venezuela",
+    "photo_url": null,
+    "note": "Pared piso 2 colapsada. Daño interno en las escaleras, grandes grietas sobretodo en pisos bajos. | Vecino",
+    "created_at": "2026-06-25T06:24:31.704319+00:00"
+  },
+  {
+    "id": "29d9432f-8c2c-4e37-917a-378b2bbb7768",
+    "lat": 10.5147994671107,
+    "lng": -66.9089102354334,
+    "severity": 3,
+    "place": "Avenida Norte 5, Avenida Norte 5, San José, Caracas, Parroquia San José, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1010, Venezuela",
+    "photo_url": null,
+    "note": null,
+    "created_at": "2026-06-25T06:19:50.187582+00:00"
+  },
+  {
+    "id": "e5fa384f-c656-47b1-8d4a-e8771372aca7",
+    "lat": 10.6095681477333,
+    "lng": -67.0261451768367,
+    "severity": 3,
+    "place": "La riviera, Avenida Principal de Playa Grande, Ciudad Chávez, Playa Grande, Catia La Mar, Parroquia Urimare, Municipio Vargas, La Guaira, 1162, Venezuela",
+    "photo_url": null,
+    "note": null,
+    "created_at": "2026-06-25T06:18:03.096987+00:00"
+  },
+  {
+    "id": "79a0c4aa-b55c-4717-8470-a65ddb3ed00a",
+    "lat": 10.1916908,
+    "lng": -67.4605065,
+    "severity": 2,
+    "place": "No lo se, queda antes de llegar al mac donals de la carretera nacional, Farmapatria, Calle 10 Independencia, Zona Industrial Santa Rosalía, Cagua, Parroquia Cagua, Municipio Sucre, Aragua, 2122, Venezuela",
+    "photo_url": null,
+    "note": "No observe bien, no había luz, no quise acercarme | Pase por el lugar 7:50pm mas o menos",
+    "created_at": "2026-06-25T06:18:01.399019+00:00"
+  },
+  {
+    "id": "585aa220-977c-4fa3-9287-adb6fb7f7c50",
+    "lat": 10.5085066,
+    "lng": -66.9535173,
+    "severity": 3,
+    "place": "Urb. Continente, Avenida El Cuartel, Urbanización Simón Bolívar, Pérez Bonalde, Catia, Caracas, Parroquia Sucre, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1014, Venezuela",
+    "photo_url": null,
+    "note": "Varias grietas en el edificio, un apartamento en pérdida total | Vecino",
+    "created_at": "2026-06-25T06:18:00.109925+00:00"
+  },
+  {
+    "id": "fc53b16f-aeec-4e91-a89f-ad86242c5bc8",
+    "lat": 10.5193128193057,
+    "lng": -66.9417288016337,
+    "severity": 4,
+    "place": "3era etapa, Avenida Principal de Altavista, El Refugio, Alta Vista, Caracas, Parroquia Sucre, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1014, Venezuela",
+    "photo_url": null,
+    "note": "Paredes derrumbadas, cuarteadas. | Vecino",
+    "created_at": "2026-06-25T06:16:05.878075+00:00"
+  },
+  {
+    "id": "035aff22-e616-48d1-95c9-a29e33bbef8f",
+    "lat": 10.5133471,
+    "lng": -66.918535,
+    "severity": 2,
+    "place": "Edificio Beatriz Julieta, Creaciones Goldy, Avenida Oeste 9, Sabana de Blanco, El Polvorín, La Pastora, Caracas, Parroquia Altagracia, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1010, Venezuela",
+    "photo_url": null,
+    "note": "Paredes caídas, grietas graves | Familia",
+    "created_at": "2026-06-25T06:16:04.805744+00:00"
+  },
+  {
+    "id": "9d06ed8a-a1f5-4b34-8859-d8bd8fde6620",
+    "lat": 10.4965617,
+    "lng": -66.8499813,
+    "severity": 2,
+    "place": "Monaco, Cakawa, 1.ª Transversal de Altamira, Altamira, La Floresta, Bello Campo, Caracas, Municipio Chacao, Distrito Metropolitano de Caracas, Miranda, 1060, Venezuela",
+    "photo_url": null,
+    "note": "La parte baja del edificio bastante afectada. | Familiar",
+    "created_at": "2026-06-25T06:11:05.024+00:00"
+  },
+  {
+    "id": "0f6161dd-b96c-49a8-ae0e-7edceb3f6d59",
+    "lat": 10.7971085,
+    "lng": -68.319582,
+    "severity": 3,
+    "place": "Edificio Marintusa Tucacas, Asociación Civil Gran Marina Del Rey, Calle Marintusa, Tucacas, Parroquia Tucacas, Municipio Silva, Falcón, 2054, Venezuela",
+    "photo_url": null,
+    "note": "Grietas graves en la estructura | Video de vecino: https://x.com/soypetitygarcia/status/2069996995494731950?s=20",
+    "created_at": "2026-06-25T05:59:08.520854+00:00"
+  },
+  {
+    "id": "a8afe3ca-efb3-414e-9ecb-f283479f8ad6",
+    "lat": 10.6136128843698,
+    "lng": -66.8392837099731,
+    "severity": 4,
+    "place": "Residencias Caribe, Avenida Principal de Caribe, Urbanización Caribe, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": null,
+    "created_at": "2026-06-25T05:59:06.75779+00:00"
+  },
+  {
+    "id": "98a48dd3-52a5-4bc8-a895-2ed72c339faa",
+    "lat": 10.2126375,
+    "lng": -67.4806719,
+    "severity": 4,
+    "place": "Urbanización Bosque Lindo, La Encrucijada, Turmero, Parroquia Turmero, Municipio Mariño, Aragua, 2115, Venezuela",
+    "photo_url": null,
+    "note": "Derrumbe total de 1 torre de 4 | Vecino",
+    "created_at": "2026-06-25T05:56:23.217195+00:00"
+  },
+  {
+    "id": "a72c8ee5-0536-47c1-957e-35ecd56d2317",
+    "lat": 10.2725874104698,
+    "lng": -68.0172783312587,
+    "severity": 3,
+    "place": "Antiguo CUAM, Rampa de Puente Bárbula, La Campiña, Valencia, Parroquia Naguanagua, Municipio Naguanagua, Carabobo, 2005, Venezuela",
+    "photo_url": null,
+    "note": "Colapso de uno de los pisos | Noticia",
+    "created_at": "2026-06-25T05:56:22.364754+00:00"
+  },
+  {
+    "id": "bd471cb9-4dcc-47f5-be3b-68c7e79405d0",
+    "lat": 10.492157,
+    "lng": -66.8532725,
+    "severity": 4,
+    "place": "Edificio Don Pepe Bello campo Chacao, Avenida José Felix Sosa, Barrio La Cruz, Sector Bello Campo, Caracas, Municipio Chacao, Distrito Metropolitano de Caracas, Miranda, 1060, Venezuela",
+    "photo_url": null,
+    "note": "Colapso estructural | Video y fotos de vecinos: https://x.com/_johanlopez/status/2070001433680711879?s=20",
+    "created_at": "2026-06-25T05:56:21.313657+00:00"
+  },
+  {
+    "id": "c57b0cd7-1138-4c97-9c2f-ce837d7fcca3",
+    "lat": 10.6120875,
+    "lng": -66.8643594,
+    "severity": 4,
+    "place": "Edificio Rosanday, Avenida La Playa, El Palmar Oeste, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "Video",
+    "created_at": "2026-06-25T05:50:53.460858+00:00"
+  },
+  {
+    "id": "9bec6b47-ae0a-4188-999b-00967581720f",
+    "lat": 10.2068563,
+    "lng": -67.5512679,
+    "severity": 2,
+    "place": "Residencias Coromar, Calle Antonio Ricaurte, Residencias Canarias, Santa Rita, Parroquia Santa Rita, Municipio Linares, Aragua, 2102, Venezuela",
+    "photo_url": null,
+    "note": "columnas y paredes | residenciado",
+    "created_at": "2026-06-25T05:50:52.579607+00:00"
+  },
+  {
+    "id": "a07f87ea-cce1-47f1-9b35-59e0d7e3149c",
+    "lat": 10.6117561,
+    "lng": -66.864313,
+    "severity": 4,
+    "place": "Edificio Dist. Rosanday, Avenida La Playa, El Palmar Oeste, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "Colapso de estructura | Video de vecino: https://x.com/angeloswoficial/status/2069946983737954678?s=20",
+    "created_at": "2026-06-25T05:50:51.567761+00:00"
+  },
+  {
+    "id": "77815585-081e-4651-9a56-ce7b9519be73",
+    "lat": 10.4929836,
+    "lng": -66.8782725,
+    "severity": 2,
+    "place": "Edificio Cediaz, Instituto Universitario de Mercadotecnia, Avenida Casanova, Sabana Grande, Caracas, Parroquia El Recreo, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1050, Venezuela",
+    "photo_url": null,
+    "note": "Escombros en las escaleras, daños en paredes de las vivienddas | Vivo en el edificio",
+    "created_at": "2026-06-25T05:50:46.937552+00:00"
+  },
+  {
+    "id": "77d853a4-2462-429c-bb9b-193588edd959",
+    "lat": 10.6103178957645,
+    "lng": -66.8409575283551,
+    "severity": 3,
+    "place": "Daisy Molina, Urbanización Caribe, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "Una amiga",
+    "created_at": "2026-06-25T05:50:45.796582+00:00"
+  },
+  {
+    "id": "b46fd3c3-63fc-4db1-a378-a11ba78b8c4d",
+    "lat": 10.6141575,
+    "lng": -66.8374887,
+    "severity": 4,
+    "place": "Residencia Ilona, Avenida Principal de Caribe, Urbanización Caribe, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "Residente",
+    "created_at": "2026-06-25T05:50:44.889326+00:00"
+  },
+  {
+    "id": "28ec85f9-5826-44ee-befc-2d7fcb17cc3f",
+    "lat": 10.6182904149315,
+    "lng": -66.8466324956912,
+    "severity": 4,
+    "place": "Miramar, El Palmar Este, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": null,
+    "created_at": "2026-06-25T05:50:43.732483+00:00"
+  },
+  {
+    "id": "4d985177-9626-4b00-a5a4-0c9c8d518b91",
+    "lat": 10.6165375,
+    "lng": -66.8448906,
+    "severity": 4,
+    "place": "Rocapark, Avenida Principal de Caribe, Urbanización Caribe, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "Video",
+    "created_at": "2026-06-25T05:50:42.684475+00:00"
+  },
+  {
+    "id": "158dabd1-6f72-4d63-95dd-8abf7c615c98",
+    "lat": 10.2546731,
+    "lng": -68.0147843,
+    "severity": 3,
+    "place": "Edificio El Viejo CUAM, Avenida 102 Universidad, Parque Naguanagua, Las Quintas, Mañongo, Valencia, Parroquia Naguanagua, Municipio Naguanagua, Carabobo, 2005, Venezuela",
+    "photo_url": null,
+    "note": "Cae estructura superior | Video: https://x.com/AndrewsAbreu/status/2070005346853130469?s=20",
+    "created_at": "2026-06-25T05:50:41.56627+00:00"
+  },
+  {
+    "id": "67de789b-8aff-4138-8849-fe7b93a62cad",
+    "lat": 10.7662519,
+    "lng": -68.3246265,
+    "severity": 4,
+    "place": "Residencias La mar suites, Tucacas, Parroquia Tucacas, Municipio Silva, Falcón, 2055, Venezuela",
+    "photo_url": null,
+    "note": "Edificio entero caido, pueden haber familias en lso escombros, poca información al respecto | Somos propietarios",
+    "created_at": "2026-06-25T05:50:40.515327+00:00"
+  },
+  {
+    "id": "2fde48ee-7b34-4815-89a0-e83605d560d7",
+    "lat": 10.5108754,
+    "lng": -66.9032125,
+    "severity": 2,
+    "place": "Pórtico del Ávila Torre C y D, Quinta Olimar, 04, Avenida Panteón, San Bernardino, Caracas, Parroquia San Bernardino, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1010, Venezuela",
+    "photo_url": null,
+    "note": "mi mamá",
+    "created_at": "2026-06-25T05:50:39.440266+00:00"
+  },
+  {
+    "id": "5c3d3446-e4f7-4470-b92e-8cd6a7a2926b",
+    "lat": 10.6137535,
+    "lng": -66.8373218,
+    "severity": 3,
+    "place": "Edificio Caribe detras de las 15 letras, R-9, Urbanización Caribe, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "Estructura dañada | video de vecino: https://x.com/elfargrafico/status/2069977245670662169?s=20",
+    "created_at": "2026-06-25T05:35:47.74303+00:00"
+  },
+  {
+    "id": "10437137-265b-400e-afe5-08c6664574be",
+    "lat": 10.6091852,
+    "lng": -67.0151832,
+    "severity": 3,
+    "place": "Mision vivienda playa grande, Club deportivo Ariel, Calle 3, Playa Grande, Catia La Mar, Parroquia Urimare, Municipio Vargas, La Guaira, 1162, Venezuela",
+    "photo_url": null,
+    "note": "Se observan inclinaciones | video de vecino: https://x.com/Ulul4r/status/2070008801227395438?s=20",
+    "created_at": "2026-06-25T05:33:49.50942+00:00"
+  },
+  {
+    "id": "acb9490b-1b08-4021-add8-a8174a52c619",
+    "lat": 10.5098995,
+    "lng": -66.9069574,
+    "severity": 3,
+    "place": "Edif. Santo Tomas, Avenida Este 7, San José, Caracas, Parroquia San José, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1010, Venezuela",
+    "photo_url": null,
+    "note": "Desde los pisos 15 hasta el último piso que es el piso 22 hay una fractura grande donde se dividieron las dos torres del edificio y hay un hueco muy grande, las casas de las personas mayormente se les rompieron las fachadas y varias tuberías se rompieron además de muchimos escombros y polvo pavimentando todo el edificio, lo más preocupante es que desde afuera la fachada exterior del edificio presenta unas visibles y claras grietas una de manera vertical abarcando casi todo el edificio y otra de manera horizontal abarcando los pisos de abajo. | Vivo ahí",
+    "created_at": "2026-06-25T05:33:48.103096+00:00"
+  },
+  {
+    "id": "c018409f-070b-42c1-8bbd-2c8b93012a94",
+    "lat": 10.610179,
+    "lng": -67.01141,
+    "severity": 4,
+    "place": "Edificio Oasis Beach, Playa Grande, Catia La Mar, Parroquia Urimare, Municipio Vargas, La Guaira, 1162, Venezuela",
+    "photo_url": null,
+    "note": "Colapso total de la estructura | Video de vecino: https://x.com/keto_vzla/status/2069994239195242881?s=20",
+    "created_at": "2026-06-25T05:33:46.869983+00:00"
+  },
+  {
+    "id": "f5fdcf35-1c7a-4675-97d1-1f7728b90d5a",
+    "lat": 10.4579618,
+    "lng": -66.9152295,
+    "severity": 2,
+    "place": null,
+    "photo_url": null,
+    "note": null,
+    "created_at": "2026-06-25T05:27:13.975066+00:00"
+  },
+  {
+    "id": "3b903404-c72e-4ee0-be0d-7f33c9e5ec92",
+    "lat": 10.612967,
+    "lng": -66.8377049,
+    "severity": 4,
+    "place": "Edificio Parque Caraballeda, Urbanización Caribe, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "Se observa colapso de la estructura | Video de vecino: https://x.com/adolelmaku/status/2069956325380137466?s=20",
+    "created_at": "2026-06-25T05:26:15.38201+00:00"
+  },
+  {
+    "id": "cfa3b17c-0b97-42cd-a48a-1cc5ef3b2a54",
+    "lat": 10.6183046400692,
+    "lng": -66.8565678056497,
+    "severity": 4,
+    "place": "Residencias coral beach, Avenida La Playa, Los Corales, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "Plataforma x",
+    "created_at": "2026-06-25T05:22:28.748167+00:00"
+  },
+  {
+    "id": "da8aad91-43c2-40cc-b915-6a74f57d9339",
+    "lat": 10.6141575,
+    "lng": -66.8374887,
+    "severity": 3,
+    "place": "Celtamar II, Avenida Principal de Caribe, Urbanización Caribe, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": null,
+    "created_at": "2026-06-25T05:21:20.717206+00:00"
+  },
+  {
+    "id": "2b72070a-8005-4777-9b1f-fe31c00d0c7b",
+    "lat": 10.6140159,
+    "lng": -66.8493452,
+    "severity": 4,
+    "place": "Edificio Albatros Caraballeda, El Palmar Este, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "Afectación total de la estructura | Vecino que visitó la zona",
+    "created_at": "2026-06-25T05:21:12.855206+00:00"
+  },
+  {
+    "id": "d5535e45-cd2a-4aab-956b-699f11be83c1",
+    "lat": 10.4954666,
+    "lng": -66.9328606,
+    "severity": 3,
+    "place": "28 de julio, Avenida San Martín, Consejo Comunal Urb. San Martín I, Caracas, Parroquia San Juan, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1020, Venezuela",
+    "photo_url": null,
+    "note": "Detalles visibles, paredes agrietado y algunas colapsadas evacuación total de los edificios | Video, vecinos, familia..",
+    "created_at": "2026-06-25T05:18:04.895724+00:00"
+  },
+  {
+    "id": "6cbd42d4-9d78-4ba3-a31d-54f34dfca217",
+    "lat": 10.4788935300517,
+    "lng": -66.9477985594017,
+    "severity": 2,
+    "place": "La arboleda, Avenida O'Higgins, Urbanización Montalbán I, Montalbán, Caracas, Parroquia La Vega, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1020, Venezuela",
+    "photo_url": null,
+    "note": "Paredes internas y externas afectadas | Inquilino",
+    "created_at": "2026-06-25T05:18:03.749364+00:00"
+  },
+  {
+    "id": "2a968d0a-5a7f-4f3d-963b-7825b1961324",
+    "lat": 10.5068033,
+    "lng": -66.8511074,
+    "severity": 2,
+    "place": "Torre Bancaribe, Avenida San Juan Bosco, Sector Altamira, Altamira, Caracas, Municipio Chacao, Distrito Metropolitano de Caracas, Miranda, 1060, Venezuela",
+    "photo_url": null,
+    "note": "Daños visibles a la mitad de la edificación reportados en noticieros locales | Video de medio de comunicación VPI: https://x.com/ReporteYa/status/2070005057832063021?s=20",
+    "created_at": "2026-06-25T05:16:30.248727+00:00"
+  },
+  {
+    "id": "981268fb-a04c-43ae-bdef-f6eb5e89a88e",
+    "lat": 10.6163141,
+    "lng": -66.8449081,
+    "severity": 3,
+    "place": "Mansión Club Caraballeda, Avenida Principal de Caribe, Urbanización Caribe, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "Se derrumbó una columna con la menos 20 apartamentos. | Video",
+    "created_at": "2026-06-25T05:13:55.875704+00:00"
+  },
+  {
+    "id": "49ed295e-999e-4f1f-83aa-58fa4ab85fe7",
+    "lat": 10.218625,
+    "lng": -67.326501,
+    "severity": 3,
+    "place": "Catedral de la Victoria, Bloques Aliven, Autopista Regional del Centro, Guaracarima, La Victoria, Parroquia La Victoria, Municipio Ribas, Aragua, 2121, Venezuela",
+    "photo_url": null,
+    "note": "Video",
+    "created_at": "2026-06-25T05:11:56.938506+00:00"
+  },
+  {
+    "id": "5f66a2d3-b97d-4295-998f-7077bcc36e14",
+    "lat": 10.6123891,
+    "lng": -66.8343409,
+    "severity": 2,
+    "place": "Residencias Mansión Club Caraballeda, Avenida Principal de Caribe, Urbanización Caribe, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "Detalle de areas externas afectadas | Video de vecino: https://x.com/Ulul4r/status/2070008655609516348",
+    "created_at": "2026-06-25T05:11:55.714182+00:00"
+  },
+  {
+    "id": "05317a29-de82-4d3a-aa9a-6623bce80bc6",
+    "lat": 10.6050094,
+    "lng": -66.9006454,
+    "severity": 4,
+    "place": "Hotel Eduards, Hotel Boutique Eduards, Avenida La Playa, Urbanización Álamo, Macuto, Parroquia Macuto, Municipio Vargas, La Guaira, 1164, Venezuela",
+    "photo_url": null,
+    "note": "Video de afectados peloteros: https://x.com/anonymous_hat2/status/2069987406216843405/video/1",
+    "created_at": "2026-06-25T05:11:53.482269+00:00"
+  },
+  {
+    "id": "f1ad5095-5841-4eaf-a3f0-64eecb7269b7",
+    "lat": 10.6141575,
+    "lng": -66.8374887,
+    "severity": 3,
+    "place": "Auromar, Avenida Principal de Caribe, Urbanización Caribe, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "Colapso de edificio, piso 4 queda a nivel de la piscina, se requieren rescatistas | Familiar",
+    "created_at": "2026-06-25T05:11:51.031395+00:00"
+  },
+  {
+    "id": "065f60ef-3cce-4944-aa4b-2338552a8bf6",
+    "lat": 10.6181875,
+    "lng": -66.8551875,
+    "severity": 4,
+    "place": "Rita sol palace, Avenida La Playa, Los Corales, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "Colapso total de la estructura | video de vecino",
+    "created_at": "2026-06-25T05:02:08.84324+00:00"
+  },
+  {
+    "id": "1f604a44-3ada-42c0-8387-a66ba2677789",
+    "lat": 10.4954666,
+    "lng": -66.9328606,
+    "severity": 3,
+    "place": "Colegio San Martin, Avenida San Martín, Consejo Comunal Urb. San Martín I, Caracas, Parroquia San Juan, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1020, Venezuela",
+    "photo_url": null,
+    "note": "Se cayeron paredes | Vecino",
+    "created_at": "2026-06-25T05:01:53.537535+00:00"
+  },
+  {
+    "id": "78258f77-efb5-40bd-abf7-627bedd0cbec",
+    "lat": 10.6091852,
+    "lng": -67.0151832,
+    "severity": 3,
+    "place": "Edificio Cambural cerca de la panadería almendrina playa grande la guaira, Club deportivo Ariel, Calle 3, Playa Grande, Catia La Mar, Parroquia Urimare, Municipio Vargas, La Guaira, 1162, Venezuela",
+    "photo_url": null,
+    "note": null,
+    "created_at": "2026-06-25T04:56:43.858686+00:00"
+  },
+  {
+    "id": "825b3b58-1ca8-44ef-91f5-dd32a39b7b1d",
+    "lat": 10.4697685,
+    "lng": -68.0298654,
+    "severity": 2,
+    "place": "Maori 6, Urbanización Cumboto Sur, Cumboto Sur, Puerto Cabello, Parroquia Juan José Flores, Municipio Puerto Cabello, Carabobo, 2050, Venezuela",
+    "photo_url": null,
+    "note": "Tres edificios en línea afectados | Vecino",
+    "created_at": "2026-06-25T04:48:11.530431+00:00"
+  },
+  {
+    "id": "fd7d6aef-6c2a-46b5-ab56-b9df73bb1c71",
+    "lat": 10.4649775842579,
+    "lng": -66.5871382656154,
+    "severity": 3,
+    "place": "12C, Avenida San Pedro Apostol, Ciudad Casarapa, Nueva Casarapa, Guarenas, Parroquia Guarenas, Municipio Plaza, Miranda, 1220, Venezuela",
+    "photo_url": null,
+    "note": "Paredes principales agrietadas | Apartamentos propio",
+    "created_at": "2026-06-25T04:46:15.479392+00:00"
+  },
+  {
+    "id": "d88f8eec-ace6-4f2c-aba0-ce88e50e978f",
+    "lat": 10.6024787,
+    "lng": -66.9313444,
+    "severity": 2,
+    "place": "Naiguata, Avenida Carlos Soublette, Punta de Mulatos, La Guaira, Parroquia La Guaira, Municipio Vargas, La Guaira, 1160, Venezuela",
+    "photo_url": null,
+    "note": null,
+    "created_at": "2026-06-25T04:41:46.164331+00:00"
+  },
+  {
+    "id": "b7911aec-d614-420b-8fbf-b5b4165479d0",
+    "lat": 10.6181875,
+    "lng": -66.8459375,
+    "severity": 3,
+    "place": "C.C Costa del Sol, Atrio Seguros, R-9, El Palmar Este, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "Video",
+    "created_at": "2026-06-25T04:37:21.808486+00:00"
+  },
+  {
+    "id": "512ed1d8-95f6-4093-b906-e747415060ad",
+    "lat": 10.6024787,
+    "lng": -66.9313444,
+    "severity": 2,
+    "place": "Camuri grande Edo la Guaira, Avenida Carlos Soublette, Punta de Mulatos, La Guaira, Parroquia La Guaira, Municipio Vargas, La Guaira, 1160, Venezuela",
+    "photo_url": null,
+    "note": "Necesito información de un familiar",
+    "created_at": "2026-06-25T04:35:07.488013+00:00"
+  },
+  {
+    "id": "ceb3fde1-a4ba-41fc-8451-76c1a95c9919",
+    "lat": 10.6129625,
+    "lng": -66.8377031,
+    "severity": 4,
+    "place": "Parque Caraballeda, Urbanización Caribe, Caraballeda, Parroquia Caraballeda, Municipio Vargas, La Guaira, 1165, Venezuela",
+    "photo_url": null,
+    "note": "Video",
+    "created_at": "2026-06-25T04:35:04.646204+00:00"
+  },
+  {
+    "id": "18110185-0bb6-43ca-87ee-d431f93ebd03",
+    "lat": 10.611558,
+    "lng": -66.8865749,
+    "severity": 4,
+    "place": "Edificio Punta Brisas, El Cojo, Macuto, Parroquia Macuto, Municipio Vargas, La Guaira, 1164, Venezuela",
+    "photo_url": null,
+    "note": "Video",
+    "created_at": "2026-06-25T04:35:02.642393+00:00"
+  },
+  {
+    "id": "00261fd4-6330-43fe-b218-bedaae3feb19",
+    "lat": 10.5083732,
+    "lng": -66.8892016,
+    "severity": 3,
+    "place": "Bloque 1, Calle Real de Pinto Salinas, Pinto Salinas, Guaicaipuro, Maripérez, Caracas, Parroquia El Recreo, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1050, Venezuela",
+    "photo_url": null,
+    "note": "Muchas partes del edificio destruidos | Mi casa",
+    "created_at": "2026-06-25T04:35:01.502276+00:00"
+  },
+  {
+    "id": "344f6e0a-f547-40f3-a73b-4f7ca275a847",
+    "lat": 10.5050318,
+    "lng": -66.8428525,
+    "severity": 4,
+    "place": "Obelisco, 6.ª Transversal de Los Palos Grandes, Los Palos Grandes, Caracas, Municipio Chacao, Distrito Metropolitano de Caracas, Miranda, 1060, Venezuela",
+    "photo_url": null,
+    "note": null,
+    "created_at": "2026-06-25T04:30:46.523233+00:00"
+  },
+  {
+    "id": "64c081fa-418c-48b0-b63b-21ad5211f832",
+    "lat": 10.4998721716257,
+    "lng": -66.8449189610732,
+    "severity": 3,
+    "place": "Argentum, 2.ª Avenida de Los Palos Grandes, Los Palos Grandes, La Floresta, Los Palos Grandes, Caracas, Municipio Chacao, Distrito Metropolitano de Caracas, Miranda, 1060, Venezuela",
+    "photo_url": null,
+    "note": "Además de grietas en todas las paredes, hay daños también a nivel de instalaciones sanitarias y gas | Un amigo que tuvo que evacuar ese edificio.",
+    "created_at": "2026-06-25T04:21:07.264283+00:00"
+  },
+  {
+    "id": "bff82182-8858-4af2-ba82-3cd0eb11e973",
+    "lat": 10.2744188,
+    "lng": -67.542762,
+    "severity": 3,
+    "place": "Edificio los Taguanes, Las Delicias, Maracay, Parroquia Las Delicias, Municipio Girardot, Aragua, 2101, Venezuela",
+    "photo_url": null,
+    "note": "Apartamentos y pasillos del edificio con grietas muy profundas | Residente",
+    "created_at": "2026-06-25T04:20:31.637985+00:00"
+  },
+  {
+    "id": "c4a400df-3c99-4b80-85a6-399b11c47a46",
+    "lat": 10.4940494,
+    "lng": -66.9264598,
+    "severity": 3,
+    "place": "Residencias Paraiso, Los Naranjos, Guzmán Blanco, El Paraíso, Caracas, Parroquia El Paraíso, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1020, Venezuela",
+    "photo_url": null,
+    "note": "Sector sin luz, daño en paredes | Vecino",
+    "created_at": "2026-06-25T04:20:25.794439+00:00"
+  },
+  {
+    "id": "deedd1a3-8952-4526-8ba6-48a3a3fa77ce",
+    "lat": 10.5161592245689,
+    "lng": -66.9054779775897,
+    "severity": 3,
+    "place": "Hospital Dr. Francisco A. Risquez, Hospital Dr. Francisco A. Risquéz, Calle Cotiza, San José, Caracas, Parroquia San José, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1010, Venezuela",
+    "photo_url": null,
+    "note": "Hospital con daño severo en su estructura | https://www.instagram.com/reels/DZ_Rgm4BqGb/",
+    "created_at": "2026-06-25T04:20:24.585812+00:00"
+  },
+  {
+    "id": "b1ba05db-c35a-4314-be41-b66afdf154b4",
+    "lat": 10.515013715742,
+    "lng": -66.8983824442488,
+    "severity": 4,
+    "place": "Desconocido, Bodega Los Proceres, Avenida Los Próceres, San Bernardino, Caracas, Parroquia San Bernardino, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1010, Venezuela",
+    "photo_url": null,
+    "note": "Visto en persona",
+    "created_at": "2026-06-25T04:08:32.579684+00:00"
+  },
+  {
+    "id": "a13296e0-b59e-4cc7-8fb4-b23fd31ef842",
+    "lat": 10.5956858,
+    "lng": -66.952114,
+    "severity": 2,
+    "place": "El brillante Maiquetía, Centro Comercial Maiquetía Plaza, 22, Calle Real de Maiquetía, Casco Central de Maiquetía, El Rincón, Maiquetía, Parroquia Maiquetía, Municipio Vargas, La Guaira, 1161, Venezuela",
+    "photo_url": null,
+    "note": null,
+    "created_at": "2026-06-25T04:05:16.415294+00:00"
+  },
+  {
+    "id": "985a64d5-b3ac-4612-9da1-433ac8e66eac",
+    "lat": 10.4634746,
+    "lng": -66.5893651,
+    "severity": 3,
+    "place": "Alambique 1C, C.C. San Nicolás de Bari, Avenida San Juan Bautista, Ciudad Casarapa, Nueva Casarapa, Guarenas, Parroquia Guarenas, Municipio Plaza, Miranda, 1220, Venezuela",
+    "photo_url": null,
+    "note": "Vecino",
+    "created_at": "2026-06-25T04:03:02.972853+00:00"
+  },
+  {
+    "id": "1c4938fb-83f0-47a2-87d8-c5f88de129bd",
+    "lat": 10.611625769406,
+    "lng": -67.0174546028584,
+    "severity": 4,
+    "place": "Pez Vela, Calle Real de Playa Verde, Playa Grande, Catia La Mar, Parroquia Urimare, Municipio Vargas, La Guaira, 1162, Venezuela",
+    "photo_url": null,
+    "note": "Colapso total | Vecino",
+    "created_at": "2026-06-25T04:03:01.03749+00:00"
+  },
+  {
+    "id": "9465dd2e-9aae-450b-ad49-1684f3dcad3c",
+    "lat": 10.4992567,
+    "lng": -66.8360282,
+    "severity": 3,
+    "place": "Edificio Sebucán., Av. Principal de Sebucán, Sebucán, Montecristo, Santa Eduvigis, Caracas, Parroquia Leoncio Martínez, Municipio Sucre, Distrito Metropolitano de Caracas, Miranda, 1071, Venezuela",
+    "photo_url": null,
+    "note": "Paredes y techos agrietados. 3 apartamentos con paredes caídas. | Vecino",
+    "created_at": "2026-06-25T03:58:58.826518+00:00"
+  },
+  {
+    "id": "d7ffb051-d83b-48f1-8c2d-1170358d4c3e",
+    "lat": 10.5913768,
+    "lng": -67.0474732,
+    "severity": 4,
+    "place": "Escuela Naval, Catamare, Parroquia Catia La Mar, Municipio Vargas, La Guaira, 1162, Venezuela",
+    "photo_url": null,
+    "note": null,
+    "created_at": "2026-06-25T03:49:32.040659+00:00"
+  },
+  {
+    "id": "41ad4761-1564-48c5-984d-25e9d3cf0910",
+    "lat": 10.4886933196174,
+    "lng": -66.8790523587319,
+    "severity": 4,
+    "place": "Edificio Saturno",
+    "photo_url": "/edificios/41ad4761-1564-48c5-984d-25e9d3cf0910.jpg",
+    "note": "Edificio colapsado",
+    "created_at": "2026-06-25T03:22:28.507795+00:00"
+  },
+  {
+    "id": "f8b45e2c-0238-42aa-8bca-541c1686300f",
+    "lat": 10.4975723655131,
+    "lng": -66.8477056861322,
+    "severity": 4,
+    "place": "Conjunto Residencial Petunia",
+    "photo_url": "/edificios/f8b45e2c-0238-42aa-8bca-541c1686300f.jpg",
+    "note": "Edifico colapsado",
+    "created_at": "2026-06-25T03:17:29.830375+00:00"
+  },
+  {
+    "id": "4ab7bda7-65b0-4a06-84d9-87041b5dfee0",
+    "lat": 10.5023276826666,
+    "lng": -66.9054197320875,
+    "severity": 4,
+    "place": "Bancaribe",
+    "photo_url": "/edificios/4ab7bda7-65b0-4a06-84d9-87041b5dfee0.jpg",
+    "note": "Edificio colapso parcialmente",
+    "created_at": "2026-06-25T03:07:43.620274+00:00"
+  },
+  {
+    "id": "88fda378-9fbb-4ac8-882b-c29fd020193f",
+    "lat": 8.5878,
+    "lng": -71.143,
+    "severity": 4,
+    "place": "Casa esquina Calle Bolívar, TroleCable San Jacinto, Via Principal San Jacinto, San Jacinto, Parroquia Antonio Jacinto Plaza, Municipio Libertador, Mérida, 5115, Venezuela",
+    "photo_url": null,
+    "note": "Colapso parcial del techo y muro lateral derrumbado. | Foto enviada por WhatsApp",
+    "created_at": "2026-06-25T03:04:22.302487+00:00"
+  },
+  {
+    "id": "b0e2814a-0768-4449-af6b-af5febd1c2b9",
+    "lat": 10.4806,
+    "lng": -66.9036,
+    "severity": 3,
+    "place": "Edificio Residencial Las Acacias, Avenida Nueva Granada, Los Rosales, Prado de María, El Cementerio, Caracas, Parroquia Santa Rosalia, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1040, Venezuela",
+    "photo_url": null,
+    "note": "Columnas del primer piso visiblemente agrietadas. Vecinos evacuaron. | Vecino del sector",
+    "created_at": "2026-06-25T01:38:26.913144+00:00"
+  },
+  {
+    "id": "6b7151cc-3582-4ab4-84fb-c2e903b7cdee",
+    "lat": 10.162,
+    "lng": -68.0078,
+    "severity": 3,
+    "place": "Edificio Bicentenario, Fundación Mendoza, Barrio 19 de Abril, Valencia, Parroquia Miguel Peña, Municipio Valencia, Carabobo, 2001, Venezuela",
+    "photo_url": null,
+    "note": "Reportan personas atrapadas en el último piso. Estructura inestable. | Llamada vecinal",
+    "created_at": "2026-06-25T01:33:22.605729+00:00"
+  },
+  {
+    "id": "3cf84c11-645d-43b5-9fd4-ca65cc0540c4",
+    "lat": 10.6666,
+    "lng": -71.6124,
+    "severity": 2,
+    "place": "Centro comercial Las Garzas, Avenida 10, 5 de Julio (Sur), Parroquia Olegario Villalobos, Municipio Maracaibo, Zulia, 4002, Venezuela",
+    "photo_url": null,
+    "note": "Vidrios fracturados en planta baja, sin daño estructural visible. | Personal del comercio",
+    "created_at": "2026-06-25T01:33:19.368179+00:00"
+  },
+  {
+    "id": "aa19514b-2e4a-4f43-bb39-0e37f43538e7",
+    "lat": 10.475,
+    "lng": -66.941,
+    "severity": 3,
+    "place": "Galpón industrial sector La Yaguara, Cocodrilos Sport Park, Avenida Deyber, Urbanización: Loira, Urbanización Loira, La Quebradita, Caracas, Parroquia El Paraíso, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1020, Venezuela",
+    "photo_url": null,
+    "note": "Colapso parcial del techo metálico. Sin víctimas reportadas. | Trabajador del galpón",
+    "created_at": "2026-06-25T01:30:07.327185+00:00"
+  },
+  {
+    "id": "950469e2-83f2-4b71-8d23-2428d500abb7",
+    "lat": 10.4262,
+    "lng": -66.9817,
+    "severity": 2,
+    "place": "Bloque 12 UD-3 Caricuao, Barrio El Onoto, La Hacienda, Caricuao, Caracas, Parroquia Caricuao, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1000, Venezuela",
+    "photo_url": null,
+    "note": "Fachada con grietas largas y ventanas rotas en los pisos superiores. | Reporte ciudadano",
+    "created_at": "2026-06-25T01:30:03.291984+00:00"
+  },
+  {
+    "id": "321ce45a-8ca8-4b32-98e4-1eedab92c4e5",
+    "lat": 10.0739,
+    "lng": -69.3228,
+    "severity": 2,
+    "place": "Casa familia Pérez, Calle 31, Centro, Barquisimeto, Parroquia Concepción, Municipio Iribarren, Lara, 3001, Venezuela",
+    "photo_url": null,
+    "note": "Grietas en pared frontal y desprendimiento de friso. | Reporte presencial",
+    "created_at": "2026-06-25T01:29:41.95843+00:00"
+  },
+  {
+    "id": "41733b44-1984-4892-83e0-534a6037d45e",
+    "lat": 10.492,
+    "lng": -66.858,
+    "severity": 4,
+    "place": "Edificio Las Palmeras Torre B, Avenida Francisco de Miranda, Campo Alegre, Chacao, Caracas, Municipio Chacao, Distrito Metropolitano de Caracas, Miranda, 1060, Venezuela",
+    "photo_url": null,
+    "note": "Inclinación visible en la estructura. Edificio evacuado por bomberos. | Bomberos del Distrito Capital (info pública)",
+    "created_at": "2026-06-25T01:29:38.728829+00:00"
+  },
+  {
+    "id": "4a81046f-22a5-43ee-a8db-b12990671b6d",
+    "lat": 10.5,
+    "lng": -66.9167,
+    "severity": 4,
+    "place": "Edificio Bancaribe, Quinta Crespo, Caracas, Parroquia Santa Teresa, Municipio Libertador, Distrito Metropolitano de Caracas, Distrito Capital, 1014, Venezuela",
+    "photo_url": null,
+    "note": "PRELIMINAR: colapso reportado en varias coberturas de medios. Dirección exacta pendiente de confirmación. | Coberturas de medios (preliminar)",
+    "created_at": "2026-06-25T01:29:06.412302+00:00"
+  }
+]

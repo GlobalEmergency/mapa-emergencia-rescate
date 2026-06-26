@@ -14,6 +14,11 @@ import AdminLogin from "./AdminLogin";
 import AddressSearch, { type GeocodeResult } from "./AddressSearch";
 import { useLowBandwidthMode } from "./useLowBandwidthMode";
 import { distanceMeters, freshnessClass, timeAgo } from "@/lib/format";
+import {
+  EDIFICIOS_COUNT,
+  EDIFICIOS_SOURCE_LABEL,
+  EDIFICIOS_SOURCE_URL,
+} from "@/lib/edificios";
 import type { MissingMapMarker, MissingStats } from "@/lib/missing";
 import type { MapBounds } from "./MapView";
 import {
@@ -121,7 +126,11 @@ export default function EmergencyApp() {
   );
   const [draft, setDraft] = useState<{ lat: number; lng: number } | null>(null);
   const [persistent, setPersistent] = useState(true);
-  const [filter, setFilter] = useState<ReportType | "all">("all");
+  // Filtro multi-selección inclusivo: se muestran TODOS los tipos elegidos
+  // (unión). Por defecto: emergencias críticas y personas buscadas.
+  const [selectedTypes, setSelectedTypes] = useState<Set<ReportType>>(
+    () => new Set<ReportType>(["critical", "missing"]),
+  );
   const [confirmed, setConfirmed] = useState<Set<string>>(() => {
     if (typeof window === "undefined") return new Set();
     try {
@@ -436,30 +445,27 @@ export default function EmergencyApp() {
     setPlacing(false);
   }, []);
 
-  // Al tocar un chip: alterna el filtro y encuadra el mapa a los pines de ese
-  // tipo. Los "missing" no se encuadran (son decenas de miles y dependen del
-  // viewport).
+  // Al tocar un chip: alterna ese tipo en la selección y RECALCULA el encuadre
+  // a la unión de pines seleccionados, tanto al agregar como al quitar (los
+  // "missing" del cluster dependen del viewport; sumamos los cargados). Si no
+  // queda nada seleccionado, no movemos el mapa.
   const handleChipClick = useCallback(
     (type: ReportType) => {
-      const next = filter === type ? "all" : type;
-      setFilter(next);
-      if (next === "all") return;
-      // "Buscan" (missing) encuadra los marcadores cargados (dependen del
-      // viewport, son decenas de miles) + los reportes propios de ese tipo.
-      const points =
-        next === "missing"
-          ? [
-              ...missingMapMarkers.map((m) => ({ lat: m.lat, lng: m.lng })),
-              ...reports
-                .filter((r) => r.type === "missing")
-                .map((r) => ({ lat: r.lat, lng: r.lng })),
-            ]
-          : reports
-              .filter((r) => r.type === next)
-              .map((r) => ({ lat: r.lat, lng: r.lng }));
+      const next = new Set(selectedTypes);
+      if (next.has(type)) next.delete(type);
+      else next.add(type);
+      setSelectedTypes(next);
+      const points = reports
+        .filter((r) => next.has(r.type))
+        .map((r) => ({ lat: r.lat, lng: r.lng }));
+      if (next.has("missing")) {
+        for (const m of missingMapMarkers) {
+          points.push({ lat: m.lat, lng: m.lng });
+        }
+      }
       if (points.length > 0) setFitRequest({ points, ts: Date.now() });
     },
-    [filter, reports, missingMapMarkers],
+    [selectedTypes, reports, missingMapMarkers],
   );
 
   const [shareCopied, setShareCopied] = useState(false);
@@ -585,15 +591,19 @@ export default function EmergencyApp() {
     if (missingStats) {
       base.missing = missingStats.active;
     }
+    // Los edificios importados (read-only) se suman al conteo de "Edificios".
+    base.building += EDIFICIOS_COUNT;
     return base;
   }, [reports, missingStats]);
 
-  const showMissingOnMap = filter === "all" || filter === "missing";
+  const allTypesSelected = selectedTypes.size === REPORT_TYPE_KEYS.length;
+  const showMissingOnMap = selectedTypes.has("missing");
+  // La capa de edificios importados se muestra cuando "Edificios" está elegido.
+  const showEdificios = selectedTypes.has("building");
 
   const mapReports = useMemo(() => {
-    if (filter === "all") return reports;
-    return reports.filter((r) => r.type === filter);
-  }, [reports, filter]);
+    return reports.filter((r) => selectedTypes.has(r.type));
+  }, [reports, selectedTypes]);
 
   const visibleReports = useMemo(() => {
     const normalize = (value: string) =>
@@ -607,13 +617,13 @@ export default function EmergencyApp() {
     const window = TIME_FILTER_WINDOWS[timeFilter];
 
     return reports.filter((report) => {
-      if (filter !== "all" && report.type !== filter) return false;
+      if (!selectedTypes.has(report.type)) return false;
       if (window !== null && now - report.createdAt > window) return false;
       if (terms.length === 0) return true;
       const haystack = normalize(`${report.place} ${report.needs}`);
       return terms.every((term) => haystack.includes(term));
     });
-  }, [reports, filter, query, timeFilter, now]);
+  }, [reports, selectedTypes, query, timeFilter, now]);
 
   return (
     <section id="mapa" className="mx-auto w-full max-w-7xl px-4 py-10">
@@ -686,24 +696,26 @@ export default function EmergencyApp() {
           center={CARACAS}
           zoom={12}
           fitRequest={fitRequest}
+          showEdificios={showEdificios}
         />
 
+
         {/* Controles flotantes: buscador de direcciones + chips de filtro por tipo */}
-        <div className="map-overlay pointer-events-none absolute inset-x-0 top-0 z-[1000] flex flex-col gap-2 p-3">
-          <div className="pointer-events-auto w-full max-w-sm">
+        <div className="map-overlay pointer-events-none absolute inset-x-0 top-0 z-[1000] flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:pr-14">
+          <div className="pointer-events-auto w-full max-w-sm sm:shrink-0">
             <AddressSearch
               onSelect={handleAddressSelect}
               bias={focus ? { lat: focus.lat, lng: focus.lng } : AFFECTED_CENTER}
             />
           </div>
           <div
-            className="reports-chips pointer-events-auto flex gap-1.5 overflow-x-auto pb-1"
+            className="reports-chips pointer-events-auto flex gap-1.5 overflow-x-auto pb-1 sm:min-w-0"
             role="group"
             aria-label="Filtrar pines del mapa por tipo"
           >
             {(Object.keys(REPORT_TYPES) as ReportType[]).map((type) => {
               const meta = REPORT_TYPES[type];
-              const active = filter === type;
+              const active = selectedTypes.has(type);
               return (
                 <button
                   key={type}
@@ -712,10 +724,10 @@ export default function EmergencyApp() {
                   aria-pressed={active}
                   title={meta.label}
                   aria-label={`${meta.label}: ${counts[type]}${active ? " (filtro activo, toca para quitarlo)" : ""}`}
-                  className={`flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-full border py-1.5 pl-1.5 pr-3 text-xs font-semibold shadow-sm transition ${
+                  className={`flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-full border py-1.5 pl-1.5 pr-3 text-xs font-semibold shadow-sm transition hover:shadow-md ${
                     active
-                      ? "border-slate-900 bg-slate-900 text-white"
-                      : "border-slate-200 bg-white/95 text-slate-700 hover:bg-white"
+                      ? "border-slate-900 bg-slate-900 text-white hover:bg-slate-700"
+                      : "border-slate-200 bg-white/95 text-slate-700 hover:border-slate-300 hover:bg-slate-100"
                   }`}
                 >
                   <span
@@ -725,9 +737,12 @@ export default function EmergencyApp() {
                   >
                     {meta.icon}
                   </span>
-                  <span className="tabular-nums">{formatCount(counts[type])}</span>
-                  <span className="hidden sm:inline">
-                    {REPORT_TYPE_SHORT[type]}
+                  <span className="tabular-nums">
+                    {formatCount(counts[type])}
+                    <span className="hidden sm:inline">
+                      {" "}
+                      {REPORT_TYPE_SHORT[type]}
+                    </span>
                   </span>
                 </button>
               );
@@ -863,7 +878,9 @@ export default function EmergencyApp() {
           </div>
 
           <div className="mt-3 max-h-[70vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-2">
-            {filter === "missing" && missingStats && missingStats.active > 0 && (
+            {selectedTypes.has("missing") &&
+              missingStats &&
+              missingStats.active > 0 && (
               <div className="mb-2 rounded-lg border border-purple-200 bg-purple-50 px-3 py-2 text-xs text-purple-900">
                 Hay{" "}
                 <strong>{missingStats.active.toLocaleString("es-VE")}</strong>{" "}
@@ -875,15 +892,32 @@ export default function EmergencyApp() {
                 </a>
               </div>
             )}
+            {selectedTypes.has("building") && (
+              <div className="mb-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                En el mapa hay <strong>{EDIFICIOS_COUNT}</strong> edificios de{" "}
+                <a
+                  href={EDIFICIOS_SOURCE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold underline"
+                >
+                  {EDIFICIOS_SOURCE_LABEL}
+                </a>{" "}
+                (solo lectura; toca uno para ver el daño). Abajo, los reportados
+                por usuarios.
+              </div>
+            )}
             {visibleReports.length === 0 ? (
               <p className="p-4 text-sm text-slate-500">
                 {query.trim()
                   ? `No se encontraron reportes para “${query.trim()}”.`
-                  : `Aún no hay reportes${filter !== "all" ? " de este tipo" : ""}. Usa el botón "+ Reportar" para crear el primero.`}
+                  : selectedTypes.size === 0
+                    ? "Selecciona un tipo en los chips de arriba para ver reportes."
+                    : `Aún no hay reportes${allTypesSelected ? "" : " de los tipos seleccionados"}. Usa el botón "+ Reportar" para crear el primero.`}
               </p>
             ) : (
               <>
-                {(query.trim() || filter !== "all") && (
+                {(query.trim() || !allTypesSelected) && (
                   <p
                     aria-live="polite"
                     className="px-3 py-2 text-xs font-medium text-slate-500"
