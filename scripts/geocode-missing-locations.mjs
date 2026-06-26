@@ -30,10 +30,6 @@ const sql = neon(DATABASE_URL);
 const BIAS = { lat: 10.48, lng: -66.9 };
 const DELAY_MS = 1100;
 
-function normalizeKey(text) {
-  return text.trim().toLowerCase().replace(/\s+/g, " ");
-}
-
 async function ensureSchema() {
   await sql`ALTER TABLE missing_persons ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION`;
   await sql`ALTER TABLE missing_persons ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION`;
