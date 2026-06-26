@@ -210,24 +210,40 @@ function FlyToHandler({
   return null;
 }
 
-/** Cierra el popup abierto al presionar Esc, sin importar dónde esté el foco.
- * Acotado: no hace nada si hay un modal/diálogo abierto (lo maneja él). */
+/** Cierra el popup abierto al presionar Esc o al clicar FUERA del mapa (Leaflet
+ * solo lo cierra al clicar dentro de su contenedor). Acotado: no hace nada si
+ * hay un modal/diálogo abierto (lo maneja él). */
 function EscClosePopup() {
   const map = useMap();
   useEffect(() => {
+    const modalOpen = () =>
+      !!document.querySelector(
+        '[role="dialog"][aria-modal="true"]:not(.hidden)',
+      );
+    const popupOpen = () => !!document.querySelector(".leaflet-popup");
+
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
-      if (
-        document.querySelector('[role="dialog"][aria-modal="true"]:not(.hidden)')
-      )
-        return;
-      if (document.querySelector(".leaflet-popup")) {
+      if (modalOpen()) return;
+      if (popupOpen()) {
         map.closePopup();
         event.stopPropagation();
       }
     };
+    const onPointerDown = (event: MouseEvent) => {
+      if (!popupOpen() || modalOpen()) return;
+      // Los clics DENTRO del mapa (marcadores, mapa, popup) los maneja Leaflet;
+      // cerramos solo cuando el clic cae FUERA del contenedor del mapa.
+      if (map.getContainer().contains(event.target as Node)) return;
+      map.closePopup();
+    };
+
     window.addEventListener("keydown", onKey, true);
-    return () => window.removeEventListener("keydown", onKey, true);
+    document.addEventListener("mousedown", onPointerDown, true);
+    return () => {
+      window.removeEventListener("keydown", onKey, true);
+      document.removeEventListener("mousedown", onPointerDown, true);
+    };
   }, [map]);
   return null;
 }
