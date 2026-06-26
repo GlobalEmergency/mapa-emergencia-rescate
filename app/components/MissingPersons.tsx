@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import MissingPersonForm, {
   type MissingPersonPayload,
 } from "./MissingPersonForm";
@@ -62,6 +62,9 @@ export default function MissingPersons() {
     POLL_INTERVAL_MS,
     LOW_BANDWIDTH_POLL_INTERVAL_MS,
   );
+  const requestIdRef = useRef(0);
+  const listTopRef = useRef<HTMLDivElement | null>(null);
+  const initialPageRef = useRef(true);
 
   // Debounce de la búsqueda: al cambiar el término volvemos a la página 1.
   useEffect(() => {
@@ -74,6 +77,7 @@ export default function MissingPersons() {
 
   const load = useCallback(
     async (manual = false) => {
+      const requestId = ++requestIdRef.current;
       setAdminToken(sessionStorage.getItem(ADMIN_STORAGE_KEY));
       if (manual) setRefreshing(true);
       try {
@@ -89,6 +93,8 @@ export default function MissingPersons() {
         });
         if (!res.ok) return;
         const data = await res.json();
+        // Ignorar respuestas de solicitudes anteriores (carrera con polling).
+        if (requestId !== requestIdRef.current) return;
         setPeople(data.people ?? []);
         setTotal(data.total ?? 0);
         setTotalPages(data.totalPages ?? 1);
@@ -136,6 +142,16 @@ export default function MissingPersons() {
       document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [load, network.pollIntervalMs]);
+
+  // Al cambiar de página, hacemos scroll al inicio de la lista para mostrar
+  // los nuevos resultados (no en la carga inicial).
+  useEffect(() => {
+    if (initialPageRef.current) {
+      initialPageRef.current = false;
+      return;
+    }
+    listTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [page]);
 
   const handleSubmit = useCallback(async (payload: MissingPersonPayload) => {
     const res = await fetch("/api/missing", {
@@ -194,7 +210,7 @@ export default function MissingPersons() {
   const isSearching = debouncedQuery.trim().length > 0;
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+    <div ref={listTopRef} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="flex flex-wrap items-center gap-2">
