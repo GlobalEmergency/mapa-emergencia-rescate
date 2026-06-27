@@ -75,9 +75,16 @@ necesites, córrelas **manualmente**:
 
 ## Secrets que usa (GitHub Actions)
 
-`KUBECONFIG`, `PROD_HOST`, `NEXT_PUBLIC_ASSET_PREFIX`, `NEON_DATABASE_URL`,
-`R2_ENDPOINT`, `R2_STATIC_BUCKET`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`,
-`R2_PUBLIC_BASE`, `GITHUB_TOKEN` (automático).
+`KUBECONFIG`, `PROD_HOST`, `NEXT_PUBLIC_ASSET_PREFIX`,
+`NEXT_PUBLIC_OPENPANEL_CLIENT_ID`, `OPENPANEL_CLIENT_SECRET`,
+`NEON_DATABASE_URL`, `R2_ENDPOINT`, `R2_STATIC_BUCKET`, `R2_ACCESS_KEY_ID`,
+`R2_SECRET_ACCESS_KEY`, `R2_PUBLIC_BASE`, `GITHUB_TOKEN` (automático).
+
+> **OpenPanel.** `NEXT_PUBLIC_OPENPANEL_CLIENT_ID` se inyecta en el bundle como
+> build-arg (es público; viaja al navegador). `OPENPANEL_CLIENT_SECRET` es
+> server-side: el workflow lo **parchea** dentro del secret `app-env` (merge,
+> sin recrear) y los pods nuevos lo leen al rolar. Variable opcional de repo:
+> `NEXT_PUBLIC_OPENPANEL_PRODUCTION_HOST` (default `terremotovenezuela.app`).
 
 ## Rollback
 
