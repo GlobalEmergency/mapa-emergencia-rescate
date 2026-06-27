@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { MapPinned } from "lucide-react";
 import TranslateWidget from "./TranslateWidget";
+import PsychologyHelpButton from "./PsychologyHelpButton";
 import { DonateNavButton } from "./DonateButton";
 import { SiteBrand } from "./HeroSection";
 import { toggleTheme } from "./ThemeProvider";
@@ -136,6 +137,7 @@ function badgeValue(
 function NavHeaderActions() {
   return (
     <div className="flex shrink-0 flex-nowrap items-center justify-end gap-2">
+      <PsychologyHelpButton />
       <a
         href={WHATSAPP_COMMUNITY_URL}
         target="_blank"
