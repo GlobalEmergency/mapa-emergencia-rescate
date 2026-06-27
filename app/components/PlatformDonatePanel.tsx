@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import {
-  PAYPAL_DONATION_URL,
   PLATFORM_MONTHLY_EXPENSES,
   STRIPE_DONATION_URL,
   formatDonationUsd,
@@ -14,14 +13,6 @@ type Props = {
   titleId?: string;
   refreshKey?: unknown;
 };
-
-function PayPalMark({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" aria-hidden fill="currentColor">
-      <path d="M7.5 19.5h2.1l.55-3.5H8.1c-.55 0-1-.45-1.05-1l-.9-5.7c0-.55.4-1 .95-1h6.35c3.15 0 5.35 1.35 4.85 4.65-.35 2.35-2.05 3.65-4.35 3.65h-1.75l-.55 3.5H7.5z" />
-    </svg>
-  );
-}
 
 function StripeMark({ className }: { className?: string }) {
   return (
@@ -117,19 +108,6 @@ export default function PlatformDonatePanel({
           </div>
         </div>
       )}
-
-      <a
-        href={PAYPAL_DONATION_URL}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="e-donate-tooltip__paypal"
-        onClick={() =>
-          trackEvent("donation_provider_clicked", { provider: "paypal", progressPct })
-        }
-      >
-        <PayPalMark className="h-5 w-5 shrink-0" />
-        Donar con PayPal
-      </a>
 
       {stripeEnabled ? (
         <a

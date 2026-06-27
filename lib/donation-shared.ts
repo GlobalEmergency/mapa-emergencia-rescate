@@ -2,7 +2,8 @@ export const PAYPAL_DONATION_URL =
   "https://www.paypal.com/ncp/payment/ZSSSATY2E654Y";
 
 export const STRIPE_DONATION_URL =
-  process.env.NEXT_PUBLIC_STRIPE_DONATION_URL ?? "";
+  process.env.NEXT_PUBLIC_STRIPE_DONATION_URL ??
+  "https://buy.stripe.com/00w28tfAjbi20gW7AQ9Zm0r";
 
 export const MIN_DONATION_CENTS = 100;
 export const MAX_DONATION_CENTS = 1_000_000;

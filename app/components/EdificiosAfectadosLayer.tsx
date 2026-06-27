@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import L from "leaflet";
 import { Marker, Popup } from "react-leaflet";
 import edificiosData from "@/data/derived/edificios-afectados.json";
@@ -28,17 +29,22 @@ function edificioShareText(e: EdificioAfectado): string {
 // Todos los edificios usan el mismo marcador de "Edificación" 🏢 (mismo estilo
 // que los reportes tipo building). La severidad va como dato en el popup.
 const buildingMeta = REPORT_TYPES.building;
-const edificioIcon = L.divIcon({
-	className: "emergency-marker",
-	html: `<span class="emergency-pin" style="background:${buildingMeta.color}"><span class="emergency-pin__icon">${buildingMeta.icon}</span></span>`,
-	iconSize: [34, 34],
-	iconAnchor: [17, 34],
-	popupAnchor: [0, -30],
-});
+
+function createEdificioIcon() {
+	return L.divIcon({
+		className: "emergency-marker",
+		html: `<span class="emergency-pin" style="background:${buildingMeta.color}"><span class="emergency-pin__icon">${buildingMeta.icon}</span></span>`,
+		iconSize: [34, 34],
+		iconAnchor: [17, 34],
+		popupAnchor: [0, -30],
+	});
+}
 
 /** Capa de solo-lectura con los edificios dañados importados de
  * sismovenezuela.org. Popup al click con place/daño/nota/foto y atribución. */
 export default function EdificiosAfectadosLayer() {
+	const edificioIcon = useMemo(() => createEdificioIcon(), []);
+
 	return (
 		<>
 			{edificios.map((e) => {

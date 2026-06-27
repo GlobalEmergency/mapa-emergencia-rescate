@@ -2032,14 +2032,13 @@ body.mobile-sheet-open [data-sticky-help-root] {
 	color: rgba(255, 255, 255, 0.45);
 }
 
-.e-donate-tooltip__paypal,
 .e-donate-tooltip__stripe {
 	display: flex;
 	width: 100%;
 	align-items: center;
 	justify-content: center;
 	gap: 8px;
-	margin-top: 10px;
+	margin-top: 14px;
 	padding: 12px 14px;
 	border: none;
 	border-radius: 10px;
@@ -2049,18 +2048,6 @@ body.mobile-sheet-open [data-sticky-help-root] {
 	text-decoration: none;
 	color: #fff;
 	transition: filter 150ms ease, opacity 150ms ease;
-}
-
-.e-donate-tooltip__paypal {
-	margin-top: 14px;
-	background: #003087;
-}
-
-.e-donate-tooltip__paypal:hover {
-	filter: brightness(1.08);
-}
-
-.e-donate-tooltip__stripe {
 	background: #635bff;
 }
 
