@@ -4,6 +4,9 @@
 #   action=plan   -> build the image, push to GHCR, but DON'T touch the cluster.
 #   action=deploy -> build+push, then roll the app (zero-downtime) via kubectl.
 #   ensure_cluster=true -> create the k3s cluster first if it doesn't exist.
+#   bootstrap_confirm="create-infra" -> ONE-TIME: create the whole stateful tier
+#     (private net, firewall, Postgres VPS+volume+DBs, Valkey VPS) + the cluster,
+#     then PRINT the secrets to paste back. See the "NUKE AFTER FIRST RUN" block.
 #
 # Zero-downtime is enforced by the manifests (maxUnavailable:0 + readinessProbe
 # /api/readyz) and confirmed here by `kubectl rollout status`, which blocks
@@ -24,6 +27,10 @@ on:
         description: "Create the k3s cluster if it doesn't exist yet"
         type: boolean
         default: false
+      bootstrap_confirm:
+        description: "ONE-TIME bootstrap of stateful tier — type create-infra to arm it (then DELETE the bootstrap block)"
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -37,7 +44,8 @@ jobs:
   deploy:
     name: Build & ${{ inputs.action }}
     runs-on: ubuntu-latest
-    environment: production
+    # Repo-level secrets (no GitHub Environment configured). Add
+    # `environment: production` here later if you want reviewer gates.
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -87,7 +95,7 @@ jobs:
       # 2. (deploy only) Ensure cluster, then roll.
       # ---------------------------------------------------------------
       - name: Install hcloud + hetzner-k3s + kubectl
-        if: ${{ inputs.action == 'deploy' }}
+        if: ${{ inputs.action == 'deploy' || inputs.bootstrap_confirm == 'create-infra' }}
         run: |
           # kubectl
           curl -sLO "https://dl.k8s.io/release/$(curl -sL https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
@@ -97,26 +105,163 @@ jobs:
           sudo install -m0755 hcloud /usr/local/bin/hcloud
           kubectl version --client
 
-      - name: Ensure cluster exists
-        if: ${{ inputs.action == 'deploy' && inputs.ensure_cluster }}
+      # ╔═══════════════════════════════════════════════════════════════════╗
+      # ║  >>> NUKE AFTER FIRST RUN — BEGIN one-time stateful bootstrap <<<   ║
+      # ║                                                                     ║
+      # ║  Creates the PETS (private net, firewall, Postgres VPS+volume+DBs,  ║
+      # ║  Valkey VPS) once, idempotently (create-or-skip). Armed only when   ║
+      # ║  bootstrap_confirm == "create-infra". After the first successful    ║
+      # ║  run: copy the printed secrets into repo secrets, then DELETE       ║
+      # ║  everything between these NUKE markers so a routine deploy can      ║
+      # ║  never touch the database. Pre-set secrets it consumes:             ║
+      # ║    HCLOUD_TOKEN, SSH_PUBLIC_KEY, POSTGRES_USER, POSTGRES_PASSWORD,  ║
+      # ║    POSTGRES_APP_DB, POSTGRES_IMPORTED_DB, VALKEY_PASSWORD           ║
+      # ╚═══════════════════════════════════════════════════════════════════╝
+      - name: "[bootstrap] Private network"
+        if: ${{ inputs.bootstrap_confirm == 'create-infra' }}
         env:
           HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
         run: |
           set -euo pipefail
-          # Does a master already exist? (hetzner-k3s labels nodes by cluster.)
-          if hcloud server list -o noheader -o columns=name | grep -q '^mapa-'; then
+          if hcloud network describe mapa-net >/dev/null 2>&1; then
+            echo "network mapa-net exists — skip"
+          else
+            hcloud network create --name mapa-net --ip-range 10.0.0.0/16
+            hcloud network add-subnet mapa-net --type cloud --network-zone eu-central --ip-range 10.0.0.0/16
+          fi
+
+      - name: "[bootstrap] Firewall (deny public to DB/Valkey)"
+        if: ${{ inputs.bootstrap_confirm == 'create-infra' }}
+        env:
+          HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
+        run: |
+          set -euo pipefail
+          # Allow SSH from anywhere (tighten to your IP later); DB/Valkey ports
+          # are NOT opened publicly — only the private subnet reaches them, which
+          # private traffic does by default (firewall governs PUBLIC ingress).
+          if hcloud firewall describe mapa-db-fw >/dev/null 2>&1; then
+            echo "firewall mapa-db-fw exists — skip"
+          else
+            hcloud firewall create --name mapa-db-fw
+            hcloud firewall add-rule mapa-db-fw --direction in --protocol tcp --port 22 --source-ips 0.0.0.0/0 --source-ips ::/0
+          fi
+
+      - name: "[bootstrap] Postgres VPS + volume + role + databases"
+        if: ${{ inputs.bootstrap_confirm == 'create-infra' }}
+        env:
+          HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
+          PG_USER: ${{ secrets.POSTGRES_USER }}
+          PG_PASS: ${{ secrets.POSTGRES_PASSWORD }}
+          PG_APP_DB: ${{ secrets.POSTGRES_APP_DB }}
+          PG_IMPORTED_DB: ${{ secrets.POSTGRES_IMPORTED_DB }}
+          SSH_PUBLIC_KEY: ${{ secrets.SSH_PUBLIC_KEY }}
+        run: |
+          set -euo pipefail
+          if hcloud server describe mapa-postgres >/dev/null 2>&1; then
+            echo "server mapa-postgres exists — skip create"
+          else
+            # Register the SSH public key (idempotent name).
+            hcloud ssh-key describe mapa-key >/dev/null 2>&1 || \
+              hcloud ssh-key create --name mapa-key --public-key "$SSH_PUBLIC_KEY"
+
+            # cloud-init: install Postgres, create the role + app/imported DBs,
+            # bind to the private IP only. Heredoc expands the secrets in.
+            cat > pg-cloud-init.yaml <<EOF
+          #cloud-config
+          package_update: true
+          packages: [postgresql]
+          runcmd:
+            - sudo -u postgres psql -c "CREATE USER ${PG_USER} WITH ENCRYPTED PASSWORD '${PG_PASS}';"
+            - sudo -u postgres psql -c "CREATE DATABASE ${PG_APP_DB} OWNER ${PG_USER};"
+            - sudo -u postgres psql -c "CREATE DATABASE ${PG_IMPORTED_DB} OWNER ${PG_USER};"
+            - PGDIR=\$(ls -d /etc/postgresql/*/main); echo "listen_addresses = '*'" >> \$PGDIR/postgresql.conf
+            - PGDIR=\$(ls -d /etc/postgresql/*/main); echo "host all ${PG_USER} 10.0.0.0/16 scram-sha-256" >> \$PGDIR/pg_hba.conf
+            - systemctl restart postgresql
+          EOF
+
+            hcloud server create \
+              --name mapa-postgres \
+              --type cx22 --image debian-12 --location nbg1 \
+              --ssh-key mapa-key \
+              --network mapa-net \
+              --firewall mapa-db-fw \
+              --user-data-from-file pg-cloud-init.yaml
+            # Data volume (survives a server rebuild). Mount/migrate PGDATA to it
+            # in a follow-up; created here so it exists from day one.
+            hcloud volume create --name mapa-pgdata --size 40 --server mapa-postgres --automount --format ext4
+          fi
+
+      - name: "[bootstrap] Valkey VPS"
+        if: ${{ inputs.bootstrap_confirm == 'create-infra' }}
+        env:
+          HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
+          VALKEY_PASS: ${{ secrets.VALKEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if hcloud server describe mapa-valkey >/dev/null 2>&1; then
+            echo "server mapa-valkey exists — skip create"
+          else
+            cat > valkey-cloud-init.yaml <<EOF
+          #cloud-config
+          package_update: true
+          packages: [valkey-server]
+          runcmd:
+            - sed -i "s/^# *requirepass .*/requirepass ${VALKEY_PASS}/" /etc/valkey/valkey.conf
+            - sed -i "s/^appendonly .*/appendonly yes/" /etc/valkey/valkey.conf
+            - sed -i "s/^bind .*/bind 0.0.0.0/" /etc/valkey/valkey.conf
+            - systemctl restart valkey-server
+          EOF
+            hcloud server create \
+              --name mapa-valkey \
+              --type cx22 --image debian-12 --location nbg1 \
+              --ssh-key mapa-key \
+              --network mapa-net \
+              --firewall mapa-db-fw \
+              --user-data-from-file valkey-cloud-init.yaml
+          fi
+
+      - name: "[bootstrap] Print secrets to paste (option A)"
+        if: ${{ inputs.bootstrap_confirm == 'create-infra' }}
+        env:
+          HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
+        run: |
+          set -euo pipefail
+          PG_IP=$(hcloud server describe mapa-postgres -o format='{{ (index .PrivateNet 0).IP }}')
+          VK_IP=$(hcloud server describe mapa-valkey  -o format='{{ (index .PrivateNet 0).IP }}')
+          echo "::notice::Bootstrap done. Set these as repo secrets (values masked in logs):"
+          echo "  DATABASE_URL          = postgres://<POSTGRES_USER>:<POSTGRES_PASSWORD>@${PG_IP}:5432/<POSTGRES_APP_DB>"
+          echo "  IMPORTED_DATABASE_URL = postgres://<POSTGRES_USER>:<POSTGRES_PASSWORD>@${PG_IP}:5432/<POSTGRES_IMPORTED_DB>"
+          echo "  VALKEY_URL            = redis://:<VALKEY_PASSWORD>@${VK_IP}:6379"
+          echo "  KUBECONFIG            = base64 of ./kubeconfig after the cluster step (base64 -w0 kubeconfig)"
+          echo "Postgres private IP: ${PG_IP}"
+          echo "Valkey   private IP: ${VK_IP}"
+      # ╔═══════════════════════════════════════════════════════════════════╗
+      # ║  >>> NUKE AFTER FIRST RUN — END one-time stateful bootstrap <<<     ║
+      # ╚═══════════════════════════════════════════════════════════════════╝
+
+      - name: Ensure cluster exists
+        if: ${{ (inputs.action == 'deploy' && inputs.ensure_cluster) || inputs.bootstrap_confirm == 'create-infra' }}
+        env:
+          HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
+        run: |
+          set -euo pipefail
+          # hetzner-k3s names cluster nodes mapa-master-* / mapa-app-*. Skip the
+          # DB/Valkey servers (also mapa-*) by matching the role suffixes.
+          if hcloud server list -o noheader -o columns=name | grep -qE '^mapa-(master|app|pool)'; then
             echo "Cluster 'mapa' already present — skipping create."
           else
             echo "No cluster found — creating with hetzner-k3s..."
-            # hetzner-k3s is distributed as a container; run it against the repo config.
             docker run --rm \
               -e HCLOUD_TOKEN="$HCLOUD_TOKEN" \
               -v "$PWD/infra:/infra" -v "$HOME/.ssh:/root/.ssh:ro" \
               vitobotta/hetzner-k3s:latest create --config /infra/cluster.yaml
+            echo "::notice::Cluster created. Set KUBECONFIG secret: base64 -w0 infra/kubeconfig"
           fi
 
       - name: Configure kubectl
-        if: ${{ inputs.action == 'deploy' }}
+        # Only when we have a kubeconfig to use. On the FIRST bootstrap run the
+        # secret won't exist yet — that's fine; set it, then run a normal deploy.
+        if: ${{ inputs.action == 'deploy' && secrets.KUBECONFIG != '' }}
         run: |
           mkdir -p "$HOME/.kube"
           echo "${{ secrets.KUBECONFIG }}" | base64 -d > "$HOME/.kube/config"

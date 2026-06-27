@@ -1,0 +1,46 @@
+# Local / test environment: the app + a real Postgres (TCP), mirroring prod.
+#
+# One app image (this is a single full-stack Next.js app — UI + /api route
+# handlers — so there is ONE Dockerfile, unlike BH/Hermes which have separate
+# backend+frontend apps). Postgres here exercises the pg-TCP path in lib/db.ts
+# (the same path used against the Hetzner Postgres VPS), not Neon.
+#
+#   docker compose up --build      # app on http://localhost:3000
+#   docker compose down -v         # stop + wipe the db volume
+#
+# Valkey is intentionally omitted: no app code consumes it yet (it's in the
+# deploy plan, not the codebase). Add it when something uses it.
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: mapa_app
+      POSTGRES_PASSWORD: localdev
+      POSTGRES_DB: app
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mapa_app -d app"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      # In-container, reach Postgres by service name. Non-Neon host -> lib/db.ts
+      # uses the pg TCP driver.
+      DATABASE_URL: postgres://mapa_app:localdev@db:5432/app
+      TRUSTED_IP_HEADER: x-forwarded-for
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
