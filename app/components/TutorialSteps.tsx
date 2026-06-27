@@ -23,7 +23,8 @@ export default function TutorialSteps() {
           </div>
         </div>
 
-        <div className="max-w-[712px] mx-auto bg-white border border-[#e5e7eb] rounded-[20px] p-7 sm:p-8 shadow-[0_1px_4px_rgba(0,0,0,0.06)] mb-7">
+        {/* TODO: Formulario en desarrollo, oculto temporalmente */}
+        <div className="hidden max-w-[712px] mx-auto bg-white border border-[#e5e7eb] rounded-[20px] p-7 sm:p-8 shadow-[0_1px_4px_rgba(0,0,0,0.06)] mb-7">
           <div className="flex items-center gap-[10px] mb-[18px]">
             <div className="w-8 h-8 bg-red-100 rounded-[8px] flex items-center justify-center shrink-0">
               <AlertTriangle size={16} color="#B91C1C" strokeWidth={2.2} />
