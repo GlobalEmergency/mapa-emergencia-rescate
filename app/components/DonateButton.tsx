@@ -17,7 +17,7 @@ type DonateNavButtonProps = {
   onAfterDonate?: () => void;
 };
 
-function DonateModal({
+export function DonateModal({
   open,
   onClose,
   onSuccess,
@@ -238,8 +238,8 @@ function DonateModal({
           </div>
 
           <p className="text-xs leading-relaxed text-slate-500">
-            Tu nombre y monto aparecerán en el muro de donaciones. Al continuar
-            serás redirigido a PayPal para completar el pago.
+            Tu donación se procesará de forma segura. Al continuar serás
+            redirigido a PayPal para completar el pago.
           </p>
 
           {previewCents !== null && previewCents >= MIN_DONATION_CENTS && (

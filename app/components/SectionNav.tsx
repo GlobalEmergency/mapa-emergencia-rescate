@@ -3,32 +3,19 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import {
-  Brain,
-  ChevronDown,
-  CircleCheck,
-  Globe2,
-  HandHeart,
-  HeartHandshake,
-  Link2,
-  MapPinned,
-  MessageCircle,
-  PhoneCall,
-  Search,
-  Share2,
-} from "lucide-react";
+import { MapPinned } from "lucide-react";
 import TranslateWidget from "./TranslateWidget";
+import PsychologyHelpButton from "./PsychologyHelpButton";
 import { DonateNavButton } from "./DonateButton";
+import { SiteBrand } from "./HeroSection";
+import { toggleTheme } from "./ThemeProvider";
 import {
-  DESKTOP_NAV_GROUPS,
   MOBILE_BAR_LINKS,
   PRIMARY_MAP_LINK,
   SECTION_LINKS,
-  linksForDesktopGroup,
-  type DesktopNavGroup,
   type SectionLink,
 } from "@/lib/section-nav";
-import { psychologyHelpUrl } from "@/lib/site";
+import { WHATSAPP_COMMUNITY_URL, X_PROFILE_URL } from "@/lib/site";
 
 const SHARE_TEXT =
   "Mapa de Emergencia y Rescate: Terremoto en Venezuela. Reporta y consulta el estado de las zonas en tiempo real.";
@@ -147,266 +134,56 @@ function badgeValue(
   return null;
 }
 
-const DESKTOP_CHIP: Record<NonNullable<SectionLink["tone"]>, string> = {
-  primary: "border-red-500 bg-red-600 text-white hover:bg-red-500",
-  purple:
-    "border-purple-300 bg-purple-50 text-purple-900 hover:border-purple-400 hover:bg-purple-100",
-  emerald:
-    "border-emerald-300 bg-emerald-50 text-emerald-900 hover:border-emerald-400 hover:bg-emerald-100",
-  sky: "border-sky-300 bg-sky-50 text-sky-900 hover:border-sky-400 hover:bg-sky-100",
-  default:
-    "border-slate-200 bg-white text-slate-800 hover:border-slate-300 hover:bg-slate-50",
-};
-
-const DESKTOP_ICON = {
-  [PRIMARY_MAP_LINK.href]: MapPinned,
-  "#desaparecidas": Search,
-  "#localizados": CircleCheck,
-  "/hospitales": HeartHandshake,
-  "/telefonos": PhoneCall,
-  "/guia": HeartHandshake,
-  "/acopio": HandHeart,
-  "/apoyo-global": Globe2,
-  "/chat": MessageCircle,
-};
-
-const DESKTOP_GROUP_ICON: Record<
-  DesktopNavGroup["id"],
-  typeof Search
-> = {
-  personas: Search,
-  salud: HeartHandshake,
-  recursos: Globe2,
-};
-
-function groupBadge(
-  group: DesktopNavGroup,
-  missing: number | null,
-  found: number | null,
-): string | null {
-  if (group.id === "personas") {
-    if (missing !== null) return missing.toLocaleString("es-VE");
-    if (found !== null) return found.toLocaleString("es-VE");
-  }
-  return null;
-}
-
-function NavDropdownItem({
-  link,
-  missing,
-  found,
-  onHome,
-}: {
-  link: SectionLink;
-  missing: number | null;
-  found: number | null;
-  onHome: boolean;
-}) {
-  const badge = badgeValue(link, missing, found);
-  const Icon = DESKTOP_ICON[link.href as keyof typeof DESKTOP_ICON] ?? Link2;
-
-  const row = (
-    <>
-      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-base">
-        {link.icon}
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-semibold text-slate-900">
-          {link.label}
-        </span>
-      </span>
-      {badge ? (
-        <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-700">
-          {compactBadge(badge)}
-        </span>
-      ) : (
-        <Icon aria-hidden className="h-4 w-4 shrink-0 text-slate-400" strokeWidth={2} />
-      )}
-    </>
-  );
-
-  const itemClassName =
-    "flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition hover:bg-slate-50";
-
-  if (isAnchor(link.href)) {
-    return (
+function NavHeaderActions() {
+  return (
+    <div className="flex shrink-0 flex-nowrap items-center justify-end gap-2">
+      <PsychologyHelpButton />
       <a
-        href={resolveHref(link.href, onHome)}
-        onClick={
-          onHome
-            ? (e) => {
-                e.preventDefault();
-                scrollToSection(link.href);
-              }
-            : undefined
-        }
-        title={link.label}
-        className={itemClassName}
+        href={WHATSAPP_COMMUNITY_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex h-9 min-h-0 items-center justify-center gap-1.5 rounded-full border-[1.5px] border-emerald-200 bg-emerald-50 px-3 text-xs font-bold text-emerald-800 transition hover:bg-emerald-100"
       >
-        {row}
+        <span aria-hidden>💬</span>
+        <span className="hidden md:inline">Únete a la comunidad</span>
+        <span className="md:hidden">WhatsApp</span>
       </a>
-    );
-  }
-
-  return (
-    <Link
-      href={link.href}
-      prefetch={false}
-      title={link.label}
-      className={itemClassName}
-    >
-      {row}
-    </Link>
-  );
-}
-
-function NavGroup({
-  group,
-  missing,
-  found,
-  onHome,
-}: {
-  group: DesktopNavGroup;
-  missing: number | null;
-  found: number | null;
-  onHome: boolean;
-}) {
-  const links = linksForDesktopGroup(group);
-  const tone = group.tone ?? "default";
-  const GroupIcon = DESKTOP_GROUP_ICON[group.id];
-  const badge = groupBadge(group, missing, found);
-
-  return (
-    <div className="group/nav relative shrink-0">
-      <button
-        type="button"
-        aria-haspopup="menu"
-        aria-label={`${group.label}: ver secciones`}
-        className={`inline-flex min-h-9 items-center justify-center gap-1 rounded-lg border px-2 py-1.5 text-xs font-semibold shadow-sm transition lg:gap-1.5 lg:px-2.5 lg:text-[13px] ${DESKTOP_CHIP[tone]}`}
+      <a
+        href={X_PROFILE_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Síguenos en X"
+        title="Síguenos en X"
+        className="inline-flex h-9 w-9 min-h-0 items-center justify-center rounded-full border-[1.5px] border-[var(--eborder)] bg-[var(--esurf)] text-sm font-bold text-[var(--etext)] transition hover:bg-[var(--einput)]"
       >
-        <GroupIcon aria-hidden className="h-4 w-4 shrink-0" strokeWidth={2.2} />
-        <span className="hidden lg:inline xl:hidden">{group.shortLabel}</span>
-        <span className="hidden xl:inline">{group.label}</span>
-        <span className="lg:hidden">{group.shortLabel.slice(0, 4)}</span>
-        {badge && (
-          <span className="rounded-full bg-current/10 px-1.5 py-0.5 text-[10px] font-bold leading-none">
-            {compactBadge(badge)}
-          </span>
-        )}
-        <ChevronDown
-          aria-hidden
-          className="h-3.5 w-3.5 shrink-0 opacity-70 transition group-hover/nav:rotate-180"
-          strokeWidth={2.5}
-        />
-      </button>
-
-      <div
-        role="menu"
-        className="invisible absolute left-1/2 top-full z-[1900] w-[min(18rem,calc(100vw-2rem))] -translate-x-1/2 pt-1.5 opacity-0 transition-all duration-150 group-hover/nav:visible group-hover/nav:opacity-100 group-focus-within/nav:visible group-focus-within/nav:opacity-100"
-      >
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl ring-1 ring-black/5">
-          <p className="px-2 pb-1 pt-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-400">
-            {group.label}
-          </p>
-          {links.map((link) => (
-            <NavDropdownItem
-              key={link.href}
-              link={link}
-              missing={missing}
-              found={found}
-              onHome={onHome}
-            />
-          ))}
-        </div>
-      </div>
+        𝕏
+      </a>
+      <TranslateWidget nav />
     </div>
   );
 }
 
-/** Menú superior de secciones — solo desktop/tablet. */
+/** Barra superior sticky: marca + enlaces sociales e idioma. */
 export function HeroDesktopNav() {
-  const { missing, found } = usePeopleTotals();
   const pathname = usePathname();
   const onHome = pathname === "/";
-
-  const primaryHref = resolveHref(PRIMARY_MAP_LINK.href, onHome);
 
   return (
     <nav
       aria-label="Secciones principales"
-      className="fixed inset-x-0 top-0 z-[1800] hidden w-full border-b border-white/10 bg-black/45 px-2 py-3 shadow-lg backdrop-blur-md md:block lg:px-3"
+      className="sticky top-0 z-[1800] w-full border-b-[1.5px] border-[var(--eborder)] bg-[var(--esurf)] shadow-sm"
     >
-      <div className="mx-auto flex max-w-7xl flex-nowrap items-center justify-center gap-1 lg:gap-1.5">
-        <a
-          href={primaryHref}
-          onClick={
-            onHome
-              ? (e) => {
-                  e.preventDefault();
-                  scrollToSection(PRIMARY_MAP_LINK.href);
-                }
-              : undefined
-          }
-          title={PRIMARY_MAP_LINK.label}
-          aria-label={PRIMARY_MAP_LINK.label}
-          className="inline-flex min-h-9 shrink-0 items-center justify-center gap-1 rounded-lg bg-red-600 px-2 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-red-500 lg:gap-1.5 lg:px-2.5 lg:text-[13px]"
-        >
-          <MapPinned aria-hidden className="h-4 w-4" strokeWidth={2.2} />
-          {PRIMARY_MAP_LINK.shortLabel}
-        </a>
-
-        {DESKTOP_NAV_GROUPS.map((group) => (
-          <NavGroup
-            key={group.id}
-            group={group}
-            missing={missing}
-            found={found}
-            onHome={onHome}
-          />
-        ))}
-        <PsychologyHelpNavButton />
-        <DonateNavButton variant="desktop" />
+      <div className="mx-auto flex h-[62px] max-w-[1120px] items-center justify-between gap-3 px-4 sm:px-6">
+        <SiteBrand
+          onClick={onHome ? () => scrollToSection("main") : undefined}
+        />
+        <NavHeaderActions />
       </div>
     </nav>
   );
 }
 
-function PsychologyHelpNavButton() {
-  const psychologyUrl = psychologyHelpUrl();
-  const psychologyIsExternal = !psychologyUrl.startsWith("mailto:");
-
-  const trackPsychologyClick = useCallback(() => {
-    fetch("/api/stats/psychology-help", {
-      method: "POST",
-      keepalive: true,
-    }).catch(() => {});
-  }, []);
-
-  return (
-    <a
-      href={psychologyUrl}
-      target={psychologyIsExternal ? "_blank" : undefined}
-      rel={psychologyIsExternal ? "noopener noreferrer" : undefined}
-      onClick={trackPsychologyClick}
-      title="Apoyo psicológico"
-      aria-label="Apoyo psicológico"
-      className="inline-flex min-h-9 shrink-0 items-center justify-center gap-1 rounded-lg border border-violet-300 bg-violet-50 px-1.5 py-1.5 text-xs font-semibold text-violet-900 shadow-sm transition hover:border-violet-400 hover:bg-violet-100 lg:gap-1.5 lg:px-2 lg:text-[13px] xl:px-2.5"
-    >
-      <Brain aria-hidden className="h-4 w-4 shrink-0" strokeWidth={2.2} />
-      <span className="lg:hidden">Psi.</span>
-      <span className="hidden lg:inline xl:hidden">Psico</span>
-      <span className="hidden xl:inline">Apoyo psicológico</span>
-    </a>
-  );
-}
-
-function ShareNavButton({
-  variant,
-  onAfterShare,
-}: {
-  variant: "desktop" | "sheet";
-  onAfterShare?: () => void;
-}) {
+function ShareNavButton({ onAfterShare }: { onAfterShare?: () => void }) {
   const [copied, setCopied] = useState(false);
 
   const handleShare = useCallback(async () => {
@@ -432,23 +209,6 @@ function ShareNavButton({
       /* sin permisos */
     }
   }, [onAfterShare]);
-
-  if (variant === "desktop") {
-    return (
-      <button
-        type="button"
-        onClick={handleShare}
-        aria-label={copied ? "Enlace copiado" : "Compartir mapa"}
-        title={copied ? "Enlace copiado" : "Compartir mapa"}
-        className="inline-flex min-h-9 shrink-0 items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white px-1.5 py-1.5 text-xs font-semibold text-slate-800 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 lg:gap-1.5 lg:px-2 lg:text-[13px] xl:px-2.5"
-      >
-        <Share2 aria-hidden className="h-4 w-4" strokeWidth={2.2} />
-        <span className="sr-only lg:not-sr-only">
-          {copied ? "Copiado" : "Compartir"}
-        </span>
-      </button>
-    );
-  }
 
   return (
     <button
@@ -521,7 +281,7 @@ export function MobileStickyNav() {
     <>
       <nav
         aria-label="Navegación rápida"
-        className="fixed inset-x-0 bottom-0 z-[1850] border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_24px_rgba(15,23,42,0.12)] backdrop-blur-md md:hidden"
+        className="fixed inset-x-0 bottom-0 z-[1850] border-t-[1.5px] border-[var(--eborder)] bg-[var(--esurf)]/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_24px_rgba(10,22,40,0.12)] backdrop-blur-md md:hidden"
       >
         <div className="mx-auto grid max-w-lg grid-cols-4">
           {MOBILE_BAR_LINKS.map((link) => {
@@ -613,14 +373,28 @@ export function MobileStickyNav() {
                 );
               })}
               <li className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    toggleTheme();
+                    closeSheet();
+                  }}
+                  className="flex min-h-12 w-full touch-manipulation items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-semibold text-[var(--etext)] transition active:bg-[var(--einput)]"
+                >
+                  <span className="text-xl" aria-hidden>
+                    🌓
+                  </span>
+                  Cambiar tema claro/oscuro
+                </button>
+              </li>
+              <li className="pt-2">
                 <DonateNavButton variant="sheet" onAfterDonate={closeSheet} />
               </li>
               <li className="pt-2">
                 <div className="flex gap-2 px-1">
                   <div className="flex-1">
-                    <ShareNavButton variant="sheet" onAfterShare={closeSheet} />
+                    <ShareNavButton onAfterShare={closeSheet} />
                   </div>
-                  <TranslateWidget />
                 </div>
               </li>
             </ul>

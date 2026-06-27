@@ -20,21 +20,13 @@ export const PRIMARY_MAP_LINK: SectionLink = {
 
 export const SECTION_LINKS: SectionLink[] = [
   {
-    href: "#desaparecidas",
+    href: "#e-directory",
     label: "Personas desaparecidas",
     shortLabel: "Desaparecidas",
     icon: "🧍",
     tone: "purple",
     badge: "missing",
     mobileBar: true,
-  },
-  {
-    href: "#localizados",
-    label: "Localizados a salvo",
-    shortLabel: "Localizados",
-    icon: "💚",
-    tone: "emerald",
-    badge: "found",
   },
   {
     href: "/hospitales",
@@ -99,7 +91,7 @@ export const DESKTOP_NAV_GROUPS: DesktopNavGroup[] = [
     label: "Personas",
     shortLabel: "Personas",
     tone: "purple",
-    hrefs: ["#desaparecidas", "#localizados"],
+    hrefs: ["#e-directory"],
   },
   {
     id: "salud",

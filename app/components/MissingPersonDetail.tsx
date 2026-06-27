@@ -29,18 +29,14 @@ function extractPhone(contact: string): string | null {
 interface Props {
   person: MissingPerson;
   onClose: () => void;
-  /** Lista para navegar entre fichas (anterior/siguiente). */
   people?: MissingPerson[];
-  /** Actualiza la persona visible al usar flechas, teclado o gestos. */
   onNavigate?: (person: MissingPerson) => void;
-  /** Llamado al confirmar el formulario "marcar como localizada". */
   onMarkFound?: (payload: MissingFoundPayload) => Promise<void>;
 }
 
-function shareUrl(person: MissingPerson): string {
-  const hash = person.status === "found" ? "/#localizados" : "/#desaparecidas";
-  if (typeof window === "undefined") return `https://terremotovenezuela.app${hash}`;
-  return `${window.location.origin}${hash}`;
+function shareUrl(_person: MissingPerson): string {
+  if (typeof window === "undefined") return "https://terremotovenezuela.app/";
+  return `${window.location.origin}/#e-directory`;
 }
 
 function shareTitle(person: MissingPerson): string {
@@ -133,7 +129,6 @@ export default function MissingPersonDetail({
   }, [goNext, goPrev, onClose, showFoundForm]);
 
   const isFound = person.status === "found";
-
   const url = shareUrl(person);
   const text = shareText(person);
 
@@ -183,154 +178,106 @@ export default function MissingPersonDetail({
       role="dialog"
       aria-modal="true"
       aria-labelledby="missing-detail-title"
-      className="fixed inset-0 z-[2000] flex items-end justify-center bg-slate-900/60 p-0 sm:items-center sm:p-4"
+      className="e-person-modal-backdrop"
       onClick={onClose}
     >
-      {hasNav && (
-        <>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              goPrev();
-            }}
-            disabled={!hasPrev}
-            aria-label="Persona anterior"
-            className="absolute left-2 top-1/2 z-[2001] grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/95 text-lg text-slate-800 shadow-lg transition hover:bg-white disabled:opacity-30 sm:left-4 sm:h-12 sm:w-12 md:left-6"
-          >
-            ‹
-          </button>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              goNext();
-            }}
-            disabled={!hasNext}
-            aria-label="Persona siguiente"
-            className="absolute right-2 top-1/2 z-[2001] grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/95 text-lg text-slate-800 shadow-lg transition hover:bg-white disabled:opacity-30 sm:right-4 sm:h-12 sm:w-12 md:right-6"
-          >
-            ›
-          </button>
-        </>
-      )}
-
       <div
         onClick={(e) => e.stopPropagation()}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
-        className="relative z-[2001] max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-white shadow-xl sm:rounded-2xl"
+        className="e-person-modal"
       >
-        {hasNav && people && (
-          <p
-            className="absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded-full bg-slate-900/70 px-3 py-1 text-[11px] font-medium text-white backdrop-blur-sm"
-            aria-live="polite"
-          >
-            {currentIndex + 1} de {people.length}
-          </p>
-        )}
-        <div className="relative">
-          {person.photoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={person.photoUrl}
-              alt={`Foto de ${person.name}`}
-              className="max-h-[55vh] w-full cursor-zoom-in bg-slate-100 object-contain"
-              onClick={() => setZoomOpen(true)}
-            />
-          ) : (
-            <div className="grid h-64 w-full place-items-center bg-slate-100 text-6xl text-slate-300">
-              🧍
-            </div>
-          )}
-          {isFound && (
-            <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-emerald-600 px-3 py-1 text-xs font-semibold text-white shadow">
-              ✓ Localizada
-            </span>
-          )}
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Cerrar"
-            className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-white/90 text-xl text-slate-700 shadow-sm hover:bg-white"
-          >
-            ×
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Cerrar"
+          className="e-person-modal__close"
+        >
+          ×
+        </button>
 
-        <div className="space-y-3 p-5 sm:p-6">
-          <div>
-            <h3
-              id="missing-detail-title"
-              className="text-xl font-bold text-slate-900"
-            >
-              {person.name}
-            </h3>
-            {person.age !== null && (
-              <p className="text-sm text-slate-500">{person.age} años</p>
+        <div className="e-person-modal__hero">
+          <div className="e-person-modal__photo-wrap">
+            {!isFound ? (
+              <span className="e-person-modal__status">DESAPARECIDA</span>
+            ) : (
+              <span className="e-person-modal__status !bg-emerald-100 !text-emerald-800">
+                LOCALIZADA
+              </span>
+            )}
+
+            {person.photoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={person.photoUrl}
+                alt={`Foto de ${person.name}`}
+                className="e-person-modal__photo"
+                onClick={() => setZoomOpen(true)}
+              />
+            ) : (
+              <div
+                className="e-person-modal__photo e-person-modal__photo--empty"
+                aria-hidden
+              >
+                👤
+              </div>
             )}
           </div>
 
-          {person.lastSeen && (
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Visto por última vez en
-              </p>
-              <p className="mt-0.5 text-sm text-slate-800">
-                📍 {person.lastSeen}
-              </p>
-            </div>
+          <h3 id="missing-detail-title" className="e-person-modal__title">
+            {person.name}
+          </h3>
+          {person.age !== null && (
+            <p className="e-person-modal__age">{person.age} años</p>
           )}
+        </div>
+
+        <div className="e-person-modal__body">
+          <div className="e-person-modal__share">
+            <button
+              type="button"
+              onClick={nativeShare}
+              className="e-person-modal__share-btn"
+            >
+              <span aria-hidden>↗</span>
+              {copied ? "Copiado" : "Compartir"}
+            </button>
+          </div>
+          {shareError && (
+            <p className="mt-1 text-center text-xs text-red-600">{shareError}</p>
+          )}
+
+          <div className="e-person-modal__details">
+            {person.lastSeen && (
+              <p className="e-person-modal__detail">
+                <span aria-hidden>📍</span>
+                <span>{person.lastSeen}</span>
+              </p>
+            )}
+            {person.contact && !isFound && (
+              <p className="e-person-modal__detail">
+                <span aria-hidden>📞</span>
+                {phone ? (
+                  <a href={`tel:${phone}`}>{person.contact}</a>
+                ) : (
+                  <span>{person.contact}</span>
+                )}
+              </p>
+            )}
+          </div>
 
           {person.description && (
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Descripción
-              </p>
-              <p className="mt-0.5 whitespace-pre-wrap text-sm text-slate-800">
-                {person.description}
-              </p>
-            </div>
+            <p className="e-person-modal__desc">{person.description}</p>
           )}
-
-          {person.contact && !isFound && (
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Contacto para dar información
-              </p>
-              {phone ? (
-                <a
-                  href={`tel:${phone}`}
-                  className="mt-1 inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700"
-                >
-                  📞 Llamar a {person.contact}
-                </a>
-              ) : (
-                <p className="mt-0.5 text-sm font-medium text-slate-800">
-                  {person.contact}
-                </p>
-              )}
-            </div>
-          )}
-
-          <p className="pt-2 text-[11px] text-slate-400">
-            Reportada el {new Date(person.createdAt).toLocaleString("es-VE")}
-          </p>
 
           {isFound ? (
-            <div className="mt-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-              <p className="text-sm font-semibold text-emerald-900">
-                ✓ Reportada como localizada
-              </p>
+            <div className="e-person-modal__found">
+              <p>✓ Reportada como localizada</p>
               {person.resolvedAt && (
-                <p className="text-xs text-emerald-800">
-                  El {new Date(person.resolvedAt).toLocaleString("es-VE")}
-                </p>
+                <p>El {new Date(person.resolvedAt).toLocaleString("es-VE")}</p>
               )}
               {person.resolutionNote && (
-                <p className="mt-2 whitespace-pre-wrap text-sm text-emerald-900">
-                  {person.resolutionNote}
-                </p>
+                <p className="mt-2 whitespace-pre-wrap">{person.resolutionNote}</p>
               )}
               {person.resolutionPhotoUrl && (
                 <a
@@ -349,17 +296,15 @@ export default function MissingPersonDetail({
             </div>
           ) : (
             onMarkFound && (
-              <div className="mt-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-                <p className="text-sm font-semibold text-emerald-900">
-                  ¿Ya lograste comunicarte?
-                </p>
-                <p className="text-sm text-emerald-800">
+              <div className="e-person-modal__found">
+                <p>¿Ya lograste comunicarte?</p>
+                <p>
                   Márcala como localizada y su familia podrá respirar tranquila.
                 </p>
                 <button
                   type="button"
                   onClick={() => setShowFoundForm(true)}
-                  className="mt-3 inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700"
+                  className="e-person-modal__found-btn"
                 >
                   ✓ Marcar como localizada
                 </button>
@@ -367,95 +312,15 @@ export default function MissingPersonDetail({
             )
           )}
 
-          {/* Compartir */}
-          <div className="pt-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Ayuda a difundir
+          {hasNav && people && (
+            <p
+              className="mt-4 text-center text-[11px] text-[var(--etext3)]"
+              aria-live="polite"
+            >
+              {currentIndex + 1} de {people.length}
+              <span className="mx-2">·</span>
+              Usa ← → para navegar
             </p>
-            {shareError && (
-              <p className="mt-1 text-xs text-red-600">{shareError}</p>
-            )}
-            <div className="mt-2 flex flex-wrap gap-2">
-              <a
-                href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(
-                  text,
-                )}&url=${encodeURIComponent(url)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-              >
-                <span
-                  aria-hidden
-                  className="grid h-5 w-5 place-items-center rounded-full bg-slate-900 text-[10px] font-bold text-white"
-                >
-                  𝕏
-                </span>
-                X
-              </a>
-              <a
-                href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
-                  url,
-                )}&quote=${encodeURIComponent(text)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-              >
-                <span
-                  aria-hidden
-                  className="grid h-5 w-5 place-items-center rounded-full bg-[#1877F2] text-[11px] font-bold text-white"
-                >
-                  f
-                </span>
-                Facebook
-              </a>
-              <button
-                type="button"
-                onClick={nativeShare}
-                className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-                title="Compartir en Instagram, WhatsApp u otras apps"
-              >
-                <span
-                  aria-hidden
-                  className="grid h-5 w-5 place-items-center rounded-full text-[12px]"
-                  style={{
-                    background:
-                      "linear-gradient(45deg, #f09433, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888)",
-                    color: "white",
-                  }}
-                >
-                  ◎
-                </span>
-                Instagram
-              </button>
-              <button
-                type="button"
-                onClick={copyShare}
-                className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-              >
-                <span aria-hidden>🔗</span> {copied ? "Copiado" : "Copiar"}
-              </button>
-            </div>
-          </div>
-
-          {hasNav && (
-            <div className="flex items-center gap-2 border-t border-slate-100 pt-4 sm:hidden">
-              <button
-                type="button"
-                onClick={goPrev}
-                disabled={!hasPrev}
-                className="flex min-h-11 flex-1 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-40"
-              >
-                ← Anterior
-              </button>
-              <button
-                type="button"
-                onClick={goNext}
-                disabled={!hasNext}
-                className="flex min-h-11 flex-1 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-40"
-              >
-                Siguiente →
-              </button>
-            </div>
           )}
         </div>
       </div>

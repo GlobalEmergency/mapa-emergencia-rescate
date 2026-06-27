@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   PAYPAL_DONATION_URL,
   getDonationStats,
+  getMonthlyDonationStats,
   listRecentDonations,
   recordDonation,
   validateDonationInput,
@@ -20,11 +21,12 @@ const CACHE_HEADERS = {
 export async function GET(request: Request) {
   try {
     const data = await cached("donations", 5_000, async () => {
-      const [stats, recent] = await Promise.all([
+      const [stats, monthly, recent] = await Promise.all([
         getDonationStats(),
+        getMonthlyDonationStats(),
         listRecentDonations(30),
       ]);
-      return { stats, recent };
+      return { stats, monthly, recent };
     });
     return jsonWithEtag(request, data, CACHE_HEADERS);
   } catch {
@@ -35,6 +37,10 @@ export async function GET(request: Request) {
           totalCents: 0,
           last24hCount: 0,
           last24hCents: 0,
+        },
+        monthly: {
+          raisedCents: 0,
+          goalCents: 80_000,
         },
         recent: [],
       },

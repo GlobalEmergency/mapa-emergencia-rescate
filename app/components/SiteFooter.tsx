@@ -1,4 +1,5 @@
-import { CONTACT_EMAIL, contactMailto } from "@/lib/site";
+import Link from "next/link";
+import { CONTACT_EMAIL } from "@/lib/site";
 
 const TWITTER_TEAM: { name: string; handle: string }[] = [
   { name: "Allan Odreman", handle: "allanodremans" },
@@ -9,44 +10,45 @@ const TWITTER_TEAM: { name: string; handle: string }[] = [
 
 export default function SiteFooter() {
   return (
-    <footer className="border-t border-slate-200 bg-white">
-      <div className="mx-auto w-full max-w-7xl px-4 py-10">
-        <div className="grid gap-8 lg:grid-cols-[1.3fr_1fr_1fr]">
-          <div>
-            <h2 className="text-lg font-bold text-slate-900">
-              🤝 ¿Quiénes hacemos esto?
-            </h2>
-            <p className="mt-2 text-sm leading-relaxed text-slate-600">
+    <footer
+      id="equipo"
+      className="border-t-[1.5px] border-[var(--eborder)] bg-[var(--esurf)]"
+    >
+      <div className="mx-auto w-full max-w-[1120px] px-4 py-8 sm:px-6">
+        <div className="e-footer-grid">
+          <div className="sm:col-span-2 lg:col-span-1">
+            <h2 className="qi-h3">🤝 ¿Quiénes hacemos esto?</h2>
+            <p className="mt-1.5 text-sm leading-snug text-[var(--etext2)]">
               Somos un equipo de voluntarios construyendo esta plataforma
               abierta para que cualquier persona afectada por el terremoto
-              pueda pedir y ofrecer ayuda en tiempo real. El proyecto es
-              gratuito, sin fines de lucro y de código abierto.
+              pueda pedir y ofrecer ayuda en tiempo real. Gratuito, sin fines
+              de lucro y de código abierto.
             </p>
-            <a
-              href={contactMailto()}
-              className="mt-3 inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 transition hover:border-slate-300 hover:bg-slate-50"
+            <Link
+              href="/contacto"
+              className="e-btn e-btn-secondary mt-3 px-3 py-2 text-sm"
             >
               <span aria-hidden>✉️</span>
-              {CONTACT_EMAIL}
-            </a>
-            <div className="mt-4 flex flex-wrap gap-3">
+              Escríbenos · {CONTACT_EMAIL}
+            </Link>
+            <div className="mt-3 grid grid-cols-2 gap-2">
               {TWITTER_TEAM.map((person) => (
                 <a
                   key={person.handle}
                   href={`https://x.com/${person.handle}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                  className="e-btn e-btn-secondary justify-start px-2.5 py-1.5 text-sm"
                 >
                   <span
                     aria-hidden
-                    className="grid h-8 w-8 place-items-center rounded-full bg-slate-900 text-white"
+                    className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[var(--etext)] text-xs text-white"
                   >
                     𝕏
                   </span>
-                  <span className="flex flex-col leading-tight">
-                    <span className="font-semibold">{person.name}</span>
-                    <span className="text-xs text-slate-500">
+                  <span className="flex min-w-0 flex-col leading-tight text-left">
+                    <span className="truncate font-semibold">{person.name}</span>
+                    <span className="truncate text-xs text-[var(--etext2)]">
                       @{person.handle}
                     </span>
                   </span>
@@ -55,11 +57,9 @@ export default function SiteFooter() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-5">
-            <h3 className="text-base font-bold text-indigo-900">
-              💬 Únete como voluntario
-            </h3>
-            <p className="mt-1 text-sm text-indigo-900">
+          <div className="e-card flex flex-col border-indigo-200 bg-indigo-50 p-4">
+            <h3 className="qi-h4 text-indigo-900">💬 Únete como voluntario</h3>
+            <p className="mt-1 text-sm leading-snug text-indigo-900">
               Entra al Discord para coordinar rescates, suministros, traducción,
               difusión o soporte técnico.
             </p>
@@ -67,17 +67,16 @@ export default function SiteFooter() {
               href="https://discord.gg/5hhaQxU3PM"
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-3 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700"
+              className="e-btn mt-3 self-start bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700"
+              style={{ borderColor: "transparent" }}
             >
               <span aria-hidden>🎧</span> Entrar al Discord
             </a>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-            <h3 className="text-base font-bold text-slate-900">
-              👩‍💻 ¿Sabes programar?
-            </h3>
-            <p className="mt-1 text-sm text-slate-700">
+          <div className="e-card flex flex-col bg-[var(--einput)] p-4">
+            <h3 className="qi-h4">👩‍💻 ¿Sabes programar?</h3>
+            <p className="mt-1 text-sm leading-snug text-[var(--etext2)]">
               El código es abierto. Reporta bugs, sugiere mejoras o abre un
               pull request: cada aporte ayuda a salvar vidas.
             </p>
@@ -85,24 +84,22 @@ export default function SiteFooter() {
               href="https://github.com/ArturoRiosMock/mapa-emergencia-rescate"
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-3 inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-100"
+              className="e-btn e-btn-secondary mt-3 self-start px-4 py-2 text-sm"
             >
               <span aria-hidden>⭐</span> Colabora en GitHub
             </a>
           </div>
         </div>
 
-        <div className="mt-10 border-t border-slate-100 pt-8">
-          <h3 className="text-base font-bold text-slate-900">
-            🔗 Sitios aliados
-          </h3>
-          <p className="mt-1 text-sm text-slate-600">
+        <div className="mt-8 border-t border-[var(--eborder)] pt-6">
+          <h3 className="qi-h4">🔗 Sitios aliados</h3>
+          <p className="mt-1 text-sm text-[var(--etext2)]">
             Otras plataformas ciudadanas que ayudan ante el terremoto.
             Compártelas para llegar a más personas.
           </p>
-          <div className="mt-4 grid gap-6 sm:grid-cols-2">
+          <div className="e-int-2col mt-3 gap-4">
             <div>
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <h4 className="qi-eyebrow text-[var(--etext2)]">
                 🗺️ Mapas y daños
               </h4>
               <ul className="mt-2 space-y-2">
@@ -111,12 +108,12 @@ export default function SiteFooter() {
                     href="https://terremotovenezuela.com"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm transition hover:border-slate-300 hover:bg-slate-50"
+                    className="e-card block px-3 py-2 text-sm transition hover:shadow-md"
                   >
-                    <span className="font-semibold text-slate-900">
+                    <span className="font-semibold text-[var(--etext)]">
                       Terremoto Venezuela
                     </span>
-                    <span className="block text-xs text-slate-500">
+                    <span className="block text-xs text-[var(--etext2)]">
                       Mapa colaborativo de daños en edificaciones
                     </span>
                   </a>
@@ -125,7 +122,7 @@ export default function SiteFooter() {
             </div>
 
             <div>
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <h4 className="qi-eyebrow text-[var(--etext2)]">
                 🔍 Búsqueda de personas
               </h4>
               <ul className="mt-2 space-y-2">
@@ -134,12 +131,12 @@ export default function SiteFooter() {
                     href="https://venezuelatebusca.com"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm transition hover:border-slate-300 hover:bg-slate-50"
+                    className="e-card block px-3 py-2 text-sm transition hover:shadow-md"
                   >
-                    <span className="font-semibold text-slate-900">
+                    <span className="font-semibold text-[var(--etext)]">
                       Venezuela Te Busca
                     </span>
-                    <span className="block text-xs text-slate-500">
+                    <span className="block text-xs text-[var(--etext2)]">
                       Registro centralizado de personas desaparecidas
                     </span>
                   </a>
@@ -149,13 +146,13 @@ export default function SiteFooter() {
                     href="https://venezuelareporta.org"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm transition hover:border-slate-300 hover:bg-slate-50"
+                    className="e-card block px-3 py-2 text-sm transition hover:shadow-md"
                   >
-                    <span className="font-semibold text-slate-900">
+                    <span className="font-semibold text-[var(--etext)]">
                       Venezuela Reporta
                     </span>
-                    <span className="block text-xs text-slate-500">
-                      Reporta desaparecidos, confirma a salvo o avistamientos
+                    <span className="block text-xs text-[var(--etext2)]">
+                      Reporta desaparecidas, confirma a salvo o avistamientos
                     </span>
                   </a>
                 </li>
@@ -164,14 +161,14 @@ export default function SiteFooter() {
           </div>
         </div>
 
-        <div className="mt-8 flex flex-col items-center justify-between gap-2 border-t border-slate-100 pt-6 text-center text-xs text-slate-500 sm:flex-row sm:text-left">
+        <div className="mt-8 flex flex-col items-center justify-between gap-2 border-t border-[var(--eborder)] pt-6 text-center text-xs text-[var(--etext2)] sm:flex-row sm:text-left">
           <p>
             Plataforma de reporte ciudadano. Datos de mapas ©{" "}
             <a
               href="https://www.openstreetmap.org/copyright"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:underline"
+              className="text-sky-600 hover:underline"
             >
               OpenStreetMap
             </a>
@@ -180,7 +177,7 @@ export default function SiteFooter() {
           </p>
           <a
             href="/admin"
-            className="text-slate-400 hover:text-slate-600 hover:underline"
+            className="text-[var(--etext3)] hover:text-[var(--etext2)] hover:underline"
           >
             Panel de administración
           </a>

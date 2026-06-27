@@ -224,7 +224,7 @@ export default function ReportForm({
       <div
         ref={dialogRef}
         tabIndex={-1}
-        className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-white p-5 shadow-xl outline-none sm:rounded-2xl sm:p-6"
+        className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-[var(--esurf)] p-5 shadow-xl outline-none sm:rounded-2xl sm:p-6"
       >
         <div className="mb-3 flex items-start justify-between">
           <h2 id="form-title" className="text-lg font-bold text-slate-900">
@@ -362,7 +362,7 @@ export default function ReportForm({
               value={place}
               onChange={(e) => setPlace(e.target.value)}
               placeholder={copy.placePlaceholder}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-900"
+              className="e-input"
               required
             />
           </div>
@@ -382,7 +382,7 @@ export default function ReportForm({
                 value={affected}
                 onChange={(e) => setAffected(e.target.value)}
                 placeholder="0"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-900"
+                className="e-input"
               />
             </div>
           )}

@@ -21,6 +21,13 @@ import {
   trackHospitalPatientSearchResultsLoaded,
   trackHospitalPatientSearchStarted,
 } from "./analytics";
+import {
+  HOSPITAL_ZONE_FILTERS,
+  HospitalCard,
+  HospitalStatCard,
+  filterHospitals,
+  computeHospitalStats,
+} from "./HospitalDirectoryUI";
 
 type Tab = "hospitals" | "patients";
 const PAGE_SIZE = 20;
@@ -36,13 +43,7 @@ interface PatientSearchResult {
   };
 }
 
-const ZONE_FILTERS: { value: HospitalPriorityZone | "all"; label: string }[] = [
-  { value: "all", label: "Todas" },
-  { value: "P0", label: "Zona cero" },
-  { value: "P1", label: "Corredor" },
-  { value: "P2", label: "Recuperación" },
-  { value: "P3", label: "Base nacional" },
-];
+const ZONE_FILTERS = HOSPITAL_ZONE_FILTERS;
 
 export default function Hospitals() {
   const [hospitals, setHospitals] = useState<Hospital[]>([]);
@@ -139,36 +140,15 @@ export default function Hospitals() {
     };
   }, [debouncedPatientQuery, patientLimit]);
 
-  const visible = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return hospitals.filter((h) => {
-      if (stateFilter && h.state !== stateFilter) return false;
-      if (zoneFilter !== "all" && h.priorityZone !== zoneFilter) return false;
-      if (q) {
-        const hay =
-          h.name.toLowerCase().includes(q) ||
-          h.municipality.toLowerCase().includes(q) ||
-          h.address.toLowerCase().includes(q);
-        if (!hay) return false;
-      }
-      return true;
-    });
-  }, [hospitals, search, stateFilter, zoneFilter]);
+  const visible = useMemo(
+    () => filterHospitals(hospitals, search, zoneFilter).filter((h) => {
+      if (!stateFilter) return true;
+      return h.state === stateFilter;
+    }),
+    [hospitals, search, stateFilter, zoneFilter],
+  );
 
-  const stats = useMemo(() => {
-    const byZone = { P0: 0, P1: 0, P2: 0, P3: 0 } as Record<
-      HospitalPriorityZone,
-      number
-    >;
-    let activePatients = 0;
-    let totalPatients = 0;
-    for (const h of hospitals) {
-      byZone[h.priorityZone]++;
-      activePatients += h.activePatients;
-      totalPatients += h.totalPatients;
-    }
-    return { byZone, activePatients, totalPatients };
-  }, [hospitals]);
+  const stats = useMemo(() => computeHospitalStats(hospitals), [hospitals]);
 
   async function handleAdd(payload: HospitalPayload) {
     const res = await fetch("/api/hospitals", {
@@ -213,16 +193,16 @@ export default function Hospitals() {
       </header>
 
       <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-6">
-        <StatCard label="Total" value={hospitals.length} accent="#0f172a" />
+        <HospitalStatCard label="Total" value={stats.total} accent="#0f172a" />
         {(Object.keys(PRIORITY_ZONE_META) as HospitalPriorityZone[]).map((zone) => (
-          <StatCard
+          <HospitalStatCard
             key={zone}
             label={`${PRIORITY_ZONE_META[zone].emoji} ${PRIORITY_ZONE_META[zone].label}`}
             value={stats.byZone[zone]}
             accent={PRIORITY_ZONE_META[zone].color}
           />
         ))}
-        <StatCard
+        <HospitalStatCard
           label="Hospitalizados"
           value={stats.activePatients}
           accent="#1d4ed8"
@@ -823,7 +803,7 @@ function TabButton({
   );
 }
 
-function HospitalDetailOverlay({
+export function HospitalDetailOverlay({
   hospital,
   onClose,
 }: {
@@ -1018,91 +998,6 @@ function HospitalDetailOverlay({
           )}
         </div>
       </div>
-    </div>
-  );
-}
-
-function HospitalCard({
-  hospital,
-  onOpen,
-}: {
-  hospital: Hospital;
-  onOpen: () => void;
-}) {
-  const zone = PRIORITY_ZONE_META[hospital.priorityZone];
-  const facility = FACILITY_TYPE_META[hospital.facilityType];
-
-  return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className="group flex h-full w-full flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
-      style={{ borderLeft: `4px solid ${zone.color}` }}
-    >
-      <div className="flex flex-wrap items-center gap-1.5">
-        <span
-          className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white"
-          style={{ background: zone.color }}
-        >
-          {hospital.priorityZone}
-        </span>
-        <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-700">
-          {facility.emoji} {facility.label}
-        </span>
-        {hospital.level && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-700">
-            Nivel {hospital.level}
-          </span>
-        )}
-      </div>
-
-      <div>
-        <p className="line-clamp-2 text-sm font-bold text-slate-900 group-hover:text-red-700">
-          {hospital.name}
-        </p>
-        <p className="mt-0.5 text-xs text-slate-600">
-          {hospital.state}
-          {hospital.municipality && ` · ${hospital.municipality}`}
-        </p>
-      </div>
-
-      {hospital.address && (
-        <p className="line-clamp-2 text-xs text-slate-500">📍 {hospital.address}</p>
-      )}
-
-      <div className="mt-auto flex items-center justify-between gap-2 border-t border-slate-100 pt-3">
-        <div className="flex items-center gap-3 text-xs text-slate-600">
-          <span className="inline-flex items-center gap-1">
-            <span className="text-base">🛏️</span>
-            <strong className="text-slate-900">{hospital.activePatients}</strong>
-            hospitalizados
-          </span>
-        </div>
-        <span className="text-xs font-semibold text-red-600 transition group-hover:translate-x-0.5">
-          Ver →
-        </span>
-      </div>
-    </button>
-  );
-}
-
-function StatCard({
-  label,
-  value,
-  accent,
-}: {
-  label: string;
-  value: number;
-  accent: string;
-}) {
-  return (
-    <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-        {label}
-      </p>
-      <p className="text-lg font-bold" style={{ color: accent }}>
-        {value.toLocaleString("es-VE")}
-      </p>
     </div>
   );
 }

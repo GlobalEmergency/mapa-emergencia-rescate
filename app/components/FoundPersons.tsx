@@ -146,7 +146,7 @@ export default function FoundPersons() {
             </p>
           </div>
           <a
-            href="#desaparecidas"
+            href="#e-directory"
             className="shrink-0 self-start rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 sm:self-end"
           >
             Ver personas en búsqueda →
@@ -180,7 +180,7 @@ export default function FoundPersons() {
                 )}
                 <div className="min-w-0 flex-1">
                   <span className="inline-flex items-center gap-1 rounded-full bg-emerald-600 px-2 py-0.5 text-[11px] font-semibold text-white">
-                    <span aria-hidden>✓</span> Localizado a salvo
+                    <span aria-hidden>✓</span> Localizada a salvo
                   </span>
                   <p className="mt-1 font-semibold text-slate-900">
                     {person.name}

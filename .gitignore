@@ -47,3 +47,5 @@ next-env.d.ts
 
 # scripts operativos locales (no forman parte de la app ni del build)
 _*.mts
+
+.claude/commands/*

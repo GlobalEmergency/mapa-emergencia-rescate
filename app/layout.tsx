@@ -1,20 +1,65 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
+import { Space_Grotesk } from "next/font/google";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
 import PwaRegister from "./components/PwaRegister";
 import MourningRibbon from "./components/MourningRibbon";
 import StickyHelpButton from "./components/StickyHelpButton";
 import OpenPanelProduction from "./components/OpenPanelProduction";
+import ThemeProvider from "./components/ThemeProvider";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+const stara = localFont({
+  src: [
+    {
+      path: "./fonts/stara/Stara-Medium.otf",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "./fonts/stara/Stara-MediumItalic.otf",
+      weight: "500",
+      style: "italic",
+    },
+    {
+      path: "./fonts/stara/Stara-SemiBold.otf",
+      weight: "600",
+      style: "normal",
+    },
+    {
+      path: "./fonts/stara/Stara-SemiBoldItalic.otf",
+      weight: "600",
+      style: "italic",
+    },
+    {
+      path: "./fonts/stara/Stara-Bold.otf",
+      weight: "700",
+      style: "normal",
+    },
+    {
+      path: "./fonts/stara/Stara-BoldItalic.otf",
+      weight: "700",
+      style: "italic",
+    },
+    {
+      path: "./fonts/stara/Stara-ExtraBold.otf",
+      weight: "800",
+      style: "normal",
+    },
+    {
+      path: "./fonts/stara/Stara-Black.otf",
+      weight: "900",
+      style: "normal",
+    },
+  ],
+  variable: "--font-display",
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
+  variable: "--font-body",
+  display: "swap",
 });
 
 const SITE_URL = "https://terremotovenezuela.app";
@@ -56,13 +101,11 @@ export const metadata: Metadata = {
     description: SITE_DESC,
     locale: "es_VE",
     url: SITE_URL,
-    // La imagen la aporta el archivo app/opengraph-image.png (file convention).
   },
   twitter: {
     card: "summary_large_image",
     title: SITE_TITLE,
     description: SITE_DESC,
-    // La imagen la aporta el archivo app/twitter-image.png (file convention).
   },
 };
 
@@ -70,7 +113,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
-  themeColor: "#dc2626",
+  themeColor: "#EEF2F7",
 };
 
 export default function RootLayout({
@@ -108,26 +151,27 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${geistSans.variable} ${geistMono.variable} h-full overflow-x-hidden antialiased`}
+      data-dark="false"
+      className={`${stara.variable} ${spaceGrotesk.variable} h-full overflow-x-hidden antialiased`}
+      suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col overflow-x-hidden">
+      <body className="min-h-full flex flex-col overflow-x-hidden bg-[var(--ebg)] text-[var(--etext)]">
+        <ThemeProvider />
         <a
           href="#main"
-          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[1000] focus:rounded-lg focus:bg-red-600 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-white"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[1000] focus:rounded-lg focus:bg-[#C41A1A] focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-white"
         >
           Saltar al contenido
         </a>
-        {/* Franja tricolor de Venezuela: muy fina, en el borde superior de toda la página */}
         <div
           aria-hidden
-          className="h-1.5 w-full shrink-0"
+          className="h-[5px] w-full shrink-0"
           style={{
             background:
-              "linear-gradient(to bottom, #FFCC00 0 33.34%, #00247D 33.34% 66.67%, #CF142B 66.67% 100%)",
+              "linear-gradient(to right, #CF9A0C 0 33.34%, #00247D 33.34% 66.67%, #CF0A2C 66.67% 100%)",
           }}
         />
 
-        {/* Cinta de luto: solo en páginas de cara al público, no en /admin */}
         <MourningRibbon />
 
         {OPENPANEL_CLIENT_ID && (
@@ -140,8 +184,6 @@ export default function RootLayout({
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            // Escapar `<` evita un breakout de </script> si algún día el JSON-LD
-            // incluyera datos dinámicos (hoy son solo constantes).
             __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
           }}
         />

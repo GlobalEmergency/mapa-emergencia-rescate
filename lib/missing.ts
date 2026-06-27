@@ -41,6 +41,8 @@ export interface MissingStats {
   onMap: number;
 }
 
+export type MissingReportType = "missing" | "found";
+
 export interface NewMissingPerson {
   name: string;
   age?: number | string | null;
@@ -49,6 +51,8 @@ export interface NewMissingPerson {
   contact?: string;
   /** Data URL de la foto (data:image/...;base64,...). Opcional. */
   photo?: string | null;
+  /** Reporte de persona desaparecida (activa) o encontrada (localizada). */
+  reportType?: MissingReportType;
 }
 
 export const MAX_NAME = 120;
@@ -439,15 +443,21 @@ export async function addMissing(
   const photo =
     typeof input.photo === "string" && input.photo ? input.photo : null;
   const createdAt = Date.now();
+  const isFound = input.reportType === "found";
+  const status: MissingStatus = isFound ? "found" : "active";
+  const resolutionNote = isFound ? description : null;
+  const resolvedAt = isFound ? createdAt : null;
 
   if (hasDbEnv()) {
     await ensureSchema();
     await getSql()`
       INSERT INTO missing_persons
-        (id, name, age, description, last_seen, contact, photo, created_at)
+        (id, name, age, description, last_seen, contact, photo, created_at,
+         status, resolution_note, resolved_at)
       VALUES (
         ${id}, ${name}, ${age}, ${description}, ${lastSeen},
-        ${contact}, ${photo}, ${createdAt}
+        ${contact}, ${photo}, ${createdAt},
+        ${status}, ${resolutionNote}, ${resolvedAt}
       )
     `;
   } else {
@@ -460,11 +470,11 @@ export async function addMissing(
       contact,
       photo,
       photoUrl: photo ? `/api/missing/${id}/photo` : null,
-      status: "active",
-      resolutionNote: null,
+      status,
+      resolutionNote,
       resolutionPhoto: null,
       resolutionPhotoUrl: null,
-      resolvedAt: null,
+      resolvedAt,
       createdAt,
     });
   }
@@ -477,10 +487,10 @@ export async function addMissing(
     lastSeen,
     contact,
     photoUrl: photo ? `/api/missing/${id}/photo` : null,
-    status: "active",
-    resolutionNote: null,
+    status,
+    resolutionNote,
     resolutionPhotoUrl: null,
-    resolvedAt: null,
+    resolvedAt,
     createdAt,
   };
 }

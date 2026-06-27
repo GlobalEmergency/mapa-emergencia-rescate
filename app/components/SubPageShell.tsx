@@ -15,16 +15,16 @@ export default function SubPageShell({
 }: SubPageShellProps) {
   return (
     <>
-      <main id="main" className="flex-1 bg-slate-50 md:pt-16">
+      <main id="main" className="flex-1 bg-[var(--ebg)]">
       <HeroDesktopNav />
 
-      <div className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex w-full max-w-7xl items-center gap-2 px-4 py-3 text-sm text-slate-500">
-          <Link href="/" className="hover:text-slate-700 hover:underline">
+      <div className="border-b border-[var(--eborder)] bg-[var(--esurf)]">
+        <div className="mx-auto flex w-full max-w-[1120px] items-center gap-2 px-4 py-3 text-sm text-[var(--etext2)] sm:px-6">
+          <Link href="/" className="hover:text-[var(--etext)] hover:underline">
             ← Inicio
           </Link>
           <span aria-hidden>/</span>
-          <span className="truncate text-slate-700">{breadcrumb}</span>
+          <span className="truncate text-[var(--etext)]">{breadcrumb}</span>
         </div>
       </div>
 

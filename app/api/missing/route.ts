@@ -81,6 +81,7 @@ export async function POST(request: Request) {
     lastSeen?: string;
     contact?: string;
     photo?: string | null;
+    reportType?: "missing" | "found";
   };
   try {
     body = await readJson(request, BODY_LIMIT_PHOTO);
@@ -118,6 +119,8 @@ export async function POST(request: Request) {
   }
 
   try {
+    const reportType =
+      body.reportType === "found" ? "found" : "missing";
     const person = await addMissing({
       name,
       age: body.age,
@@ -125,6 +128,7 @@ export async function POST(request: Request) {
       lastSeen: body.lastSeen,
       contact: body.contact,
       photo: body.photo,
+      reportType,
     });
     return NextResponse.json({ person }, { status: 201 });
   } catch {
