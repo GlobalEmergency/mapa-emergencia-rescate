@@ -89,6 +89,8 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
+          target: runtime # explicit: `worker` is the LAST stage, so without this
+          # docker would build the worker image and push it as the app tag.
           push: true
           tags: |
             ${{ env.IMAGE }}:${{ github.sha }}
