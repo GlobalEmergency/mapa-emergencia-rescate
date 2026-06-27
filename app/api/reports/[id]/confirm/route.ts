@@ -4,6 +4,47 @@ import { checkRateLimit, clientIp } from "@/lib/ratelimit";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * @swagger
+ * /api/reports/{id}/confirm:
+ *   post:
+ *     tags: [reports]
+ *     summary: Confirma un reporte de emergencia (una vez por IP)
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Confirmación registrada; devuelve el total de confirmaciones
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok: { type: boolean }
+ *                 confirmations: { type: integer }
+ *       409:
+ *         description: La IP ya confirmó este reporte
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok: { type: boolean }
+ *                 error: { type: string }
+ *       429:
+ *         description: Demasiadas confirmaciones desde el dispositivo
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ *       503:
+ *         description: No se pudo confirmar
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ */
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> },

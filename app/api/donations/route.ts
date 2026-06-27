@@ -18,6 +18,69 @@ const CACHE_HEADERS = {
   "Cache-Control": "public, max-age=0, s-maxage=5, stale-while-revalidate=30",
 };
 
+/**
+ * @swagger
+ * /api/donations:
+ *   get:
+ *     tags: [donations]
+ *     summary: Obtiene estadísticas de donaciones y donaciones recientes
+ *     responses:
+ *       200:
+ *         description: Estadísticas globales, meta mensual y últimas donaciones
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 stats:
+ *                   $ref: '#/components/schemas/DonationStats'
+ *                 monthly:
+ *                   type: object
+ *                   properties:
+ *                     raisedCents: { type: integer }
+ *                     goalCents: { type: integer }
+ *                 recent:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Donation'
+ *   post:
+ *     tags: [donations]
+ *     summary: Registra una intención de donación y devuelve la URL de PayPal
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name: { type: string }
+ *               amountCents: { type: integer }
+ *     responses:
+ *       200:
+ *         description: Donación registrada con su id y URL de pago
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id: { type: string }
+ *                 paypalUrl: { type: string }
+ *       400:
+ *         description: Datos de donación inválidos
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ *       429:
+ *         description: Demasiadas peticiones (rate limit)
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ *       503:
+ *         description: No se pudo registrar la donación
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ */
 export async function GET(request: Request) {
   try {
     const data = await cached("donations", 5_000, async () => {

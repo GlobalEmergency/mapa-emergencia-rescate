@@ -8,6 +8,51 @@ import { readJson, bodyErrorResponse, BODY_LIMIT_TEXT } from "@/lib/body";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * @swagger
+ * /api/contact:
+ *   post:
+ *     tags: [system]
+ *     summary: Recibe un mensaje de contacto (rate-limited)
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name, email, message]
+ *             properties:
+ *               name: { type: string }
+ *               email: { type: string }
+ *               subject: { type: string }
+ *               message: { type: string }
+ *     responses:
+ *       200:
+ *         description: Mensaje recibido
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok: { type: boolean }
+ *                 id: { type: string }
+ *                 message: { type: string }
+ *       400:
+ *         description: Entrada inválida
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ *       429:
+ *         description: Demasiados mensajes (rate limit)
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ *       503:
+ *         description: No se pudo guardar el mensaje
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ */
 export async function POST(request: Request) {
   const ip = clientIp(request);
   const allowed = await checkRateLimit(`contact:${ip}`, 3);

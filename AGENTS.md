@@ -75,6 +75,39 @@ npm run build
 - Si agregas endpoints o cambios de datos, documenta el contrato o el runbook en
   `docs/`.
 
+### Acceso a datos (Drizzle ORM)
+
+- Todo el acceso a la base va por **Drizzle**, no SQL crudo. Importa el helper
+  central: `import { getDb, hasDbEnv, schema } from "@/lib/drizzle"`.
+- El esquema es la **fuente de verdad** en `infra/db/schema.ts`. NO crees tablas
+  en runtime (`CREATE TABLE IF NOT EXISTS`). Si cambias el esquema:
+  1. edita `infra/db/schema.ts`,
+  2. corre `npm run db:generate` (genera el `.sql` en `infra/db/migrations/`),
+  3. commitea el `.sql` + el journal. El Job `migrate` lo aplica en cada deploy
+     (idempotente). Las migraciones deben ser **expand-contract** (compatibles
+     con el código viejo, que sigue sirviendo durante el roll).
+- Para SQL que el query builder no expresa (CTEs, trigram, FILTER), usa el
+  escape `sql\`...\`` de drizzle-orm; preserva la semántica exacta.
+
+### Documentar el endpoint (OpenAPI/Swagger) — OBLIGATORIO
+
+Cada route en `app/api/**` se auto-registra en la doc Swagger **solo si lleva un
+bloque JSDoc `@swagger`** encima del primer handler exportado. Al crear o
+modificar un endpoint:
+
+1. Agrega/actualiza el bloque `@swagger` (OpenAPI 3.0 en YAML) sobre el primer
+   `export async function GET|POST|...`. Documenta TODOS los métodos del archivo.
+2. Referencia los modelos compartidos con `$ref: '#/components/schemas/<Modelo>'`
+   (definidos en `lib/swagger.ts`: EmergencyReport, MissingPerson, Hospital,
+   HospitalPatient, Donation, DonationStats, ChatMessage, MissingMapMarker,
+   MissingStats, Error). Si tu endpoint devuelve un DTO nuevo, agrégalo ahí.
+3. La spec se genera en build (`prebuild` → `scripts/gen-openapi.mts` →
+   `public/openapi.json`) y se sirve en **`/api/docs`** (Swagger UI) y
+   `/api/openapi` (JSON). Verifica local: `npm run openapi` y revisa el conteo
+   de paths. Un endpoint sin `@swagger` NO aparece en la doc.
+
+Guía completa con ejemplo: `docs/guides/documentar-endpoints-openapi.md`.
+
 ## Mapa rápido del repo
 
 ```text

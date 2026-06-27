@@ -16,6 +16,70 @@ const LIST_CACHE_HEADERS = {
   "Cache-Control": "public, max-age=0, s-maxage=3, stale-while-revalidate=20",
 };
 
+/**
+ * @swagger
+ * /api/chat:
+ *   get:
+ *     tags: [chat]
+ *     summary: Lista los mensajes del chat ciudadano, con filtro opcional por rol.
+ *     parameters:
+ *       - in: query
+ *         name: role
+ *         required: false
+ *         description: Filtra los mensajes por rol del autor.
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Lista de mensajes y si el almacenamiento es persistente.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 messages:
+ *                   type: array
+ *                   items: { $ref: '#/components/schemas/ChatMessage' }
+ *                 persistent: { type: boolean }
+ *   post:
+ *     tags: [chat]
+ *     summary: Crea un mensaje en el chat ciudadano (con rate-limit).
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [text]
+ *             properties:
+ *               name: { type: string }
+ *               text: { type: string }
+ *               role: { type: string }
+ *               replyTo: { type: string, nullable: true }
+ *     responses:
+ *       201:
+ *         description: Mensaje creado.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message: { $ref: '#/components/schemas/ChatMessage' }
+ *       400:
+ *         description: Texto vacío o demasiado largo.
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ *       429:
+ *         description: Límite de envíos excedido.
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ *       503:
+ *         description: No se pudo guardar el mensaje.
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const roleParam = searchParams.get("role");

@@ -14,6 +14,55 @@ function parseCoord(value: string | null): number | undefined {
   return Number.isFinite(n) ? n : undefined;
 }
 
+/**
+ * @swagger
+ * /api/missing/map:
+ *   get:
+ *     tags: [missing]
+ *     summary: Marcadores de personas desaparecidas para el mapa, opcionalmente acotados a un viewport
+ *     parameters:
+ *       - in: query
+ *         name: north
+ *         required: false
+ *         schema: { type: number }
+ *         description: Límite norte del viewport (latitud)
+ *       - in: query
+ *         name: south
+ *         required: false
+ *         schema: { type: number }
+ *         description: Límite sur del viewport (latitud)
+ *       - in: query
+ *         name: east
+ *         required: false
+ *         schema: { type: number }
+ *         description: Límite este del viewport (longitud)
+ *       - in: query
+ *         name: west
+ *         required: false
+ *         schema: { type: number }
+ *         description: Límite oeste del viewport (longitud)
+ *       - in: query
+ *         name: limit
+ *         required: false
+ *         schema: { type: integer, default: 500 }
+ *         description: Máximo de marcadores a devolver
+ *     responses:
+ *       200:
+ *         description: Lista de marcadores de personas desaparecidas
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 markers:
+ *                   type: array
+ *                   items: { $ref: '#/components/schemas/MissingMapMarker' }
+ *       500:
+ *         description: Error interno
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ */
 export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
   const north = parseCoord(params.get("north"));

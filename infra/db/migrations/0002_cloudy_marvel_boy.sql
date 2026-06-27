@@ -1,0 +1,1 @@
+ALTER TABLE "missing_persons" ADD COLUMN IF NOT EXISTS "nationality" text DEFAULT '' NOT NULL;

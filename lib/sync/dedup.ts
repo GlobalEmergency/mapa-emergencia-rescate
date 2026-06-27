@@ -15,10 +15,10 @@
  *    distintas), por eso no se usa para descartar.
  */
 
-import { getSql, hasDbEnv } from "../db";
+import { sql } from "drizzle-orm";
+import { getDb, hasDbEnv, schema } from "../drizzle";
 
-/** Normalización de nombre sin depender de la extensión unaccent. */
-const NORM_NAME = "translate(lower(trim(name)), 'áéíóúüñ', 'aeiouun')";
+const { missingPersons } = schema;
 
 /** Umbral de concentración: edades_distintas/registros <= esto => misma persona. */
 const AGE_RATIO_THRESHOLD = 0.34;
@@ -77,30 +77,36 @@ export async function buildDuplicateReport(
   }
   const source = opts.source ?? "desaparecidosterremotovenezuela.com";
   const limitGroups = Math.min(Math.max(Math.trunc(opts.limitGroups ?? 50), 1), 200);
-  const sql = getSql();
+  const db = getDb();
 
   // Una sola pasada: agrupa por nombre normalizado y cuenta edades/ubicaciones.
-  const groups = (await sql.query(
-    `WITH norm AS (
-       SELECT ${NORM_NAME} AS nm, name, age,
-              translate(lower(trim(last_seen)), 'áéíóúüñ', 'aeiouun') AS loc
-       FROM missing_persons
-       WHERE source = $1 AND trim(name) <> ''
-     )
-     SELECT min(name) AS name,
-            count(*)::int AS c,
-            count(DISTINCT age) FILTER (WHERE age IS NOT NULL)::int AS ages,
-            count(DISTINCT loc) FILTER (WHERE loc <> '')::int AS locs
-     FROM norm
-     GROUP BY nm
-     HAVING count(*) > 1`,
-    [source],
-  )) as Row[];
+  // Usa el escape hatch `sql`: translate() + agregados FILTER no se expresan
+  // limpiamente con el query builder. Semántica idéntica a la versión SQL cruda.
+  const groups = (
+    await db.execute(sql`
+      WITH norm AS (
+        SELECT translate(lower(trim(${missingPersons.name})), 'áéíóúüñ', 'aeiouun') AS nm,
+               ${missingPersons.name} AS name, ${missingPersons.age} AS age,
+               translate(lower(trim(${missingPersons.lastSeen})), 'áéíóúüñ', 'aeiouun') AS loc
+        FROM ${missingPersons}
+        WHERE ${missingPersons.source} = ${source} AND trim(${missingPersons.name}) <> ''
+      )
+      SELECT min(name) AS name,
+             count(*)::int AS c,
+             count(DISTINCT age) FILTER (WHERE age IS NOT NULL)::int AS ages,
+             count(DISTINCT loc) FILTER (WHERE loc <> '')::int AS locs
+      FROM norm
+      GROUP BY nm
+      HAVING count(*) > 1
+    `)
+  ).rows as unknown as Row[];
 
-  const totalRowsRes = (await sql.query(
-    `SELECT count(*)::int AS n FROM missing_persons WHERE source = $1 AND trim(name) <> ''`,
-    [source],
-  )) as { n: number }[];
+  const totalRowsRes = (
+    await db.execute(sql`
+      SELECT count(*)::int AS n FROM ${missingPersons}
+      WHERE ${missingPersons.source} = ${source} AND trim(${missingPersons.name}) <> ''
+    `)
+  ).rows as { n: number }[];
 
   let collapsibleRows = 0;
   let samePersonGroups = 0;

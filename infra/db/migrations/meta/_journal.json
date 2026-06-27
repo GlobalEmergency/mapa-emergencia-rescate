@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1782554234823,
+      "tag": "0000_thankful_miss_america",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1782554234824,
+      "tag": "0001_add_missing_primary_keys",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1782590847100,
+      "tag": "0002_cloudy_marvel_boy",
+      "breakpoints": true
+    }
+  ]
+}

@@ -15,6 +15,38 @@ export const maxDuration = 300;
  *
  * Auth: `Authorization: Bearer $CRON_SECRET` (lo pone Vercel) o token admin.
  */
+/**
+ * @swagger
+ * /api/sync/geocode:
+ *   get:
+ *     tags: [sync]
+ *     summary: Geocodifica un lote de ubicaciones sin coordenadas (cron, requiere auth Bearer CRON_SECRET o token admin)
+ *     parameters:
+ *       - in: query
+ *         name: max
+ *         required: false
+ *         description: Tope de ubicaciones únicas a geocodificar en la corrida.
+ *         schema: { type: integer, minimum: 1 }
+ *     responses:
+ *       200:
+ *         description: Resumen de la corrida de geocodificación.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok: { type: boolean }
+ *       401:
+ *         description: No autorizado.
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ *       500:
+ *         description: Error al geocodificar.
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ */
 export async function GET(request: Request) {
   if (!isCronRequest(request)) {
     return NextResponse.json(

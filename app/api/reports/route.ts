@@ -20,6 +20,39 @@ const LIST_CACHE_HEADERS = {
   "Cache-Control": "public, max-age=0, s-maxage=4, stale-while-revalidate=30",
 };
 
+/**
+ * @swagger
+ * /api/reports:
+ *   get:
+ *     tags: [reports]
+ *     summary: Lista de reportes de emergencia
+ *     responses:
+ *       200:
+ *         description: Reportes y bandera de persistencia
+ *   post:
+ *     tags: [reports]
+ *     summary: Crear un reporte de emergencia
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [lat, lng, place, type]
+ *             properties:
+ *               type: { type: string }
+ *               lat: { type: number }
+ *               lng: { type: number }
+ *               place: { type: string }
+ *               affected: { type: integer }
+ *               needs: { type: string }
+ *               photo: { type: string, description: "data:image/...;base64 (opcional)" }
+ *     responses:
+ *       201: { description: Reporte creado }
+ *       400: { description: Datos inválidos }
+ *       429: { description: Rate limit }
+ *       503: { description: No se pudo guardar }
+ */
 export async function GET(request: Request) {
   const reports = await cached("reports", 4_000, () => listReports());
   return jsonWithEtag(

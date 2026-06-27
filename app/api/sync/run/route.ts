@@ -17,6 +17,70 @@ export const maxDuration = 300;
  *
  * Autenticación: header `x-admin-token` (ver lib/admin.ts).
  */
+/**
+ * @swagger
+ * /api/sync/run:
+ *   post:
+ *     tags: [sync]
+ *     summary: Dispara manualmente la sincronización de fuentes externas (requiere x-admin-token)
+ *     parameters:
+ *       - in: query
+ *         name: dryRun
+ *         required: false
+ *         schema: { type: string, enum: ['1', 'true'] }
+ *         description: Si es 1/true simula la corrida sin escribir.
+ *       - in: query
+ *         name: source
+ *         required: false
+ *         schema: { type: string }
+ *         description: Limita la corrida a una sola fuente por su id.
+ *       - in: query
+ *         name: limit
+ *         required: false
+ *         schema: { type: integer, minimum: 1 }
+ *         description: Tope de registros por fuente.
+ *       - in: query
+ *         name: mode
+ *         required: false
+ *         schema: { type: string, enum: [chunk] }
+ *         description: Si es chunk procesa por páginas usando el cursor en sync_state.
+ *       - in: query
+ *         name: pages
+ *         required: false
+ *         schema: { type: integer, minimum: 1 }
+ *         description: Tope de páginas por corrida (solo con mode=chunk).
+ *     responses:
+ *       200:
+ *         description: Resumen de la corrida con totales y resultado por fuente.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok: { type: boolean }
+ *                 dryRun: { type: boolean }
+ *                 totals:
+ *                   type: object
+ *                   properties:
+ *                     fetched: { type: integer }
+ *                     inserted: { type: integer }
+ *                     updated: { type: integer }
+ *                     skipped: { type: integer }
+ *                     errors: { type: integer }
+ *                 results:
+ *                   type: array
+ *                   items: { type: object }
+ *       401:
+ *         description: No autorizado (falta o es inválido x-admin-token).
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ *       500:
+ *         description: Error al sincronizar.
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ */
 export async function POST(request: Request) {
   if (!isAdminRequest(request)) {
     return NextResponse.json(

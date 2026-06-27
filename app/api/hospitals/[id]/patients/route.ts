@@ -12,6 +12,86 @@ import { readJson, bodyErrorResponse, BODY_LIMIT_TEXT } from "@/lib/body";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * @swagger
+ * /api/hospitals/{id}/patients:
+ *   get:
+ *     tags: [hospitals]
+ *     summary: Lista los pacientes de un hospital
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Pacientes y datos del hospital
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 patients:
+ *                   type: array
+ *                   items: { $ref: '#/components/schemas/HospitalPatient' }
+ *                 hospital: { $ref: '#/components/schemas/Hospital' }
+ *       404:
+ *         description: Hospital no encontrado
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ *   post:
+ *     tags: [hospitals]
+ *     summary: Registra un paciente en un hospital (rate-limited)
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name]
+ *             properties:
+ *               name: { type: string }
+ *               age: { type: integer, nullable: true }
+ *               condition: { type: string }
+ *               status: { type: string }
+ *               notes: { type: string }
+ *               contact: { type: string }
+ *     responses:
+ *       201:
+ *         description: Paciente creado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 patient: { $ref: '#/components/schemas/HospitalPatient' }
+ *       400:
+ *         description: Datos inválidos (nombre faltante o demasiado largo)
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ *       404:
+ *         description: Hospital no encontrado
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ *       429:
+ *         description: Demasiadas peticiones
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ *       503:
+ *         description: No se pudo guardar el paciente
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ */
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },

@@ -19,6 +19,89 @@ const LIST_CACHE_HEADERS = {
   "Cache-Control": "public, max-age=0, s-maxage=10, stale-while-revalidate=60",
 };
 
+/**
+ * @swagger
+ * /api/hospitals:
+ *   get:
+ *     tags: [hospitals]
+ *     summary: Lista hospitales con filtros opcionales y estados
+ *     parameters:
+ *       - in: query
+ *         name: include
+ *         schema: { type: string, enum: [states] }
+ *         description: Si es "states", incluye la lista de estados
+ *       - in: query
+ *         name: zone
+ *         schema: { type: string, enum: [P0, P1, P2, P3] }
+ *         description: Zona de prioridad
+ *       - in: query
+ *         name: state
+ *         schema: { type: string }
+ *       - in: query
+ *         name: q
+ *         schema: { type: string }
+ *         description: Texto de búsqueda
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 500 }
+ *     responses:
+ *       200:
+ *         description: Hospitales y, opcionalmente, estados
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 hospitals:
+ *                   type: array
+ *                   items: { $ref: '#/components/schemas/Hospital' }
+ *                 states:
+ *                   type: array
+ *                   nullable: true
+ *                   items: { type: string }
+ *   post:
+ *     tags: [hospitals]
+ *     summary: Registra un nuevo hospital
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name, state]
+ *             properties:
+ *               name: { type: string }
+ *               facilityType: { type: string }
+ *               state: { type: string }
+ *               municipality: { type: string }
+ *               address: { type: string }
+ *               level: { type: string }
+ *               priorityZone: { type: string, enum: [P0, P1, P2, P3] }
+ *     responses:
+ *       201:
+ *         description: Hospital creado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 hospital: { $ref: '#/components/schemas/Hospital' }
+ *       400:
+ *         description: Datos inválidos (nombre o estado faltante o nombre muy largo)
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ *       429:
+ *         description: Demasiadas peticiones (rate limit)
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ *       503:
+ *         description: No se pudo guardar el hospital
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ */
 export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
   const wantsStates = params.get("include") === "states";

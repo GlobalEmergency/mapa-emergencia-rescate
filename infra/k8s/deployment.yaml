@@ -1,0 +1,77 @@
+# App Deployment — the Next.js full-stack app (UI + /api route handlers).
+# This is the "cattle": immutable pods replaced on every deploy.
+#
+# Zero-downtime is achieved entirely by the fields below:
+#   - strategy maxUnavailable:0 / maxSurge:1  -> a new pod is created and must
+#     become Ready BEFORE any old pod is removed. Always >=1 serving.
+#   - readinessProbe /api/readyz             -> "Ready" means the DB is
+#     reachable, so traffic only flows to pods that can actually serve.
+#   - terminationGracePeriodSeconds          -> in-flight requests finish
+#     before the old pod is killed (connection draining).
+#
+# The image tag is patched per-deploy by CI: `kubectl set image ... :<sha>`.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app
+  namespace: mapa
+  labels:
+    app: mapa
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      app: mapa
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: mapa
+    spec:
+      terminationGracePeriodSeconds: 40
+      containers:
+        - name: app
+          # CI overwrites this tag with ghcr.io/<owner>/<repo>:<sha>.
+          # `:latest` is only a placeholder so `kubectl apply` works first time.
+          image: ghcr.io/OWNER/REPO:latest
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - secretRef:
+                name: app-env
+          # Liveness: is the process alive? (cheap, no DB) — restart if not.
+          livenessProbe:
+            httpGet:
+              path: /api/readyz
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6
+          # Readiness: can it serve? (DB ping) — gates traffic + the roll.
+          # 2 consecutive 200s ~= the Hermes "HealthyThreshold 2" behavior.
+          readinessProbe:
+            httpGet:
+              path: /api/readyz
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 2
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              memory: "512Mi"
+          # Give in-flight requests a moment before SIGTERM during drain.
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sh", "-c", "sleep 5"]

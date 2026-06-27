@@ -11,6 +11,46 @@ const CACHE_HEADERS = {
   "Cache-Control": "public, max-age=0, s-maxage=5, stale-while-revalidate=30",
 };
 
+/**
+ * @swagger
+ * /api/stats/psychology-help:
+ *   get:
+ *     tags: [system]
+ *     summary: Devuelve el contador de clics en "ayuda psicológica"
+ *     responses:
+ *       200:
+ *         description: Contador actual de clics
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 count:
+ *                   type: integer
+ *   post:
+ *     tags: [system]
+ *     summary: Registra un clic en "ayuda psicológica" (rate-limited por IP)
+ *     responses:
+ *       200:
+ *         description: Clic registrado, devuelve el nuevo contador
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 count:
+ *                   type: integer
+ *       429:
+ *         description: Demasiadas peticiones
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ *       503:
+ *         description: No se pudo registrar el clic
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ */
 export async function GET() {
   try {
     const count = await getPsychologyHelpClickCount();

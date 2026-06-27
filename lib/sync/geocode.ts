@@ -9,7 +9,10 @@
  * Porta la lógica de scripts/geocode-missing-locations.mjs. Ver RFC §4.
  */
 
-import { getSql, hasDbEnv } from "../db";
+import { eq, sql } from "drizzle-orm";
+import { getDb, hasDbEnv, schema } from "../drizzle";
+
+const { geocodeCache } = schema;
 
 /** Centro aproximado de la zona afectada (La Guaira / Caracas) para sesgar. */
 const BIAS = { lat: 10.48, lng: -66.9 };
@@ -31,27 +34,6 @@ export interface GeocodeResult {
   failed: number;
   /** Personas a las que se les propagó lat/lng. */
   peopleUpdated: number;
-}
-
-let _geoSchemaReady: Promise<void> | null = null;
-function ensureGeocodeSchema(): Promise<void> {
-  if (!_geoSchemaReady) {
-    const sql = getSql();
-    _geoSchemaReady = (async () => {
-      await sql`ALTER TABLE missing_persons ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION`;
-      await sql`ALTER TABLE missing_persons ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION`;
-      await sql`
-        CREATE TABLE IF NOT EXISTS geocode_cache (
-          normalized_key TEXT PRIMARY KEY,
-          lat DOUBLE PRECISION NOT NULL,
-          lng DOUBLE PRECISION NOT NULL,
-          label TEXT NOT NULL DEFAULT '',
-          updated_at BIGINT NOT NULL
-        )
-      `;
-    })();
-  }
-  return _geoSchemaReady;
 }
 
 interface Coords {
@@ -117,18 +99,21 @@ export async function runGeocode(
   const timeBudgetMs = Math.max(1_000, Math.trunc(opts.timeBudgetMs ?? DEFAULT_TIME_BUDGET_MS));
   const startedAt = Date.now();
 
-  await ensureGeocodeSchema();
-  const sql = getSql();
+  const db = getDb();
 
-  const locations = (await sql.query(
-    `SELECT lower(trim(last_seen)) AS key, min(last_seen) AS sample
-     FROM missing_persons
-     WHERE status = 'active' AND trim(last_seen) <> '' AND lat IS NULL
-     GROUP BY lower(trim(last_seen))
-     ORDER BY count(*) DESC
-     LIMIT $1`,
-    [maxLocations],
-  )) as { key: string; sample: string }[];
+  // Ubicaciones activas sin coordenadas, agrupadas por clave normalizada y
+  // ordenadas por frecuencia. El builder no expresa bien lower(trim())/GROUP BY
+  // con ORDER BY count(*), así que se usa SQL crudo preservando la semántica.
+  const locations = (
+    await db.execute(sql`
+      SELECT lower(trim(last_seen)) AS key, min(last_seen) AS sample
+      FROM missing_persons
+      WHERE status = 'active' AND trim(last_seen) <> '' AND lat IS NULL
+      GROUP BY lower(trim(last_seen))
+      ORDER BY count(*) DESC
+      LIMIT ${maxLocations}
+    `)
+  ).rows as { key: string; sample: string }[];
 
   const result: GeocodeResult = {
     locations: locations.length,
@@ -142,9 +127,14 @@ export async function runGeocode(
     if (!key) continue;
     if (Date.now() - startedAt >= timeBudgetMs) break;
 
-    const cacheRows = (await sql`
-      SELECT lat, lng, label FROM geocode_cache WHERE normalized_key = ${key}
-    `) as { lat: number; lng: number; label: string }[];
+    const cacheRows = await db
+      .select({
+        lat: geocodeCache.lat,
+        lng: geocodeCache.lng,
+        label: geocodeCache.label,
+      })
+      .from(geocodeCache)
+      .where(eq(geocodeCache.normalizedKey, key));
     let coords: Coords | null = cacheRows[0] ?? null;
 
     if (coords) {
@@ -156,22 +146,36 @@ export async function runGeocode(
         result.failed++;
         continue;
       }
-      await sql`
-        INSERT INTO geocode_cache (normalized_key, lat, lng, label, updated_at)
-        VALUES (${key}, ${coords.lat}, ${coords.lng}, ${coords.label}, ${Date.now()})
-        ON CONFLICT (normalized_key) DO UPDATE SET
-          lat = EXCLUDED.lat, lng = EXCLUDED.lng,
-          label = EXCLUDED.label, updated_at = EXCLUDED.updated_at
-      `;
+      await db
+        .insert(geocodeCache)
+        .values({
+          normalizedKey: key,
+          lat: coords.lat,
+          lng: coords.lng,
+          label: coords.label,
+          updatedAt: Date.now(),
+        })
+        .onConflictDoUpdate({
+          target: geocodeCache.normalizedKey,
+          set: {
+            lat: coords.lat,
+            lng: coords.lng,
+            label: coords.label,
+            updatedAt: Date.now(),
+          },
+        });
       result.geocodedNew++;
     }
 
-    const updated = (await sql.query(
-      `UPDATE missing_persons SET lat = $1, lng = $2
-       WHERE status = 'active' AND lower(trim(last_seen)) = $3 AND lat IS NULL
-       RETURNING id`,
-      [coords.lat, coords.lng, key],
-    )) as { id: string }[];
+    // UPDATE con lower(trim()) en el WHERE: SQL crudo para preservar la
+    // semántica de coincidencia por clave normalizada.
+    const updated = (
+      await db.execute(sql`
+        UPDATE missing_persons SET lat = ${coords.lat}, lng = ${coords.lng}
+        WHERE status = 'active' AND lower(trim(last_seen)) = ${key} AND lat IS NULL
+        RETURNING id
+      `)
+    ).rows as { id: string }[];
     result.peopleUpdated += updated.length;
   }
 

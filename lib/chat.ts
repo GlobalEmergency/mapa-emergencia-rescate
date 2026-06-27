@@ -1,4 +1,5 @@
-import { getSql, hasDbEnv } from "./db";
+import { asc, desc, eq, inArray, or, sql } from "drizzle-orm";
+import { getDb, hasDbEnv, schema } from "./drizzle";
 import {
   CHAT_ROLE_KEYS,
   CHAT_ROLES,
@@ -12,68 +13,16 @@ import {
 export type { ChatMessage, ChatRole, ChatRoleMeta };
 export { CHAT_ROLES, CHAT_ROLE_KEYS, getRoleMeta, isValidChatRole };
 
+const { chatMessages } = schema;
+
 const MAX_NAME = 40;
 const MAX_TEXT = 500;
 const MAX_REPLY_PREVIEW = 120;
 const FETCH_LIMIT = 200;
 
-let _schemaReady: Promise<void> | null = null;
-function ensureSchema(): Promise<void> {
-  if (!_schemaReady) {
-    const sql = getSql();
-    _schemaReady = (async () => {
-      await sql`
-        CREATE TABLE IF NOT EXISTS chat_messages (
-          id TEXT PRIMARY KEY,
-          name TEXT NOT NULL DEFAULT 'Anónimo',
-          role TEXT NOT NULL DEFAULT 'citizen',
-          text TEXT NOT NULL,
-          reply_to TEXT,
-          reply_preview TEXT,
-          thread_root_id TEXT,
-          thread_bumped_at BIGINT NOT NULL,
-          created_at BIGINT NOT NULL
-        )
-      `;
-
-      // Migración incremental: columnas nuevas para roles e hilos.
-      await sql`ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'citizen'`;
-      await sql`ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS reply_to TEXT`;
-      await sql`ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS reply_preview TEXT`;
-      await sql`ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS thread_root_id TEXT`;
-      await sql`ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS thread_bumped_at BIGINT`;
-
-      // Asegurar que mensajes antiguos tengan thread_root_id y thread_bumped_at.
-      await sql`UPDATE chat_messages SET thread_root_id = id WHERE thread_root_id IS NULL`;
-      await sql`UPDATE chat_messages SET thread_bumped_at = created_at WHERE thread_bumped_at IS NULL`;
-
-      // Índices para listado ordenado por hilo y búsqueda de respuestas.
-      await sql`
-        CREATE INDEX IF NOT EXISTS idx_chat_thread_bumped
-        ON chat_messages (thread_bumped_at DESC, created_at ASC)
-      `;
-      await sql`
-        CREATE INDEX IF NOT EXISTS idx_chat_reply
-        ON chat_messages (reply_to) WHERE reply_to IS NOT NULL
-      `;
-    })();
-  }
-  return _schemaReady;
-}
-
 const memoryStore = new Map<string, ChatMessage>();
 
-type ChatRow = {
-  id: string;
-  name: string;
-  role: string;
-  text: string;
-  reply_to: string | null;
-  reply_preview: string | null;
-  thread_root_id: string | null;
-  thread_bumped_at: string | number;
-  created_at: string | number;
-};
+type ChatRow = typeof chatMessages.$inferSelect;
 
 function rowToMessage(row: ChatRow): ChatMessage {
   return {
@@ -81,11 +30,11 @@ function rowToMessage(row: ChatRow): ChatMessage {
     name: row.name,
     role: isValidChatRole(row.role) ? row.role : "citizen",
     text: row.text,
-    replyTo: row.reply_to ?? null,
-    replyPreview: row.reply_preview ?? null,
-    threadRootId: row.thread_root_id ?? row.id,
-    threadBumpedAt: Number(row.thread_bumped_at),
-    createdAt: Number(row.created_at),
+    replyTo: row.replyTo ?? null,
+    replyPreview: row.replyPreview ?? null,
+    threadRootId: row.threadRootId ?? row.id,
+    threadBumpedAt: Number(row.threadBumpedAt),
+    createdAt: Number(row.createdAt),
   };
 }
 
@@ -122,31 +71,33 @@ export async function listMessages(
   const roleFilter = options.role;
 
   if (hasDbEnv()) {
-    await ensureSchema();
-    const sql = getSql();
-
     let rows: ChatRow[];
     if (roleFilter) {
       // Cuando filtramos por rol, solo mostramos mensajes de ese rol y sus
       // respuestas directas, manteniendo el orden por hilo.
-      rows = (await sql`
-        SELECT m.*
-        FROM chat_messages m
-        WHERE m.role = ${roleFilter}
-           OR m.thread_root_id IN (
-             SELECT id FROM chat_messages WHERE role = ${roleFilter}
-           )
-        ORDER BY m.thread_bumped_at DESC, m.created_at ASC
-        LIMIT ${FETCH_LIMIT}
-      `) as ChatRow[];
+      rows = (await getDb()
+        .select()
+        .from(chatMessages)
+        .where(
+          or(
+            eq(chatMessages.role, roleFilter),
+            inArray(
+              chatMessages.threadRootId,
+              getDb()
+                .select({ id: chatMessages.id })
+                .from(chatMessages)
+                .where(eq(chatMessages.role, roleFilter)),
+            ),
+          ),
+        )
+        .orderBy(desc(chatMessages.threadBumpedAt), asc(chatMessages.createdAt))
+        .limit(FETCH_LIMIT)) as ChatRow[];
     } else {
-      rows = (await sql`
-        SELECT id, name, role, text, reply_to, reply_preview,
-               thread_root_id, thread_bumped_at, created_at
-        FROM chat_messages
-        ORDER BY thread_bumped_at DESC, created_at ASC
-        LIMIT ${FETCH_LIMIT}
-      `) as ChatRow[];
+      rows = (await getDb()
+        .select()
+        .from(chatMessages)
+        .orderBy(desc(chatMessages.threadBumpedAt), asc(chatMessages.createdAt))
+        .limit(FETCH_LIMIT)) as ChatRow[];
     }
     return rows.map(rowToMessage);
   }
@@ -219,15 +170,13 @@ export async function addMessage(input: AddMessageInput): Promise<ChatMessage> {
   }
 
   if (hasDbEnv()) {
-    await ensureSchema();
-    const sql = getSql();
     // INSERT del mensaje + "bump" del hilo (sube en orden tipo WhatsApp) en una
     // sola sentencia atómica. El CTE no ve su propio INSERT, pero el mensaje
     // nuevo ya entra con thread_bumped_at = now, así que el estado final es el
     // mismo y evitamos un roundtrip y el riesgo de desync entre ambas queries.
-    await sql`
+    await getDb().execute(sql`
       WITH ins AS (
-        INSERT INTO chat_messages
+        INSERT INTO ${chatMessages}
           (id, name, role, text, reply_to, reply_preview,
            thread_root_id, thread_bumped_at, created_at)
         VALUES (
@@ -236,10 +185,10 @@ export async function addMessage(input: AddMessageInput): Promise<ChatMessage> {
           ${message.threadRootId}, ${message.threadBumpedAt}, ${message.createdAt}
         )
       )
-      UPDATE chat_messages
+      UPDATE ${chatMessages}
       SET thread_bumped_at = ${now}
       WHERE thread_root_id = ${message.threadRootId}
-    `;
+    `);
   } else {
     memoryStore.set(message.id, message);
     for (const m of memoryStore.values()) {
@@ -253,22 +202,23 @@ export async function addMessage(input: AddMessageInput): Promise<ChatMessage> {
 }
 
 async function getParentFromDb(id: string): Promise<ChatMessage | null> {
-  const rows = (await getSql()`
-    SELECT id, name, role, text, reply_to, reply_preview,
-           thread_root_id, thread_bumped_at, created_at
-    FROM chat_messages
-    WHERE id = ${id}
-    LIMIT 1
-  `) as ChatRow[];
+  const rows = await getDb()
+    .select()
+    .from(chatMessages)
+    .where(eq(chatMessages.id, id))
+    .limit(1);
   return rows[0] ? rowToMessage(rows[0]) : null;
 }
 
 export async function removeMessage(id: string): Promise<boolean> {
   if (hasDbEnv()) {
-    await ensureSchema();
-    const rows = (await getSql()`
-      DELETE FROM chat_messages WHERE id = ${id} RETURNING id
-    `) as { id: string }[];
+    // El builder de delete().returning() no resuelve sobre el tipo unión de
+    // drivers (neon-http | node-postgres); usamos el escape `sql` preservando
+    // la semántica exacta del DELETE ... RETURNING id.
+    const result = await getDb().execute(
+      sql`DELETE FROM ${chatMessages} WHERE ${chatMessages.id} = ${id} RETURNING ${chatMessages.id}`,
+    );
+    const rows = (Array.isArray(result) ? result : result.rows) as unknown[];
     return rows.length > 0;
   }
   return memoryStore.delete(id);

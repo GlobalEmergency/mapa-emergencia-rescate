@@ -4,6 +4,42 @@ import { isAdminRequest } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * @swagger
+ * /api/chat/{id}:
+ *   delete:
+ *     tags: [chat]
+ *     summary: Borra un mensaje del chat (solo administradores)
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Mensaje borrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok: { type: boolean }
+ *       400:
+ *         description: Falta el id
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ *       401:
+ *         description: No autorizado (requiere admin)
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ *       404:
+ *         description: Mensaje no encontrado
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ */
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> },

@@ -22,6 +22,55 @@ function parseCoord(value: string | null, min: number, max: number): number | nu
   return n;
 }
 
+/**
+ * @swagger
+ * /api/geocode:
+ *   get:
+ *     tags: [system]
+ *     summary: Geocodifica una dirección en Venezuela vía Nominatim (con sesgo opcional)
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         required: true
+ *         schema: { type: string, minLength: 3 }
+ *         description: Texto a buscar. Con menos de 3 caracteres devuelve lista vacía.
+ *       - in: query
+ *         name: lat
+ *         required: false
+ *         schema: { type: number }
+ *         description: Latitud de referencia para priorizar resultados cercanos.
+ *       - in: query
+ *         name: lng
+ *         required: false
+ *         schema: { type: number }
+ *         description: Longitud de referencia para priorizar resultados cercanos.
+ *     responses:
+ *       200:
+ *         description: Resultados de geocodificación.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 results:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       lat: { type: number }
+ *                       lng: { type: number }
+ *                       label: { type: string }
+ *       429:
+ *         description: Límite de búsquedas excedido.
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ *       502:
+ *         description: Error al consultar el servicio de geocodificación.
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const query = (searchParams.get("q") ?? "").trim();

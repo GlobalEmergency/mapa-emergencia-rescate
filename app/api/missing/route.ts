@@ -28,6 +28,92 @@ const SEARCH_CACHE_HEADERS = {
   "Cache-Control": "public, max-age=0, s-maxage=30, stale-while-revalidate=120",
 };
 
+/**
+ * @swagger
+ * /api/missing:
+ *   get:
+ *     tags: [missing]
+ *     summary: Lista paginada de personas desaparecidas o localizadas
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema: { type: string, enum: [active, found, all], default: active }
+ *         description: Filtro de estado. Por defecto solo activas.
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, default: 1 }
+ *       - in: query
+ *         name: pageSize
+ *         schema: { type: integer }
+ *       - in: query
+ *         name: q
+ *         schema: { type: string }
+ *         description: Término de búsqueda por nombre.
+ *     responses:
+ *       200:
+ *         description: Página de personas
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 people:
+ *                   type: array
+ *                   items: { $ref: '#/components/schemas/MissingPerson' }
+ *                 total: { type: integer }
+ *                 totalCapped: { type: boolean }
+ *                 page: { type: integer }
+ *                 pageSize: { type: integer }
+ *                 totalPages: { type: integer }
+ *                 persistent: { type: boolean }
+ *   post:
+ *     tags: [missing]
+ *     summary: Crea un reporte de persona desaparecida o localizada
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name]
+ *             properties:
+ *               name: { type: string }
+ *               age: { type: integer, nullable: true }
+ *               description: { type: string }
+ *               lastSeen: { type: string }
+ *               contact: { type: string }
+ *               photo: { type: string, nullable: true, description: 'Data URL de imagen JPG, PNG o WebP' }
+ *               reportType: { type: string, enum: [missing, found] }
+ *     responses:
+ *       201:
+ *         description: Reporte creado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 person: { $ref: '#/components/schemas/MissingPerson' }
+ *       400:
+ *         description: Datos inválidos
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ *       413:
+ *         description: Foto demasiado grande
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ *       429:
+ *         description: Límite de tasa excedido
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ *       503:
+ *         description: No se pudo guardar el reporte
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ */
 export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
   // Por defecto se listan solo las personas activas (las localizadas se

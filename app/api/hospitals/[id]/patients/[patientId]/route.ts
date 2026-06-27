@@ -4,6 +4,43 @@ import { isAdminRequest } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * @swagger
+ * /api/hospitals/{id}/patients/{patientId}:
+ *   delete:
+ *     tags: [hospitals]
+ *     summary: Elimina un paciente de un hospital (solo admin)
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *         description: ID del hospital
+ *       - in: path
+ *         name: patientId
+ *         required: true
+ *         schema: { type: string }
+ *         description: ID del paciente
+ *     responses:
+ *       200:
+ *         description: Paciente eliminado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok: { type: boolean }
+ *       401:
+ *         description: No autorizado
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ *       404:
+ *         description: Hospital o paciente no encontrado
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ */
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string; patientId: string }> },

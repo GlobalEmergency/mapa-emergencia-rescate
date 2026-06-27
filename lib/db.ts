@@ -5,26 +5,13 @@ export function hasDbEnv(): boolean {
   return Boolean(process.env.DATABASE_URL);
 }
 
-/** Detecta una conexión a un Postgres local (desarrollo). */
-function isLocalUrl(url: string): boolean {
-  try {
-    const host = new URL(url).hostname;
-    return host === "localhost" || host === "127.0.0.1" || host === "::1";
-  } catch {
-    return false;
-  }
-}
-
 /**
- * Adaptador para desarrollo local: el driver HTTP de Neon (`neon()`) habla con
- * el endpoint SQL-sobre-HTTP de Neon, así que no puede conectarse a un Postgres
- * local plano. Cuando `DATABASE_URL` apunta a localhost usamos `node-postgres`
- * por TCP, exponiendo la misma interfaz de template tag que usa el resto del
- * código (`sql\`...\``) y devolviendo el array de filas, igual que Neon con
- * `fullResults: false`. `pg` solo se carga en este caso (es devDependency y
- * está en `serverExternalPackages`), por lo que producción no se ve afectada.
+ * Adaptador `node-postgres` (TCP) que expone la misma interfaz de template tag
+ * que el resto del código (`sql\`...\``) y devuelve el array de filas, igual que
+ * Neon con `fullResults: false`. Se usa para todo Postgres plano: desarrollo
+ * local y el VPS de Postgres privado en Hetzner.
  */
-function createLocalSql(url: string): NeonQueryFunction<false, false> {
+function createTcpSql(url: string): NeonQueryFunction<false, false> {
   const require = createRequire(import.meta.url);
   const { Pool, types } = require("pg") as typeof import("pg");
   // BIGINT (oid 20) llega como string por defecto; Neon lo entrega como número.
@@ -46,12 +33,35 @@ function createLocalSql(url: string): NeonQueryFunction<false, false> {
   return sql as unknown as NeonQueryFunction<false, false>;
 }
 
+/**
+ * Elige el driver. Explícito gana SIEMPRE sobre el valor por defecto:
+ *
+ *   1. DB_DRIVER=tcp   -> fuerza node-postgres (Hetzner, local).
+ *   2. DB_DRIVER=neon  -> fuerza el driver HTTP de Neon.
+ *   3. (sin DB_DRIVER) -> POR DEFECTO neon (es el prod actual de Vercel+Neon;
+ *      es el fallback seguro: si alguien despliega sin fijar la variable, no se
+ *      rompe Neon). Los entornos TCP (Hetzner, compose) fijan DB_DRIVER=tcp
+ *      explícitamente, así que no dependen de este default.
+ *
+ * Nota: ya NO se autodetecta por host. La elección es explícita o el default
+ * neon — para que un cambio en la URL nunca cambie el driver por sorpresa.
+ */
+function chooseDriver(): "neon" | "tcp" {
+  const forced = process.env.DB_DRIVER?.toLowerCase();
+  if (forced === "tcp") return "tcp";
+  if (forced === "neon") return "neon";
+  if (forced) {
+    throw new Error(`DB_DRIVER inválido: "${forced}". Usa "neon" o "tcp".`);
+  }
+  return "neon"; // default seguro
+}
+
 let _sql: NeonQueryFunction<false, false> | null = null;
 
 export function getSql(): NeonQueryFunction<false, false> {
   if (!_sql) {
     const url = process.env.DATABASE_URL!;
-    _sql = isLocalUrl(url) ? createLocalSql(url) : neon(url);
+    _sql = chooseDriver() === "neon" ? neon(url) : createTcpSql(url);
   }
   return _sql;
 }

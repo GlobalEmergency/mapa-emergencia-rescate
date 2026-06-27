@@ -3,8 +3,11 @@
  * por chunks. Ver docs/rfcs/0001-sincronizacion-fuentes.md §2.5.
  */
 
-import { getSql, hasDbEnv } from "../db";
+import { eq, desc, sql } from "drizzle-orm";
+import { getDb, hasDbEnv, schema } from "../drizzle";
 import type { SyncResult } from "./types";
+
+const { syncState, syncRuns } = schema;
 
 export interface SyncCursor {
   /** Próxima página a procesar (1-based). */
@@ -13,60 +16,17 @@ export interface SyncCursor {
   totalPages: number | null;
 }
 
-let _stateSchemaReady: Promise<void> | null = null;
-function ensureStateSchema(): Promise<void> {
-  if (!_stateSchemaReady) {
-    const sql = getSql();
-    _stateSchemaReady = (async () => {
-      await sql`
-        CREATE TABLE IF NOT EXISTS sync_state (
-          source TEXT PRIMARY KEY,
-          next_page INTEGER NOT NULL DEFAULT 1,
-          total_pages INTEGER,
-          last_run_at BIGINT,
-          last_cycle_completed_at BIGINT,
-          updated_at BIGINT NOT NULL
-        )
-      `;
-      // Bitácora de corridas (observabilidad).
-      await sql`
-        CREATE TABLE IF NOT EXISTS sync_runs (
-          id BIGSERIAL PRIMARY KEY,
-          source TEXT NOT NULL,
-          trigger TEXT,
-          ok BOOLEAN NOT NULL,
-          fetched INTEGER NOT NULL DEFAULT 0,
-          inserted INTEGER NOT NULL DEFAULT 0,
-          updated INTEGER NOT NULL DEFAULT 0,
-          skipped INTEGER NOT NULL DEFAULT 0,
-          errors INTEGER NOT NULL DEFAULT 0,
-          from_page INTEGER,
-          to_page INTEGER,
-          next_page INTEGER,
-          cycle_completed BOOLEAN,
-          error TEXT,
-          duration_ms INTEGER NOT NULL DEFAULT 0,
-          started_at BIGINT NOT NULL,
-          finished_at BIGINT NOT NULL
-        )
-      `;
-      await sql`CREATE INDEX IF NOT EXISTS idx_sync_runs_started ON sync_runs (started_at DESC)`;
-    })();
-  }
-  return _stateSchemaReady;
-}
-
 /** Lee el cursor de una fuente; si no existe, devuelve el inicial (página 1). */
 export async function getSyncCursor(source: string): Promise<SyncCursor> {
   if (!hasDbEnv()) return { nextPage: 1, totalPages: null };
-  await ensureStateSchema();
-  const rows = (await getSql()`
-    SELECT next_page, total_pages FROM sync_state WHERE source = ${source}
-  `) as { next_page: number; total_pages: number | null }[];
+  const rows = await getDb()
+    .select({ nextPage: syncState.nextPage, totalPages: syncState.totalPages })
+    .from(syncState)
+    .where(eq(syncState.source, source));
   if (rows.length === 0) return { nextPage: 1, totalPages: null };
   return {
-    nextPage: Math.max(1, Number(rows[0].next_page) || 1),
-    totalPages: rows[0].total_pages === null ? null : Number(rows[0].total_pages),
+    nextPage: Math.max(1, Number(rows[0].nextPage) || 1),
+    totalPages: rows[0].totalPages === null ? null : Number(rows[0].totalPages),
   };
 }
 
@@ -77,22 +37,28 @@ export async function setSyncCursor(
   opts: { cycleCompleted?: boolean } = {},
 ): Promise<void> {
   if (!hasDbEnv()) return;
-  await ensureStateSchema();
   const now = Date.now();
   const cycleAt = opts.cycleCompleted ? now : null;
-  await getSql()`
-    INSERT INTO sync_state
-      (source, next_page, total_pages, last_run_at, last_cycle_completed_at, updated_at)
-    VALUES (
-      ${source}, ${cursor.nextPage}, ${cursor.totalPages}, ${now}, ${cycleAt}, ${now}
-    )
-    ON CONFLICT (source) DO UPDATE SET
-      next_page = EXCLUDED.next_page,
-      total_pages = EXCLUDED.total_pages,
-      last_run_at = EXCLUDED.last_run_at,
-      last_cycle_completed_at = COALESCE(EXCLUDED.last_cycle_completed_at, sync_state.last_cycle_completed_at),
-      updated_at = EXCLUDED.updated_at
-  `;
+  await getDb()
+    .insert(syncState)
+    .values({
+      source,
+      nextPage: cursor.nextPage,
+      totalPages: cursor.totalPages,
+      lastRunAt: now,
+      lastCycleCompletedAt: cycleAt,
+      updatedAt: now,
+    })
+    .onConflictDoUpdate({
+      target: syncState.source,
+      set: {
+        nextPage: sql`excluded.next_page`,
+        totalPages: sql`excluded.total_pages`,
+        lastRunAt: sql`excluded.last_run_at`,
+        lastCycleCompletedAt: sql`COALESCE(excluded.last_cycle_completed_at, ${syncState.lastCycleCompletedAt})`,
+        updatedAt: sql`excluded.updated_at`,
+      },
+    });
 }
 
 /**
@@ -101,17 +67,14 @@ export async function setSyncCursor(
  */
 export async function resetSyncCursor(source?: string): Promise<void> {
   if (!hasDbEnv()) return;
-  await ensureStateSchema();
   const now = Date.now();
+  const update = getDb()
+    .update(syncState)
+    .set({ nextPage: 1, lastCycleCompletedAt: null, updatedAt: now });
   if (source) {
-    await getSql()`
-      UPDATE sync_state SET next_page = 1, last_cycle_completed_at = NULL, updated_at = ${now}
-      WHERE source = ${source}
-    `;
+    await update.where(eq(syncState.source, source));
   } else {
-    await getSql()`
-      UPDATE sync_state SET next_page = 1, last_cycle_completed_at = NULL, updated_at = ${now}
-    `;
+    await update;
   }
 }
 
@@ -124,20 +87,25 @@ export async function recordSyncRun(
 ): Promise<void> {
   if (!hasDbEnv()) return;
   try {
-    await ensureStateSchema();
-    await getSql()`
-      INSERT INTO sync_runs (
-        source, trigger, ok, fetched, inserted, updated, skipped, errors,
-        from_page, to_page, next_page, cycle_completed, error,
-        duration_ms, started_at, finished_at
-      ) VALUES (
-        ${result.source}, ${trigger}, ${result.ok}, ${result.fetched},
-        ${result.inserted}, ${result.updated}, ${result.skipped}, ${result.errors},
-        ${result.fromPage ?? null}, ${result.toPage ?? null}, ${result.nextPage ?? null},
-        ${result.cycleCompleted ?? null}, ${result.error ?? null},
-        ${result.durationMs}, ${result.startedAt}, ${result.finishedAt}
-      )
-    `;
+    // id es bigserial: se omite para que la secuencia lo asigne.
+    await getDb().insert(syncRuns).values({
+      source: result.source,
+      trigger,
+      ok: result.ok,
+      fetched: result.fetched,
+      inserted: result.inserted,
+      updated: result.updated,
+      skipped: result.skipped,
+      errors: result.errors,
+      fromPage: result.fromPage ?? null,
+      toPage: result.toPage ?? null,
+      nextPage: result.nextPage ?? null,
+      cycleCompleted: result.cycleCompleted ?? null,
+      error: result.error ?? null,
+      durationMs: result.durationMs,
+      startedAt: result.startedAt,
+      finishedAt: result.finishedAt,
+    });
   } catch {
     // la observabilidad no debe tumbar el sync
   }
@@ -165,31 +133,46 @@ export interface SyncRunRow {
 /** Últimas corridas (para el panel admin). */
 export async function listSyncRuns(limit = 20): Promise<SyncRunRow[]> {
   if (!hasDbEnv()) return [];
-  await ensureStateSchema();
   const n = Math.min(Math.max(Math.trunc(limit), 1), 100);
-  const rows = (await getSql()`
-    SELECT source, trigger, ok, fetched, inserted, updated, skipped, errors,
-           from_page, to_page, next_page, cycle_completed, error,
-           duration_ms, started_at, finished_at
-    FROM sync_runs ORDER BY started_at DESC LIMIT ${n}
-  `) as Record<string, unknown>[];
+  const rows = await getDb()
+    .select({
+      source: syncRuns.source,
+      trigger: syncRuns.trigger,
+      ok: syncRuns.ok,
+      fetched: syncRuns.fetched,
+      inserted: syncRuns.inserted,
+      updated: syncRuns.updated,
+      skipped: syncRuns.skipped,
+      errors: syncRuns.errors,
+      fromPage: syncRuns.fromPage,
+      toPage: syncRuns.toPage,
+      nextPage: syncRuns.nextPage,
+      cycleCompleted: syncRuns.cycleCompleted,
+      error: syncRuns.error,
+      durationMs: syncRuns.durationMs,
+      startedAt: syncRuns.startedAt,
+      finishedAt: syncRuns.finishedAt,
+    })
+    .from(syncRuns)
+    .orderBy(desc(syncRuns.startedAt))
+    .limit(n);
   return rows.map((r) => ({
     source: String(r.source),
-    trigger: (r.trigger as string) ?? null,
+    trigger: r.trigger ?? null,
     ok: Boolean(r.ok),
     fetched: Number(r.fetched),
     inserted: Number(r.inserted),
     updated: Number(r.updated),
     skipped: Number(r.skipped),
     errors: Number(r.errors),
-    fromPage: r.from_page === null ? null : Number(r.from_page),
-    toPage: r.to_page === null ? null : Number(r.to_page),
-    nextPage: r.next_page === null ? null : Number(r.next_page),
-    cycleCompleted: r.cycle_completed === null ? null : Boolean(r.cycle_completed),
-    error: (r.error as string) ?? null,
-    durationMs: Number(r.duration_ms),
-    startedAt: Number(r.started_at),
-    finishedAt: Number(r.finished_at),
+    fromPage: r.fromPage === null ? null : Number(r.fromPage),
+    toPage: r.toPage === null ? null : Number(r.toPage),
+    nextPage: r.nextPage === null ? null : Number(r.nextPage),
+    cycleCompleted: r.cycleCompleted === null ? null : Boolean(r.cycleCompleted),
+    error: r.error ?? null,
+    durationMs: Number(r.durationMs),
+    startedAt: Number(r.startedAt),
+    finishedAt: Number(r.finishedAt),
   }));
 }
 
@@ -204,17 +187,22 @@ export interface SyncStateRow {
 /** Cursor actual de cada fuente (para el panel admin). */
 export async function listSyncState(): Promise<SyncStateRow[]> {
   if (!hasDbEnv()) return [];
-  await ensureStateSchema();
-  const rows = (await getSql()`
-    SELECT source, next_page, total_pages, last_run_at, last_cycle_completed_at
-    FROM sync_state ORDER BY source
-  `) as Record<string, unknown>[];
+  const rows = await getDb()
+    .select({
+      source: syncState.source,
+      nextPage: syncState.nextPage,
+      totalPages: syncState.totalPages,
+      lastRunAt: syncState.lastRunAt,
+      lastCycleCompletedAt: syncState.lastCycleCompletedAt,
+    })
+    .from(syncState)
+    .orderBy(syncState.source);
   return rows.map((r) => ({
     source: String(r.source),
-    nextPage: Number(r.next_page),
-    totalPages: r.total_pages === null ? null : Number(r.total_pages),
-    lastRunAt: r.last_run_at === null ? null : Number(r.last_run_at),
+    nextPage: Number(r.nextPage),
+    totalPages: r.totalPages === null ? null : Number(r.totalPages),
+    lastRunAt: r.lastRunAt === null ? null : Number(r.lastRunAt),
     lastCycleCompletedAt:
-      r.last_cycle_completed_at === null ? null : Number(r.last_cycle_completed_at),
+      r.lastCycleCompletedAt === null ? null : Number(r.lastCycleCompletedAt),
   }));
 }

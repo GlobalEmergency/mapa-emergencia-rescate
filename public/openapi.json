@@ -1,0 +1,3233 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Mapa de Emergencia y Rescate — API",
+    "version": "1.0.0",
+    "description": "API pública/admin del mapa de emergencia. Documentación generada automáticamente desde los bloques @swagger de cada route."
+  },
+  "tags": [
+    {
+      "name": "reports",
+      "description": "Reportes de emergencia en el mapa"
+    },
+    {
+      "name": "missing",
+      "description": "Personas desaparecidas / localizadas"
+    },
+    {
+      "name": "hospitals",
+      "description": "Hospitales y pacientes"
+    },
+    {
+      "name": "donations",
+      "description": "Donaciones"
+    },
+    {
+      "name": "chat",
+      "description": "Chat ciudadano"
+    },
+    {
+      "name": "sync",
+      "description": "Sincronización de fuentes externas"
+    },
+    {
+      "name": "system",
+      "description": "Salud y utilidades"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "EmergencyReport": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "critical",
+              "supplies",
+              "shelter",
+              "nopower",
+              "missing",
+              "building"
+            ]
+          },
+          "lat": {
+            "type": "number"
+          },
+          "lng": {
+            "type": "number"
+          },
+          "place": {
+            "type": "string"
+          },
+          "affected": {
+            "type": "integer"
+          },
+          "needs": {
+            "type": "string"
+          },
+          "photoUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "confirmations": {
+            "type": "integer"
+          },
+          "createdAt": {
+            "type": "integer",
+            "description": "epoch-ms"
+          }
+        }
+      },
+      "MissingPerson": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "age": {
+            "type": "integer",
+            "nullable": true
+          },
+          "description": {
+            "type": "string"
+          },
+          "lastSeen": {
+            "type": "string"
+          },
+          "contact": {
+            "type": "string"
+          },
+          "photoUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "found"
+            ]
+          },
+          "resolutionNote": {
+            "type": "string",
+            "nullable": true
+          },
+          "resolutionPhotoUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "resolvedAt": {
+            "type": "integer",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "integer",
+            "description": "epoch-ms"
+          }
+        }
+      },
+      "MissingMapMarker": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "age": {
+            "type": "integer",
+            "nullable": true
+          },
+          "lastSeen": {
+            "type": "string"
+          },
+          "photoUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "lat": {
+            "type": "number"
+          },
+          "lng": {
+            "type": "number"
+          },
+          "createdAt": {
+            "type": "integer"
+          }
+        }
+      },
+      "MissingStats": {
+        "type": "object",
+        "properties": {
+          "active": {
+            "type": "integer"
+          },
+          "found": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "onMap": {
+            "type": "integer"
+          }
+        }
+      },
+      "Hospital": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "externalId": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string"
+          },
+          "facilityType": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "municipality": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          },
+          "level": {
+            "type": "string",
+            "nullable": true
+          },
+          "priorityZone": {
+            "type": "string",
+            "enum": [
+              "P0",
+              "P1",
+              "P2",
+              "P3"
+            ]
+          },
+          "isPriority": {
+            "type": "boolean"
+          },
+          "activePatients": {
+            "type": "integer"
+          },
+          "totalPatients": {
+            "type": "integer"
+          },
+          "createdAt": {
+            "type": "integer"
+          }
+        }
+      },
+      "HospitalPatient": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "hospitalId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "age": {
+            "type": "integer",
+            "nullable": true
+          },
+          "condition": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "contact": {
+            "type": "string"
+          },
+          "admittedAt": {
+            "type": "integer"
+          },
+          "updatedAt": {
+            "type": "integer"
+          }
+        }
+      },
+      "Donation": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "amountCents": {
+            "type": "integer"
+          },
+          "createdAt": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "intent",
+              "completed"
+            ]
+          }
+        }
+      },
+      "DonationStats": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "totalCents": {
+            "type": "integer"
+          },
+          "last24hCount": {
+            "type": "integer"
+          },
+          "last24hCents": {
+            "type": "integer"
+          }
+        }
+      },
+      "ChatMessage": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "integer"
+          },
+          "replyTo": {
+            "type": "string",
+            "nullable": true
+          },
+          "replyPreview": {
+            "type": "string",
+            "nullable": true
+          },
+          "threadRootId": {
+            "type": "string"
+          },
+          "threadBumpedAt": {
+            "type": "integer"
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/api/admin/contact": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Lista mensajes del buzón de contacto y sus estadísticas (requiere admin)",
+        "responses": {
+          "200": {
+            "description": "Mensajes de contacto y estadísticas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "generatedAt": {
+                      "type": "integer",
+                      "description": "epoch-ms"
+                    },
+                    "stats": {
+                      "type": "object"
+                    },
+                    "messages": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No se pudieron cargar los mensajes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Marca un mensaje de contacto como leído (requiere admin)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "id"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Mensaje marcado como leído",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "JSON inválido o falta id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Mensaje no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/data": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Panel admin con datos agregados (requiere autenticación admin)",
+        "responses": {
+          "200": {
+            "description": "Estadísticas y colecciones completas para el panel admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "generatedAt": {
+                      "type": "integer",
+                      "description": "epoch-ms"
+                    },
+                    "persistent": {
+                      "type": "boolean"
+                    },
+                    "stats": {
+                      "type": "object",
+                      "properties": {
+                        "reports": {
+                          "type": "object",
+                          "properties": {
+                            "total": {
+                              "type": "integer"
+                            },
+                            "byType": {
+                              "type": "object",
+                              "additionalProperties": {
+                                "type": "integer"
+                              }
+                            },
+                            "totalAffected": {
+                              "type": "integer"
+                            },
+                            "lastHour": {
+                              "type": "integer"
+                            },
+                            "last24h": {
+                              "type": "integer"
+                            },
+                            "withPhoto": {
+                              "type": "integer"
+                            }
+                          }
+                        },
+                        "chat": {
+                          "type": "object",
+                          "properties": {
+                            "total": {
+                              "type": "integer"
+                            },
+                            "lastHour": {
+                              "type": "integer"
+                            }
+                          }
+                        },
+                        "missing": {
+                          "type": "object",
+                          "properties": {
+                            "total": {
+                              "type": "integer"
+                            },
+                            "active": {
+                              "type": "integer"
+                            },
+                            "found": {
+                              "type": "integer"
+                            },
+                            "withPhoto": {
+                              "type": "integer"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "reports": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/EmergencyReport"
+                      }
+                    },
+                    "messages": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ChatMessage"
+                      }
+                    },
+                    "people": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/MissingPerson"
+                      }
+                    },
+                    "sync": {
+                      "type": "object",
+                      "properties": {
+                        "runs": {
+                          "type": "array",
+                          "items": {
+                            "type": "object"
+                          }
+                        },
+                        "state": {
+                          "type": "array",
+                          "items": {
+                            "type": "object"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/donations": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Lista todas las donaciones con estadísticas (requiere admin)",
+        "responses": {
+          "200": {
+            "description": "Estadísticas y listado completo de donaciones",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "generatedAt": {
+                      "type": "integer",
+                      "description": "epoch-ms"
+                    },
+                    "stats": {
+                      "$ref": "#/components/schemas/DonationStats"
+                    },
+                    "donations": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Donation"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No se pudieron cargar las donaciones",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/login": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Inicia sesión de administrador validando la contraseña (limitado por IP)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "password": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Contraseña válida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Contraseña incorrecta",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Demasiados intentos (rate limit por IP)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Acceso de administrador no configurado en el servidor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/chat/{id}": {
+      "delete": {
+        "tags": [
+          "chat"
+        ],
+        "summary": "Borra un mensaje del chat (solo administradores)",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Mensaje borrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Falta el id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autorizado (requiere admin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Mensaje no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/chat": {
+      "get": {
+        "tags": [
+          "chat"
+        ],
+        "summary": "Lista los mensajes del chat ciudadano, con filtro opcional por rol.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "role",
+            "required": false,
+            "description": "Filtra los mensajes por rol del autor.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de mensajes y si el almacenamiento es persistente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "messages": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ChatMessage"
+                      }
+                    },
+                    "persistent": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "chat"
+        ],
+        "summary": "Crea un mensaje en el chat ciudadano (con rate-limit).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "text"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "text": {
+                    "type": "string"
+                  },
+                  "role": {
+                    "type": "string"
+                  },
+                  "replyTo": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Mensaje creado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "$ref": "#/components/schemas/ChatMessage"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Texto vacío o demasiado largo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Límite de envíos excedido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No se pudo guardar el mensaje.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/contact": {
+      "post": {
+        "tags": [
+          "system"
+        ],
+        "summary": "Recibe un mensaje de contacto (rate-limited)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "email",
+                  "message"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string"
+                  },
+                  "subject": {
+                    "type": "string"
+                  },
+                  "message": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Mensaje recibido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Entrada inválida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Demasiados mensajes (rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No se pudo guardar el mensaje",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/donations": {
+      "get": {
+        "tags": [
+          "donations"
+        ],
+        "summary": "Obtiene estadísticas de donaciones y donaciones recientes",
+        "responses": {
+          "200": {
+            "description": "Estadísticas globales, meta mensual y últimas donaciones",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "stats": {
+                      "$ref": "#/components/schemas/DonationStats"
+                    },
+                    "monthly": {
+                      "type": "object",
+                      "properties": {
+                        "raisedCents": {
+                          "type": "integer"
+                        },
+                        "goalCents": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "recent": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Donation"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "donations"
+        ],
+        "summary": "Registra una intención de donación y devuelve la URL de PayPal",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "amountCents": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Donación registrada con su id y URL de pago",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "paypalUrl": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos de donación inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Demasiadas peticiones (rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No se pudo registrar la donación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/geo": {
+      "get": {
+        "tags": [
+          "system"
+        ],
+        "summary": "Detecta el código de país (ISO 3166-1 alpha-2) desde headers de geo del edge/CDN",
+        "responses": {
+          "200": {
+            "description": "Código de país detectado, o null si no hay header válido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "countryCode": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "Código ISO 3166-1 alpha-2 en mayúsculas, o null"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/geocode": {
+      "get": {
+        "tags": [
+          "system"
+        ],
+        "summary": "Geocodifica una dirección en Venezuela vía Nominatim (con sesgo opcional)",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 3
+            },
+            "description": "Texto a buscar. Con menos de 3 caracteres devuelve lista vacía."
+          },
+          {
+            "in": "query",
+            "name": "lat",
+            "required": false,
+            "schema": {
+              "type": "number"
+            },
+            "description": "Latitud de referencia para priorizar resultados cercanos."
+          },
+          {
+            "in": "query",
+            "name": "lng",
+            "required": false,
+            "schema": {
+              "type": "number"
+            },
+            "description": "Longitud de referencia para priorizar resultados cercanos."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resultados de geocodificación.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "lat": {
+                            "type": "number"
+                          },
+                          "lng": {
+                            "type": "number"
+                          },
+                          "label": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Límite de búsquedas excedido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Error al consultar el servicio de geocodificación.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/hospitals/{id}/patients/{patientId}": {
+      "delete": {
+        "tags": [
+          "hospitals"
+        ],
+        "summary": "Elimina un paciente de un hospital (solo admin)",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID del hospital"
+          },
+          {
+            "in": "path",
+            "name": "patientId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID del paciente"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paciente eliminado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Hospital o paciente no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/hospitals/{id}/patients": {
+      "get": {
+        "tags": [
+          "hospitals"
+        ],
+        "summary": "Lista los pacientes de un hospital",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Pacientes y datos del hospital",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "patients": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/HospitalPatient"
+                      }
+                    },
+                    "hospital": {
+                      "$ref": "#/components/schemas/Hospital"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Hospital no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "hospitals"
+        ],
+        "summary": "Registra un paciente en un hospital (rate-limited)",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "age": {
+                    "type": "integer",
+                    "nullable": true
+                  },
+                  "condition": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "type": "string"
+                  },
+                  "notes": {
+                    "type": "string"
+                  },
+                  "contact": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Paciente creado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "patient": {
+                      "$ref": "#/components/schemas/HospitalPatient"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos (nombre faltante o demasiado largo)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Hospital no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Demasiadas peticiones",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No se pudo guardar el paciente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/hospitals/{id}": {
+      "get": {
+        "tags": [
+          "hospitals"
+        ],
+        "summary": "Obtiene el detalle de un hospital por id (o slug).",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Id o slug del hospital."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Hospital encontrado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "hospital": {
+                      "$ref": "#/components/schemas/Hospital"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Hospital no encontrado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/hospitals": {
+      "get": {
+        "tags": [
+          "hospitals"
+        ],
+        "summary": "Lista hospitales con filtros opcionales y estados",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "include",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "states"
+              ]
+            },
+            "description": "Si es \"states\", incluye la lista de estados"
+          },
+          {
+            "in": "query",
+            "name": "zone",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "P0",
+                "P1",
+                "P2",
+                "P3"
+              ]
+            },
+            "description": "Zona de prioridad"
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Texto de búsqueda"
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 500
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Hospitales y, opcionalmente, estados",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "hospitals": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Hospital"
+                      }
+                    },
+                    "states": {
+                      "type": "array",
+                      "nullable": true,
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "hospitals"
+        ],
+        "summary": "Registra un nuevo hospital",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "state"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "facilityType": {
+                    "type": "string"
+                  },
+                  "state": {
+                    "type": "string"
+                  },
+                  "municipality": {
+                    "type": "string"
+                  },
+                  "address": {
+                    "type": "string"
+                  },
+                  "level": {
+                    "type": "string"
+                  },
+                  "priorityZone": {
+                    "type": "string",
+                    "enum": [
+                      "P0",
+                      "P1",
+                      "P2",
+                      "P3"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Hospital creado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "hospital": {
+                      "$ref": "#/components/schemas/Hospital"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos (nombre o estado faltante o nombre muy largo)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Demasiadas peticiones (rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No se pudo guardar el hospital",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/missing/{id}/found": {
+      "post": {
+        "tags": [
+          "missing"
+        ],
+        "summary": "Marca un reporte de persona desaparecida como localizada con nota y foto de prueba",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID del reporte de persona desaparecida"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "note",
+                  "photo"
+                ],
+                "properties": {
+                  "note": {
+                    "type": "string",
+                    "description": "Explicación de cómo se confirmó el contacto"
+                  },
+                  "photo": {
+                    "type": "string",
+                    "description": "Imagen (data URL JPG/PNG/WebP) como prueba del contacto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Persona marcada como localizada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "person": {
+                      "$ref": "#/components/schemas/MissingPerson"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Falta la nota o la foto, o son inválidas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "El reporte no existe o ya fue resuelto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "La imagen excede el tamaño permitido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Demasiadas solicitudes (rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No se pudo actualizar, intentar de nuevo",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/missing/{id}/photo": {
+      "get": {
+        "tags": [
+          "missing"
+        ],
+        "summary": "Devuelve la foto de una persona desaparecida (bytes o redirección al origen)",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de la persona desaparecida"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Imagen de la persona (bytes), cacheada de forma agresiva en el CDN",
+            "content": {
+              "image/*": {}
+            }
+          },
+          "302": {
+            "description": "Redirección al origen externo cuando la foto está alojada fuera"
+          },
+          "404": {
+            "description": "Foto no encontrada"
+          }
+        }
+      }
+    },
+    "/api/missing/{id}/resolution-photo": {
+      "get": {
+        "tags": [
+          "missing"
+        ],
+        "summary": "Devuelve la foto de resolución de una persona localizada (bytes o redirección al CDN)",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de la persona desaparecida"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Imagen de resolución (bytes binarios)",
+            "content": {
+              "image/*": {}
+            }
+          },
+          "302": {
+            "description": "Redirección al CDN (R2) donde está alojada la foto migrada"
+          },
+          "404": {
+            "description": "No se encontró foto de resolución para la persona"
+          }
+        }
+      }
+    },
+    "/api/missing/{id}/restore": {
+      "post": {
+        "tags": [
+          "missing"
+        ],
+        "summary": "Restaura (admin) una persona desaparecida previamente marcada como localizada",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Restauración exitosa",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe o no estaba marcada como localizada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/missing/{id}": {
+      "delete": {
+        "tags": [
+          "missing"
+        ],
+        "summary": "Elimina un reporte de persona desaparecida (solo administradores)",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reporte eliminado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Falta el id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autorizado (se requiere administrador)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Reporte no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/missing/map": {
+      "get": {
+        "tags": [
+          "missing"
+        ],
+        "summary": "Marcadores de personas desaparecidas para el mapa, opcionalmente acotados a un viewport",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "north",
+            "required": false,
+            "schema": {
+              "type": "number"
+            },
+            "description": "Límite norte del viewport (latitud)"
+          },
+          {
+            "in": "query",
+            "name": "south",
+            "required": false,
+            "schema": {
+              "type": "number"
+            },
+            "description": "Límite sur del viewport (latitud)"
+          },
+          {
+            "in": "query",
+            "name": "east",
+            "required": false,
+            "schema": {
+              "type": "number"
+            },
+            "description": "Límite este del viewport (longitud)"
+          },
+          {
+            "in": "query",
+            "name": "west",
+            "required": false,
+            "schema": {
+              "type": "number"
+            },
+            "description": "Límite oeste del viewport (longitud)"
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 500
+            },
+            "description": "Máximo de marcadores a devolver"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de marcadores de personas desaparecidas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "markers": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/MissingMapMarker"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error interno",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/missing": {
+      "get": {
+        "tags": [
+          "missing"
+        ],
+        "summary": "Lista paginada de personas desaparecidas o localizadas",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "active",
+                "found",
+                "all"
+              ],
+              "default": "active"
+            },
+            "description": "Filtro de estado. Por defecto solo activas."
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "pageSize",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Término de búsqueda por nombre."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Página de personas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "people": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/MissingPerson"
+                      }
+                    },
+                    "total": {
+                      "type": "integer"
+                    },
+                    "totalCapped": {
+                      "type": "boolean"
+                    },
+                    "page": {
+                      "type": "integer"
+                    },
+                    "pageSize": {
+                      "type": "integer"
+                    },
+                    "totalPages": {
+                      "type": "integer"
+                    },
+                    "persistent": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "missing"
+        ],
+        "summary": "Crea un reporte de persona desaparecida o localizada",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "age": {
+                    "type": "integer",
+                    "nullable": true
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "lastSeen": {
+                    "type": "string"
+                  },
+                  "contact": {
+                    "type": "string"
+                  },
+                  "photo": {
+                    "type": "string",
+                    "nullable": true,
+                    "description": "Data URL de imagen JPG, PNG o WebP"
+                  },
+                  "reportType": {
+                    "type": "string",
+                    "enum": [
+                      "missing",
+                      "found"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Reporte creado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "person": {
+                      "$ref": "#/components/schemas/MissingPerson"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Foto demasiado grande",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Límite de tasa excedido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No se pudo guardar el reporte",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/missing/stats": {
+      "get": {
+        "tags": [
+          "missing"
+        ],
+        "summary": "Obtiene estadísticas agregadas de personas desaparecidas",
+        "responses": {
+          "200": {
+            "description": "Conteos agregados (activas, encontradas, total, en mapa)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "stats": {
+                      "$ref": "#/components/schemas/MissingStats"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error interno del servidor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/op/{op}": {
+      "get": {
+        "tags": [
+          "system"
+        ],
+        "summary": "Proxy del script de OpenPanel (solo /op1.js)",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "op",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Segmento de ruta; debe terminar en /op1.js"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Script JavaScript de OpenPanel (bytes)",
+            "content": {
+              "text/javascript": {}
+            }
+          },
+          "404": {
+            "description": "Ruta no soportada (no termina en /op1.js)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Fallo al obtener el script upstream",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "system"
+        ],
+        "summary": "Proxy de eventos de tracking de OpenPanel (solo /track)",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "op",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Segmento de ruta; debe contener /track"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Payload de evento de OpenPanel (se reenvía tal cual)"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Respuesta upstream de OpenPanel reenviada"
+          },
+          "404": {
+            "description": "Ruta no soportada (no contiene /track)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Payload demasiado grande",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Fallo al reenviar la petición a OpenPanel",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/patients/search": {
+      "get": {
+        "tags": [
+          "hospitals"
+        ],
+        "summary": "Busca pacientes hospitalizados por nombre u otros datos",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Texto de búsqueda"
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            },
+            "description": "Máximo de resultados (se acota entre 1 y 200)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resultados de la búsqueda de pacientes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/HospitalPatient"
+                      }
+                    },
+                    "query": {
+                      "type": "string"
+                    },
+                    "hasMore": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/readyz": {
+      "get": {
+        "tags": [
+          "system"
+        ],
+        "summary": "Readiness probe; verifica que la DB esté accesible (gate de despliegue zero-downtime)",
+        "responses": {
+          "200": {
+            "description": "Listo para recibir tráfico. `db` indica el estado (\"up\" o \"disabled\" en modo demo)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "db": {
+                      "type": "string",
+                      "enum": [
+                        "up",
+                        "disabled"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "DB inaccesible; el pod no está listo y queda fuera de rotación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "db": {
+                      "type": "string",
+                      "enum": [
+                        "down"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reports/{id}/confirm": {
+      "post": {
+        "tags": [
+          "reports"
+        ],
+        "summary": "Confirma un reporte de emergencia (una vez por IP)",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Confirmación registrada; devuelve el total de confirmaciones",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "confirmations": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "La IP ya confirmó este reporte",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Demasiadas confirmaciones desde el dispositivo",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No se pudo confirmar",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reports/{id}/photo": {
+      "get": {
+        "tags": [
+          "reports"
+        ],
+        "summary": "Devuelve la foto de un reporte (bytes o redirección al CDN)",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID del reporte"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Imagen del reporte servida como bytes",
+            "content": {
+              "image/*": {}
+            }
+          },
+          "302": {
+            "description": "Foto migrada a R2; redirección al CDN"
+          },
+          "404": {
+            "description": "Foto no encontrada",
+            "content": {
+              "text/plain": {}
+            }
+          }
+        }
+      }
+    },
+    "/api/reports/{id}": {
+      "delete": {
+        "tags": [
+          "reports"
+        ],
+        "summary": "Marca un reporte como atendido (lo elimina). Solo administradores.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reporte eliminado correctamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Falta el id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autorizado (se requiere administrador)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Reporte no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Demasiadas solicitudes (rate limit)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reports": {
+      "get": {
+        "tags": [
+          "reports"
+        ],
+        "summary": "Lista de reportes de emergencia",
+        "responses": {
+          "200": {
+            "description": "Reportes y bandera de persistencia"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "reports"
+        ],
+        "summary": "Crear un reporte de emergencia",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "lat",
+                  "lng",
+                  "place",
+                  "type"
+                ],
+                "properties": {
+                  "type": {
+                    "type": "string"
+                  },
+                  "lat": {
+                    "type": "number"
+                  },
+                  "lng": {
+                    "type": "number"
+                  },
+                  "place": {
+                    "type": "string"
+                  },
+                  "affected": {
+                    "type": "integer"
+                  },
+                  "needs": {
+                    "type": "string"
+                  },
+                  "photo": {
+                    "type": "string",
+                    "description": "data:image/...;base64 (opcional)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Reporte creado"
+          },
+          "400": {
+            "description": "Datos inválidos"
+          },
+          "429": {
+            "description": "Rate limit"
+          },
+          "503": {
+            "description": "No se pudo guardar"
+          }
+        }
+      }
+    },
+    "/api/stats/psychology-help": {
+      "get": {
+        "tags": [
+          "system"
+        ],
+        "summary": "Devuelve el contador de clics en \"ayuda psicológica\"",
+        "responses": {
+          "200": {
+            "description": "Contador actual de clics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "count": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "system"
+        ],
+        "summary": "Registra un clic en \"ayuda psicológica\" (rate-limited por IP)",
+        "responses": {
+          "200": {
+            "description": "Clic registrado, devuelve el nuevo contador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "count": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Demasiadas peticiones",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No se pudo registrar el clic",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sync/cron": {
+      "get": {
+        "tags": [
+          "sync"
+        ],
+        "summary": "Dispara el cron de sincronización de fuentes externas (Auth Bearer CRON_SECRET o admin)",
+        "responses": {
+          "200": {
+            "description": "Resumen del chunk procesado en esta invocación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "totals": {
+                      "type": "object",
+                      "properties": {
+                        "fetched": {
+                          "type": "integer"
+                        },
+                        "inserted": {
+                          "type": "integer"
+                        },
+                        "updated": {
+                          "type": "integer"
+                        },
+                        "skipped": {
+                          "type": "integer"
+                        },
+                        "errors": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error en el cron",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sync/duplicates": {
+      "get": {
+        "tags": [
+          "sync"
+        ],
+        "summary": "Reporte de posibles duplicados (read-only, requiere x-admin-token)",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "source",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filtra el reporte por id de fuente externa."
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Máximo de grupos de duplicados a devolver."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reporte de grupos de posibles duplicados detectados.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autorizado (falta o es inválido x-admin-token).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error al generar el reporte.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sync/geocode": {
+      "get": {
+        "tags": [
+          "sync"
+        ],
+        "summary": "Geocodifica un lote de ubicaciones sin coordenadas (cron, requiere auth Bearer CRON_SECRET o token admin)",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "max",
+            "required": false,
+            "description": "Tope de ubicaciones únicas a geocodificar en la corrida.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resumen de la corrida de geocodificación.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autorizado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error al geocodificar.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sync/reset": {
+      "post": {
+        "tags": [
+          "sync"
+        ],
+        "summary": "Reinicia el cursor de sincronización (admin). No destructivo.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "source",
+            "required": false,
+            "description": "ID de la fuente a reiniciar. Si se omite, reinicia todas.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cursor reiniciado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autorizado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error al reiniciar el cursor.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sync/run": {
+      "post": {
+        "tags": [
+          "sync"
+        ],
+        "summary": "Dispara manualmente la sincronización de fuentes externas (requiere x-admin-token)",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "dryRun",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1",
+                "true"
+              ]
+            },
+            "description": "Si es 1/true simula la corrida sin escribir."
+          },
+          {
+            "in": "query",
+            "name": "source",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Limita la corrida a una sola fuente por su id."
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "description": "Tope de registros por fuente."
+          },
+          {
+            "in": "query",
+            "name": "mode",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "chunk"
+              ]
+            },
+            "description": "Si es chunk procesa por páginas usando el cursor en sync_state."
+          },
+          {
+            "in": "query",
+            "name": "pages",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "description": "Tope de páginas por corrida (solo con mode=chunk)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resumen de la corrida con totales y resultado por fuente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "dryRun": {
+                      "type": "boolean"
+                    },
+                    "totals": {
+                      "type": "object",
+                      "properties": {
+                        "fetched": {
+                          "type": "integer"
+                        },
+                        "inserted": {
+                          "type": "integer"
+                        },
+                        "updated": {
+                          "type": "integer"
+                        },
+                        "skipped": {
+                          "type": "integer"
+                        },
+                        "errors": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autorizado (falta o es inválido x-admin-token).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error al sincronizar.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

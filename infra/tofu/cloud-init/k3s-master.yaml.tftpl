@@ -1,0 +1,150 @@
+#cloud-config
+# k3s SERVER (control plane), configured for Hetzner:
+#  --disable-cloud-controller + cloud-provider=external -> the Hetzner CCM (below)
+#    manages node IPs and LoadBalancer Services.
+#  --disable traefik/servicelb -> we use our own ingress + the Hetzner LB.
+#  --flannel-iface / --node-ip -> cluster traffic over the private network.
+#
+# CCM is installed via k3s "auto-deploy manifests": any file in
+# /var/lib/rancher/k3s/server/manifests is applied on startup (official k3s
+# feature). We drop (1) the `hcloud` secret and (2) the CCM as a RAW Deployment
+# (not a HelmChart) there, so the cluster wires up Hetzner LB support with zero
+# post-apply steps.
+#
+# WHY RAW DEPLOYMENT, NOT HELMCHART:
+#   --cloud-provider=external taints every node node.cloudprovider.kubernetes.io/
+#   uninitialized:NoSchedule until the CCM initializes them. The CCM clears that
+#   taint — but the k3s HelmChart CRD has NO way to add tolerations to its
+#   helm-install JOB pod, so that job can't schedule on the tainted nodes -> CCM
+#   never installs -> taint never clears -> ALL pods (incl. the app) stay Pending.
+#   Chicken-and-egg (k3s-io/k3s#1807). The official ccm-networks.yaml Deployment
+#   already tolerates the uninitialized taint + uses hostNetwork, so deploying it
+#   raw breaks the deadlock cleanly.
+#
+# NOTE (Stage B / TODO): the cluster-autoscaler is NOT installed here yet — see
+# infra/tofu/README.md and TODO.md. Added later as one more auto-deploy manifest.
+write_files:
+  - path: /etc/rancher/k3s/config.yaml
+    content: |
+      token: "${k3s_token}"
+      node-ip: "${master_private_ip}"
+      advertise-address: "${master_private_ip}"
+      # The public IP is added at boot via a config.yaml.d drop-in (runcmd) — it's
+      # not known at template time. It must be a SAN so the CI runner, which
+      # connects via the public IP, passes API cert verification.
+      tls-san:
+        - "${master_private_ip}"
+      flannel-iface: "${flannel_iface}"
+      disable:
+        - traefik
+        - servicelb
+      disable-cloud-controller: true
+      kubelet-arg:
+        - "cloud-provider=external"
+
+  # (1) Secret the CCM reads: API token + private network name (networks mode).
+  - path: /var/lib/rancher/k3s/server/manifests/hcloud-secret.yaml
+    content: |
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: hcloud
+        namespace: kube-system
+      stringData:
+        token: "${hcloud_token}"
+        network: "${network_name}"
+
+  # (2) Hetzner CCM as the official ccm-networks.yaml Deployment (networks mode —
+  #     reads HCLOUD_NETWORK from the secret). Pinned image; tolerations let it
+  #     run on the uninitialized-tainted nodes and clear the taint.
+  #     allocate-node-cidrs=false: flannel owns pod networking (k3s cluster-cidr
+  #     10.42.0.0/16), so the CCM must NOT also allocate node CIDRs.
+  - path: /var/lib/rancher/k3s/server/manifests/hcloud-ccm.yaml
+    content: |
+      apiVersion: v1
+      kind: ServiceAccount
+      metadata:
+        name: hcloud-cloud-controller-manager
+        namespace: kube-system
+      ---
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: ClusterRoleBinding
+      metadata:
+        name: system:hcloud-cloud-controller-manager
+      roleRef:
+        apiGroup: rbac.authorization.k8s.io
+        kind: ClusterRole
+        name: cluster-admin
+      subjects:
+        - kind: ServiceAccount
+          name: hcloud-cloud-controller-manager
+          namespace: kube-system
+      ---
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: hcloud-cloud-controller-manager
+        namespace: kube-system
+      spec:
+        replicas: 1
+        revisionHistoryLimit: 2
+        selector:
+          matchLabels:
+            app: hcloud-cloud-controller-manager
+        template:
+          metadata:
+            labels:
+              app: hcloud-cloud-controller-manager
+          spec:
+            serviceAccountName: hcloud-cloud-controller-manager
+            dnsPolicy: Default
+            tolerations:
+              - key: "node.cloudprovider.kubernetes.io/uninitialized"
+                value: "true"
+                effect: "NoSchedule"
+              - key: "CriticalAddonsOnly"
+                operator: "Exists"
+              - key: "node-role.kubernetes.io/master"
+                effect: NoSchedule
+                operator: Exists
+              - key: "node-role.kubernetes.io/control-plane"
+                effect: NoSchedule
+                operator: Exists
+              - key: "node.kubernetes.io/not-ready"
+                effect: "NoExecute"
+            hostNetwork: true
+            priorityClassName: "system-cluster-critical"
+            containers:
+              - name: hcloud-cloud-controller-manager
+                image: docker.io/hetznercloud/hcloud-cloud-controller-manager:v1.33.0
+                args:
+                  - "--allow-untagged-cloud"
+                  - "--cloud-provider=hcloud"
+                  - "--leader-elect=false"
+                  - "--allocate-node-cidrs=false"
+                env:
+                  - name: HCLOUD_TOKEN
+                    valueFrom:
+                      secretKeyRef:
+                        name: hcloud
+                        key: token
+                  - name: HCLOUD_NETWORK
+                    valueFrom:
+                      secretKeyRef:
+                        name: hcloud
+                        key: network
+                resources:
+                  requests:
+                    cpu: 100m
+                    memory: 50Mi
+
+runcmd:
+  # Add this server's own public IP as a TLS SAN before k3s installs, so the API
+  # cert (generated once at install) is valid for public-IP connections (the CI
+  # runner connects via the public IP). Written as a config.yaml.d DROP-IN with
+  # tls-san+ (the canonical k3s append) — appending to config.yaml directly would
+  # land the line outside the tls-san: block and corrupt the YAML.
+  - mkdir -p /etc/rancher/k3s/config.yaml.d
+  - PUBIP=$(curl -sf http://169.254.169.254/hetzner/v1/metadata/public-ipv4) && printf 'tls-san+:\n  - "%s"\n' "$PUBIP" > /etc/rancher/k3s/config.yaml.d/tls-san.yaml
+  - curl -sfL https://get.k3s.io | INSTALL_K3S_CHANNEL=stable sh -s - server
+  - until kubectl get nodes >/dev/null 2>&1; do sleep 3; done

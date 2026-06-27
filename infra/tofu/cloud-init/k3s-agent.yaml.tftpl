@@ -1,0 +1,15 @@
+#cloud-config
+# k3s AGENT (worker). Joins the control plane over the private network.
+# The SAME template is reused by the cluster-autoscaler for nodes it spins up,
+# so newly-autoscaled workers join identically. cloud-provider=external so the
+# Hetzner CCM assigns node addresses.
+write_files:
+  - path: /etc/rancher/k3s/config.yaml
+    content: |
+      server: "https://${master_private_ip}:6443"
+      token: "${k3s_token}"
+      flannel-iface: "${flannel_iface}"
+      kubelet-arg:
+        - "cloud-provider=external"
+runcmd:
+  - curl -sfL https://get.k3s.io | INSTALL_K3S_CHANNEL=stable K3S_URL="https://${master_private_ip}:6443" K3S_TOKEN="${k3s_token}" sh -s - agent

@@ -13,6 +13,45 @@ export const maxDuration = 300;
  * Auth: `Authorization: Bearer $CRON_SECRET` (lo pone Vercel) o token admin.
  * Vercel invoca los crons con GET.
  */
+/**
+ * @swagger
+ * /api/sync/cron:
+ *   get:
+ *     tags: [sync]
+ *     summary: Dispara el cron de sincronización de fuentes externas (Auth Bearer CRON_SECRET o admin)
+ *     responses:
+ *       200:
+ *         description: Resumen del chunk procesado en esta invocación
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: boolean
+ *                 totals:
+ *                   type: object
+ *                   properties:
+ *                     fetched: { type: integer }
+ *                     inserted: { type: integer }
+ *                     updated: { type: integer }
+ *                     skipped: { type: integer }
+ *                     errors: { type: integer }
+ *                 results:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *       401:
+ *         description: No autorizado
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ *       500:
+ *         description: Error en el cron
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ */
 export async function GET(request: Request) {
   if (!isCronRequest(request)) {
     return NextResponse.json(

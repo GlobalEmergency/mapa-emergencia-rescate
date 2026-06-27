@@ -2,6 +2,28 @@ import { getMissingPhoto } from "@/lib/missing";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * @swagger
+ * /api/missing/{id}/photo:
+ *   get:
+ *     tags: [missing]
+ *     summary: Devuelve la foto de una persona desaparecida (bytes o redirección al origen)
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *         description: ID de la persona desaparecida
+ *     responses:
+ *       200:
+ *         description: Imagen de la persona (bytes), cacheada de forma agresiva en el CDN
+ *         content:
+ *           image/*: {}
+ *       302:
+ *         description: Redirección al origen externo cuando la foto está alojada fuera
+ *       404:
+ *         description: Foto no encontrada
+ */
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },

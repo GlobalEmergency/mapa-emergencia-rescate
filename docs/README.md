@@ -84,12 +84,25 @@ acción.
 - [0005 — Endurecimiento de la superficie HTTP ante el pico mediático](adr/0005-endurecimiento-superficie-http.md) · _aceptada_
 - [0006 — Estrategia de búsqueda (trigram + mínimo, conteo acotado y caché)](adr/0006-estrategia-de-busqueda.md) · _aceptada_
 
+### Base de datos
+
+- [Modelo de datos (esquema + relaciones + diagrama)](db/modelo-de-datos.md)
+
 ### Arquitectura
 
-_(pendiente)_
+- [Despliegue (Hetzner + k3s + OpenTofu)](architecture/despliegue-kubernetes.md)
+
+### Despliegue y operación
+
+- [Índice de despliegue/operación](deploy/README.md)
+- [Proceso de deploy (workflow, solo desde main)](deploy/proceso-de-deploy.md)
+- [Dominio, DNS y TLS](deploy/dominio-y-dns.md)
+- [Migraciones de base de datos (Drizzle)](deploy/migraciones-de-base-de-datos.md)
+- [Estructura de la infraestructura](deploy/estructura-infra.md)
 
 ### Guías
 
 - [Desplegar la sincronización con Vercel Cron](guides/sincronizacion-cron-vercel.md)
 - [Rendimiento, capacidad y pruebas de carga](guides/rendimiento-y-pruebas-de-carga.md)
+- [Documentar endpoints (OpenAPI / Swagger)](guides/documentar-endpoints-openapi.md)
 </content>

@@ -9,6 +9,25 @@ const COUNTRY_HEADER_NAMES = [
   "cloudfront-viewer-country",
 ];
 
+/**
+ * @swagger
+ * /api/geo:
+ *   get:
+ *     tags: [system]
+ *     summary: Detecta el código de país (ISO 3166-1 alpha-2) desde headers de geo del edge/CDN
+ *     responses:
+ *       200:
+ *         description: Código de país detectado, o null si no hay header válido
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 countryCode:
+ *                   type: string
+ *                   nullable: true
+ *                   description: Código ISO 3166-1 alpha-2 en mayúsculas, o null
+ */
 export async function GET() {
   const requestHeaders = await headers();
 

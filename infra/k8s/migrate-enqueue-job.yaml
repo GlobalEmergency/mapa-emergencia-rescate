@@ -1,0 +1,39 @@
+# One-off producer Job: enqueues the migration work (tables, then photos).
+# Re-runnable — deterministic jobIds dedupe and a Valkey lock prevents two
+# producers racing. Run it whenever you need to pull a fresh sync from Neon or
+# pick up newly-pending photos:
+#
+#   kubectl -n mapa delete job migrate-enqueue --ignore-not-found
+#   kubectl -n mapa apply -f infra/k8s/migrate-enqueue-job.yaml
+#   kubectl -n mapa logs -f job/migrate-enqueue
+#
+# It only ENQUEUES; the migrate-worker Deployment does the actual work.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migrate-enqueue
+  namespace: mapa
+spec:
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 86400 # auto-clean after a day
+  template:
+    metadata:
+      labels:
+        app: migrate-enqueue
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: enqueue
+          image: ghcr.io/OWNER/REPO-worker:latest
+          command: ["node", "--import", "tsx", "worker/enqueue.ts"]
+          envFrom:
+            - secretRef:
+                name: app-env
+            - secretRef:
+                name: migrate-env
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              memory: "512Mi"

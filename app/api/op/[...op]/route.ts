@@ -37,6 +37,68 @@ function forwardHeaders(request: Request): Headers {
   return headers;
 }
 
+/**
+ * @swagger
+ * /api/op/{op}:
+ *   get:
+ *     tags: [system]
+ *     summary: Proxy del script de OpenPanel (solo /op1.js)
+ *     parameters:
+ *       - in: path
+ *         name: op
+ *         required: true
+ *         schema: { type: string }
+ *         description: Segmento de ruta; debe terminar en /op1.js
+ *     responses:
+ *       200:
+ *         description: Script JavaScript de OpenPanel (bytes)
+ *         content:
+ *           text/javascript: {}
+ *       404:
+ *         description: Ruta no soportada (no termina en /op1.js)
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ *       500:
+ *         description: Fallo al obtener el script upstream
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ *   post:
+ *     tags: [system]
+ *     summary: Proxy de eventos de tracking de OpenPanel (solo /track)
+ *     parameters:
+ *       - in: path
+ *         name: op
+ *         required: true
+ *         schema: { type: string }
+ *         description: Segmento de ruta; debe contener /track
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             description: Payload de evento de OpenPanel (se reenvía tal cual)
+ *     responses:
+ *       200:
+ *         description: Respuesta upstream de OpenPanel reenviada
+ *       404:
+ *         description: Ruta no soportada (no contiene /track)
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ *       413:
+ *         description: Payload demasiado grande
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ *       500:
+ *         description: Fallo al reenviar la petición a OpenPanel
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ */
 export async function GET(request: Request) {
   const pathname = new URL(request.url).pathname;
   if (!pathname.endsWith("/op1.js")) {

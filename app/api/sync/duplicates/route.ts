@@ -14,6 +14,40 @@ export const maxDuration = 60;
  *
  * Auth: header `x-admin-token`.
  */
+/**
+ * @swagger
+ * /api/sync/duplicates:
+ *   get:
+ *     tags: [sync]
+ *     summary: Reporte de posibles duplicados (read-only, requiere x-admin-token)
+ *     parameters:
+ *       - in: query
+ *         name: source
+ *         required: false
+ *         schema: { type: string }
+ *         description: Filtra el reporte por id de fuente externa.
+ *       - in: query
+ *         name: limit
+ *         required: false
+ *         schema: { type: integer }
+ *         description: Máximo de grupos de duplicados a devolver.
+ *     responses:
+ *       200:
+ *         description: Reporte de grupos de posibles duplicados detectados.
+ *         content:
+ *           application/json:
+ *             schema: { type: object }
+ *       401:
+ *         description: No autorizado (falta o es inválido x-admin-token).
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ *       500:
+ *         description: Error al generar el reporte.
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ */
 export async function GET(request: Request) {
   if (!isAdminRequest(request)) {
     return NextResponse.json(

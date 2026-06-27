@@ -1,0 +1,56 @@
+# Migration worker Deployment — runs the BullMQ workers (table copy + photo
+# rehost). Separate from the app: its own pods, scaled by replicas, NOT behind
+# the LB (no Service). Uses the `worker` image target.
+#
+# Env: app-env (DATABASE_URL, VALKEY_URL) + migrate-env (NEON_DATABASE_URL, R2_*).
+# CI overwrites the image tag, same as the app. Graceful SIGTERM drains jobs
+# (terminationGracePeriodSeconds) so a rolling restart never drops in-flight work.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: migrate-worker
+  namespace: mapa
+  labels:
+    app: migrate-worker
+spec:
+  # Start small; scale with `kubectl -n mapa scale deploy/migrate-worker --replicas=N`.
+  # Photo throughput is bounded by the BullMQ rate limiter, not replica count.
+  replicas: 2
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: migrate-worker
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: migrate-worker
+    spec:
+      # Workers drain in-flight jobs on SIGTERM (worker/index.ts). Give them room.
+      terminationGracePeriodSeconds: 120
+      containers:
+        - name: worker
+          image: ghcr.io/OWNER/REPO-worker:latest
+          command: ["node", "--import", "tsx", "worker/index.ts"]
+          envFrom:
+            - secretRef:
+                name: app-env # DATABASE_URL, VALKEY_URL, DB_DRIVER
+            - secretRef:
+                name: migrate-env # NEON_DATABASE_URL, R2_*
+          env:
+            - name: PHOTOS_CONCURRENCY
+              value: "8"
+            - name: TABLES_CONCURRENCY
+              value: "4"
+            - name: PHOTO_RATE_MAX
+              value: "20"
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              memory: "512Mi"

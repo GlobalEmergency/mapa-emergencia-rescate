@@ -10,6 +10,67 @@ import { readJson, bodyErrorResponse, BODY_LIMIT_PHOTO } from "@/lib/body";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * @swagger
+ * /api/missing/{id}/found:
+ *   post:
+ *     tags: [missing]
+ *     summary: Marca un reporte de persona desaparecida como localizada con nota y foto de prueba
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *         description: ID del reporte de persona desaparecida
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [note, photo]
+ *             properties:
+ *               note:
+ *                 type: string
+ *                 description: Explicación de cómo se confirmó el contacto
+ *               photo:
+ *                 type: string
+ *                 description: Imagen (data URL JPG/PNG/WebP) como prueba del contacto
+ *     responses:
+ *       200:
+ *         description: Persona marcada como localizada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 person: { $ref: '#/components/schemas/MissingPerson' }
+ *       400:
+ *         description: Falta la nota o la foto, o son inválidas
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ *       404:
+ *         description: El reporte no existe o ya fue resuelto
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ *       413:
+ *         description: La imagen excede el tamaño permitido
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ *       429:
+ *         description: Demasiadas solicitudes (rate limit)
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ *       503:
+ *         description: No se pudo actualizar, intentar de nuevo
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ */
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
