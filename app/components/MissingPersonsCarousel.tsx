@@ -475,7 +475,7 @@ function PersonasPreview() {
         </button>
       </div>
 
-      <div className="mt-2 mb-4 flex flex-wrap items-center gap-2 sm:justify-end">
+      <div className="my-3 flex flex-wrap items-center justify-end gap-2">
         <button 
           onClick={() => { setFilter("all"); setPage(1); }}
           className={`inline-flex items-center rounded-md border px-3 py-1 text-xs font-semibold transition-colors ${filter === "all" ? "border-slate-300 bg-slate-100 text-slate-800" : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50"}`}
