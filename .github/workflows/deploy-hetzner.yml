@@ -93,24 +93,16 @@ jobs:
       # ---------------------------------------------------------------
       # 2. (deploy only) Ensure cluster, then roll.
       # ---------------------------------------------------------------
-      - name: Install hcloud + kubectl + tofu + hetzner-k3s
+      - name: Install kubectl + tofu
         if: ${{ inputs.what == 'deploy' || inputs.what == 'provision' || inputs.what == 'plan-infra' }}
-        env:
-          HETZNER_K3S_VERSION: v2.6.0
         run: |
           # kubectl
           curl -sLO "https://dl.k8s.io/release/$(curl -sL https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
           sudo install -m0755 kubectl /usr/local/bin/kubectl
-          # hcloud CLI
-          curl -sL https://github.com/hetznercloud/cli/releases/latest/download/hcloud-linux-amd64.tar.gz | tar xz
-          sudo install -m0755 hcloud /usr/local/bin/hcloud
           # OpenTofu
           curl -sL https://get.opentofu.org/install-opentofu.sh -o install-opentofu.sh
           chmod +x install-opentofu.sh && sudo ./install-opentofu.sh --install-method standalone
-          # hetzner-k3s (standalone binary from GitHub releases — NOT a docker image)
-          curl -sL "https://github.com/vitobotta/hetzner-k3s/releases/download/${HETZNER_K3S_VERSION}/hetzner-k3s-linux-amd64" -o hetzner-k3s
-          sudo install -m0755 hetzner-k3s /usr/local/bin/hetzner-k3s
-          kubectl version --client && tofu version && hetzner-k3s --version
+          kubectl version --client && tofu version
 
       # ---------------------------------------------------------------
       # Provision the stateful tier (PETS) with OpenTofu. Runs when what ==
@@ -135,6 +127,7 @@ jobs:
           TF_VAR_postgres_app_db: ${{ secrets.POSTGRES_APP_DB }}
           TF_VAR_postgres_imported_db: ${{ secrets.POSTGRES_IMPORTED_DB }}
           TF_VAR_valkey_password: ${{ secrets.VALKEY_PASSWORD }}
+          TF_VAR_k3s_token: ${{ secrets.K3S_TOKEN }}
         run: |
           set -euo pipefail
           tofu init -input=false -lockfile=readonly
@@ -157,6 +150,7 @@ jobs:
           TF_VAR_postgres_app_db: ${{ secrets.POSTGRES_APP_DB }}
           TF_VAR_postgres_imported_db: ${{ secrets.POSTGRES_IMPORTED_DB }}
           TF_VAR_valkey_password: ${{ secrets.VALKEY_PASSWORD }}
+          TF_VAR_k3s_token: ${{ secrets.K3S_TOKEN }}
         run: |
           set -euo pipefail
           # -lockfile=readonly: CI must use the committed .terraform.lock.hcl as-is
@@ -174,64 +168,64 @@ jobs:
           echo "Postgres private IP: $(tofu output -raw postgres_private_ip)"
           echo "Valkey   private IP: $(tofu output -raw valkey_private_ip)"
 
-      - name: Write SSH keys for hetzner-k3s
-        # cluster.yaml points at ~/.ssh/mapa_k3s[.pub]; the runner doesn't have
-        # them, so materialize both from secrets before creating the cluster.
+      # --- provision: the cluster servers (master+workers) were just created by
+      #     `tofu apply` above. Wait for the master's k3s to be ready, then scp
+      #     its kubeconfig and rewrite the API address to the master's public IP.
+      - name: Fetch kubeconfig from k3s master
         if: ${{ inputs.what == 'provision' }}
+        working-directory: infra/tofu
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          SSH_PUBLIC_KEY: ${{ secrets.SSH_PUBLIC_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.HETZNER_S3_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.HETZNER_S3_SECRET_KEY }}
+          TF_VAR_hcloud_token: ${{ secrets.HCLOUD_TOKEN }}
+          TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
+          TF_VAR_postgres_user: ${{ secrets.POSTGRES_USER }}
+          TF_VAR_postgres_password: ${{ secrets.POSTGRES_PASSWORD }}
+          TF_VAR_postgres_app_db: ${{ secrets.POSTGRES_APP_DB }}
+          TF_VAR_postgres_imported_db: ${{ secrets.POSTGRES_IMPORTED_DB }}
+          TF_VAR_valkey_password: ${{ secrets.VALKEY_PASSWORD }}
+          TF_VAR_k3s_token: ${{ secrets.K3S_TOKEN }}
         run: |
           set -euo pipefail
           mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh"
           printf '%s\n' "$SSH_PRIVATE_KEY" > "$HOME/.ssh/mapa_k3s"
-          printf '%s\n' "$SSH_PUBLIC_KEY"  > "$HOME/.ssh/mapa_k3s.pub"
           chmod 600 "$HOME/.ssh/mapa_k3s"
-          chmod 644 "$HOME/.ssh/mapa_k3s.pub"
 
-      - name: Ensure cluster exists
-        if: ${{ inputs.what == 'provision' }}
-        env:
-          HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
-        run: |
-          set -euo pipefail
-          # hetzner-k3s names cluster nodes mapa-master-* / mapa-app-*. Skip the
-          # DB/Valkey servers (also mapa-*) by matching the role suffixes.
-          if hcloud server list -o noheader -o columns=name | grep -qE '^mapa-(master|app|pool)'; then
-            echo "Cluster 'mapa' already present — skipping create."
-          else
-            echo "No cluster found — creating with hetzner-k3s..."
-            # hetzner-k3s reads HCLOUD_TOKEN from the env (set above; takes
-            # precedence over the config) and the SSH key paths from ~/.ssh. It
-            # writes the kubeconfig to ./kubeconfig (per cluster.yaml).
-            #
-            # --skip-current-ip-validation: that check fetches the runner's
-            # public IP from ipinfo.io, which 403s GitHub's shared runner IPs
-            # (the Crest::Forbidden we hit). We don't need it anyway — our
-            # allowed_networks are 0.0.0.0/0, so any IP already qualifies.
-            hetzner-k3s create --config infra/cluster.yaml --skip-current-ip-validation
-          fi
+          tofu init -input=false -lockfile=readonly >/dev/null
+          MASTER_IP=$(tofu output -raw k3s_master_public_ip)
+          MASTER_PRIV=$(tofu output -raw k3s_master_private_ip)
+          SSH="ssh -i $HOME/.ssh/mapa_k3s -o StrictHostKeyChecking=no -o ConnectTimeout=10 root@$MASTER_IP"
 
-      # --- kubeconfig: provision uses the file the cluster step just wrote;
-      #     deploy uses the KUBECONFIG secret. Either way it lands at ~/.kube/config.
-      - name: Configure kubectl
-        if: ${{ inputs.what == 'deploy' || inputs.what == 'provision' }}
+          echo "Waiting for k3s on master ($MASTER_IP)..."
+          for i in $(seq 1 40); do
+            if $SSH 'test -f /etc/rancher/k3s/k3s.yaml' 2>/dev/null; then
+              echo "k3s.yaml present."; break
+            fi
+            echo "  attempt $i/40 — not ready yet"; sleep 15
+          done
+
+          mkdir -p "$HOME/.kube"
+          $SSH 'cat /etc/rancher/k3s/k3s.yaml' > "$HOME/.kube/config"
+          # k3s writes server: https://127.0.0.1:6443 — point it at the master.
+          sed -i "s#https://127.0.0.1:6443#https://$MASTER_IP:6443#" "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
+          echo "::notice::Cluster ready. Save KUBECONFIG secret for future deploys: base64 -w0 the kubeconfig (see job artifacts/notes)."
+          kubectl get nodes -o wide
+
+      # --- deploy: use the KUBECONFIG secret (set once after the first provision).
+      - name: Configure kubectl (deploy)
+        if: ${{ inputs.what == 'deploy' }}
         env:
           KUBECONFIG_B64: ${{ secrets.KUBECONFIG }}
         run: |
           set -euo pipefail
-          mkdir -p "$HOME/.kube"
-          if [ "${{ inputs.what }}" = "provision" ] && [ -f infra/kubeconfig ]; then
-            # Fresh cluster: use the kubeconfig hetzner-k3s just produced. No
-            # manual secret paste needed — end-to-end in one run.
-            cp infra/kubeconfig "$HOME/.kube/config"
-            echo "::notice::Using freshly-created kubeconfig. Also save it as the KUBECONFIG secret for future deploys: base64 -w0 infra/kubeconfig"
-          elif [ -n "$KUBECONFIG_B64" ]; then
-            echo "$KUBECONFIG_B64" | base64 -d > "$HOME/.kube/config"
-          else
-            echo "::warning::No kubeconfig (secret unset and no fresh file) — skipping kubectl steps."
+          if [ -z "$KUBECONFIG_B64" ]; then
+            echo "::warning::KUBECONFIG secret not set — run 'provision' first, then save it. Skipping."
             exit 0
           fi
+          mkdir -p "$HOME/.kube"
+          echo "$KUBECONFIG_B64" | base64 -d > "$HOME/.kube/config"
           chmod 600 "$HOME/.kube/config"
           kubectl get nodes
 
@@ -250,6 +244,7 @@ jobs:
           TF_VAR_postgres_app_db: ${{ secrets.POSTGRES_APP_DB }}
           TF_VAR_postgres_imported_db: ${{ secrets.POSTGRES_IMPORTED_DB }}
           TF_VAR_valkey_password: ${{ secrets.VALKEY_PASSWORD }}
+          TF_VAR_k3s_token: ${{ secrets.K3S_TOKEN }}
         run: |
           set -euo pipefail
           [ -f "$HOME/.kube/config" ] || { echo "No kubeconfig — skipping secret."; exit 0; }

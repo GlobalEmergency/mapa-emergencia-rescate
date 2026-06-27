@@ -71,3 +71,19 @@ variable "valkey_private_ip" {
   type    = string
   default = "10.0.1.11"
 }
+
+# --- k3s cluster ---
+variable "k3s_token" {
+  description = "Shared secret that joins agents to the server. From TF_VAR_k3s_token (openssl rand -hex 32)."
+  type        = string
+  sensitive   = true
+}
+variable "k3s_master_private_ip" {
+  type    = string
+  default = "10.0.1.5"
+}
+variable "k3s_worker_count" {
+  description = "Fixed/baseline workers (the autoscaler manages 2..max on top via its own pool)."
+  type        = number
+  default     = 2
+}

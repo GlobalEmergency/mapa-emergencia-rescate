@@ -1,0 +1,73 @@
+#cloud-config
+# k3s SERVER (control plane), configured for Hetzner:
+#  --disable-cloud-controller + cloud-provider=external -> the Hetzner CCM (below)
+#    manages node IPs and LoadBalancer Services.
+#  --disable traefik/servicelb -> we use our own ingress + the Hetzner LB.
+#  --flannel-iface / --node-ip -> cluster traffic over the private network.
+#
+# CCM is installed via k3s "auto-deploy manifests": any file in
+# /var/lib/rancher/k3s/server/manifests is applied on startup (official k3s
+# feature). We drop (1) the `hcloud` secret and (2) the CCM HelmChart there, so
+# the cluster wires up Hetzner LB support with zero post-apply steps.
+#
+# NOTE (Stage B / TODO): the cluster-autoscaler is NOT installed here yet — see
+# infra/tofu/README.md and TODO.md. Added later as one more auto-deploy manifest.
+write_files:
+  - path: /etc/rancher/k3s/config.yaml
+    content: |
+      token: "${k3s_token}"
+      node-ip: "${master_private_ip}"
+      advertise-address: "${master_private_ip}"
+      tls-san:
+        - "${master_private_ip}"
+      flannel-iface: "${flannel_iface}"
+      disable:
+        - traefik
+        - servicelb
+      disable-cloud-controller: true
+      kubelet-arg:
+        - "cloud-provider=external"
+
+  # (1) Secret the CCM reads: API token + private network name (networks mode).
+  - path: /var/lib/rancher/k3s/server/manifests/hcloud-secret.yaml
+    content: |
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: hcloud
+        namespace: kube-system
+      stringData:
+        token: "${hcloud_token}"
+        network: "${network_name}"
+
+  # (2) Hetzner CCM via k3s HelmChart CRD. networking.enabled=true puts it in
+  #     private-network mode (uses the `network` key from the secret above).
+  - path: /var/lib/rancher/k3s/server/manifests/hcloud-ccm.yaml
+    content: |
+      apiVersion: helm.cattle.io/v1
+      kind: HelmChart
+      metadata:
+        name: hccm
+        namespace: kube-system
+      spec:
+        chart: hcloud-cloud-controller-manager
+        repo: https://charts.hetzner.cloud
+        targetNamespace: kube-system
+        valuesContent: |-
+          networking:
+            enabled: true
+          env:
+            HCLOUD_TOKEN:
+              valueFrom:
+                secretKeyRef:
+                  name: hcloud
+                  key: token
+            HCLOUD_NETWORK:
+              valueFrom:
+                secretKeyRef:
+                  name: hcloud
+                  key: network
+
+runcmd:
+  - curl -sfL https://get.k3s.io | INSTALL_K3S_CHANNEL=stable sh -s - server
+  - until kubectl get nodes >/dev/null 2>&1; do sleep 3; done

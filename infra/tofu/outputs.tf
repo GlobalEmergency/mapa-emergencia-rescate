@@ -39,7 +39,16 @@ output "valkey_url" {
   value       = "redis://:${var.valkey_password}@${var.valkey_private_ip}:6379"
 }
 
-# The network id, so the k3s cluster (hetzner-k3s) can join the same private net.
+# The network id of the shared private network.
 output "network_id" {
   value = hcloud_network.mapa.id
+}
+
+# k3s master — the workflow scp's the kubeconfig from here after boot, rewrites
+# the server address to the master's IP, and uses it for the app deploy.
+output "k3s_master_public_ip" {
+  value = hcloud_server.k3s_master.ipv4_address
+}
+output "k3s_master_private_ip" {
+  value = var.k3s_master_private_ip
 }

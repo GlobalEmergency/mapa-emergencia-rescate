@@ -1,13 +1,43 @@
-# OpenTofu — stateful tier (pets)
+# OpenTofu — all Hetzner infra (one tool)
 
-Declaratively provisions the **persistent** infrastructure: private network,
-firewall, SSH key, **Postgres VPS + data volume**, **Valkey VPS**. The k3s
-cluster is NOT here (it's managed by hetzner-k3s + `../cluster.yaml`), and the
-app deploy is NOT here (that's the GitHub Actions roll).
+Declaratively provisions **everything** on Hetzner: private network, firewall,
+SSH key, **Postgres VPS + volume**, **Valkey VPS**, and the **k3s cluster**
+(1 master + N workers) with the **Hetzner CCM** wired in. hetzner-k3s was dropped
+(too many opinionated, flaky validations) — the cluster is now plain
+`hcloud_server` + cloud-init, same pattern as the DB servers.
 
-Why OpenTofu for these and not the `hcloud` CLI: state tracking gives idempotency
-and a `plan` you can review before touching the database — and `prevent_destroy`
-stops a bad run from deleting Postgres.
+The app deploy itself is NOT here (that's the GitHub Actions roll via kubectl).
+
+Why OpenTofu over the `hcloud` CLI / hetzner-k3s: state tracking gives
+idempotency and a `plan` you can review before touching the database;
+`prevent_destroy` stops a bad run from deleting Postgres; and it's ONE tool with
+no surprise validation steps.
+
+## k3s cluster (tofu-native)
+
+- `k3s-master.tf` + `cloud-init/k3s-master.yaml.tftpl` — control plane. Installs
+  k3s with `--disable-cloud-controller` + `cloud-provider=external` (for the
+  Hetzner CCM), `--disable traefik servicelb`, private-network flannel. Drops the
+  **CCM** + `hcloud` secret as k3s **auto-deploy manifests**
+  (`/var/lib/rancher/k3s/server/manifests/`) so LoadBalancer Services work.
+- `k3s-workers.tf` + `cloud-init/k3s-agent.yaml.tftpl` — `k3s_worker_count`
+  (default 2) agents that join the master over the private net. This is the
+  always-on floor (min 2) for zero-downtime rolls.
+- The GitHub Actions `provision` step scp's the kubeconfig off the master after
+  boot and rewrites the API address to the master's public IP.
+
+⚠️ **`flannel_iface = "enp7s0"`** in the k3s templates assumes the Hetzner
+private NIC name on cx-line servers. Verify on first boot (`ip a` on a node); if
+the private NIC differs, update both templates.
+
+## ⛏️ Stage B — cluster-autoscaler (NOT done yet — see ../../TODO.md)
+
+The cluster currently has **fixed** workers (min 2, no autoscaling). The
+autoscaler (scale 2→4 under load) is intentionally deferred to a second step so
+we bring the cluster up on a known-good base first. Plan: add the
+kubernetes/autoscaler (hetzner provider) as one more auto-deploy manifest on the
+master, with `--nodes=2:4:cx23:hel1:mapa-autoscaled` and the agent cloud-init as
+its `HCLOUD_CLOUD_INIT`. Full notes in ../../TODO.md.
 
 ## Files
 
