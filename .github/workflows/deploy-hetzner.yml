@@ -230,25 +230,41 @@ jobs:
             --from-literal=R2_PUBLIC_BASE="$R2_PUBLIC_BASE" \
             --dry-run=client -o yaml | kubectl apply -f -
 
-      # OpenPanel server-side secret used by the /api/op proxy (route.ts).
-      # app-env holds ALL runtime vars (DATABASE_URL, VALKEY_URL, R2_*, ...), so
-      # we PATCH only this key with a strategic merge — never recreate the secret
-      # (that would wipe the rest). stringData lets kubectl base64-encode for us.
-      - name: Patch OPENPANEL_CLIENT_SECRET into app-env
+      # Server-side runtime secrets (NO NEXT_PUBLIC_*): el secreto del proxy
+      # OpenPanel (route.ts) y la contraseña del panel admin (lib/admin.ts).
+      # app-env tiene TODAS las vars de runtime (DATABASE_URL, VALKEY_URL, R2_*,
+      # ...), así que PATCHEAMOS solo estas claves con un strategic merge — nunca
+      # recreamos el secret (borraría el resto). stringData deja que kubectl haga
+      # el base64. Cada clave se omite si su secret de GH no está seteado.
+      - name: Patch runtime secrets into app-env
         env:
           OPENPANEL_CLIENT_SECRET: ${{ secrets.OPENPANEL_CLIENT_SECRET }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
         run: |
           set -euo pipefail
-          if [ -z "${OPENPANEL_CLIENT_SECRET:-}" ]; then
-            echo "OPENPANEL_CLIENT_SECRET unset — skipping app-env patch."
-            exit 0
-          fi
           if ! kubectl -n mapa get secret app-env >/dev/null 2>&1; then
             echo "::warning::app-env secret not found — create it at provision time. Skipping."
             exit 0
           fi
+          patch='{}'
+          if [ -n "${OPENPANEL_CLIENT_SECRET:-}" ]; then
+            patch=$(printf '%s' "$patch" | OP="$OPENPANEL_CLIENT_SECRET" \
+              python3 -c 'import json,os,sys; d=json.load(sys.stdin); d["OPENPANEL_CLIENT_SECRET"]=os.environ["OP"]; print(json.dumps(d))')
+          else
+            echo "OPENPANEL_CLIENT_SECRET unset — skipping that key."
+          fi
+          if [ -n "${ADMIN_PASSWORD:-}" ]; then
+            patch=$(printf '%s' "$patch" | AP="$ADMIN_PASSWORD" \
+              python3 -c 'import json,os,sys; d=json.load(sys.stdin); d["ADMIN_PASSWORD"]=os.environ["AP"]; print(json.dumps(d))')
+          else
+            echo "ADMIN_PASSWORD unset — skipping that key."
+          fi
+          if [ "$patch" = '{}' ]; then
+            echo "No runtime secrets to patch."
+            exit 0
+          fi
           kubectl -n mapa patch secret app-env --type merge \
-            -p "{\"stringData\":{\"OPENPANEL_CLIENT_SECRET\":\"${OPENPANEL_CLIENT_SECRET}\"}}"
+            -p "{\"stringData\": ${patch}}"
 
       # Upload the freshly-built /_next/static to R2 BEFORE rolling (push-then-roll),
       # additive (NEVER --delete: old chunks must survive for in-flight sessions),

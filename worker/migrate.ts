@@ -22,8 +22,31 @@ async function main() {
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error("DATABASE_URL no configurada (app DB destino).");
 
-  const pool = new Pool({ connectionString: url, max: 1 });
+  // Guardas anti-outage (estándar de migraciones seguras en Postgres): si un
+  // ALTER no consigue su lock de inmediato porque hay una query larga en curso,
+  // SIN esto la migración espera indefinidamente y BLOQUEA todas las lecturas/
+  // escrituras de esa tabla -> caída autoinfligida. Con lock_timeout la migración
+  // falla rápido (y el Job gateado aborta el deploy ANTES del roll, así que prod
+  // queda intacto). statement_timeout acota DDL desbocado.
+  //
+  // Se pasan en la config del Pool (ms) — node-postgres los aplica a CADA
+  // conexión vía parámetros de arranque, así que valen sin depender de que un
+  // `SET` corra en la sesión correcta que use migrate(). lock_timeout (3s) DEBE
+  // ser < statement_timeout (60s): si statement_timeout fuera <=, saltaría
+  // primero y lock_timeout nunca aplicaría. Override por env si hace falta.
+  const lockTimeoutMs = Number(process.env.MIGRATE_LOCK_TIMEOUT_MS) || 3_000;
+  const statementTimeoutMs =
+    Number(process.env.MIGRATE_STATEMENT_TIMEOUT_MS) || 60_000;
+  const pool = new Pool({
+    connectionString: url,
+    max: 1,
+    lock_timeout: lockTimeoutMs,
+    statement_timeout: statementTimeoutMs,
+  });
   try {
+    console.log(
+      `[migrate] lock_timeout=${lockTimeoutMs}ms statement_timeout=${statementTimeoutMs}ms`,
+    );
     const db = drizzle(pool);
     console.log(`[migrate] aplicando migraciones desde ${MIGRATIONS_DIR}...`);
     await migrate(db, { migrationsFolder: MIGRATIONS_DIR });

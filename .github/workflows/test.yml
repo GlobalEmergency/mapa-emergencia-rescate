@@ -40,3 +40,43 @@ jobs:
 
       - name: Test
         run: npm test
+
+  # Lint de migraciones Postgres (Squawk) — bloquea cambios de esquema peligrosos
+  # antes del merge: CREATE INDEX sin CONCURRENTLY, ADD COLUMN NOT NULL con
+  # default (reescribe la tabla), DROP de columnas, cambios de tipo que reescriben,
+  # locks largos, etc. Solo corre si cambian .sql de migraciones.
+  migrations:
+    name: Migration lint (Squawk)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write   # comentar findings en el PR
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Detect changed migration files
+        id: changed
+        uses: dorny/paths-filter@v3
+        with:
+          list-files: shell
+          filters: |
+            sql:
+              - 'infra/db/migrations/**/*.sql'
+
+      - name: Squawk lint
+        if: steps.changed.outputs.sql == 'true'
+        uses: sbdchd/squawk-action@v2
+        with:
+          files: ${{ steps.changed.outputs.sql_files }}
+          version: latest
+          access_token: ${{ secrets.GITHUB_TOKEN }}
+          # Excluimos reglas que chocan con nuestra baseline idempotente a
+          # propósito (ADD COLUMN ... DEFAULT en tablas controladas + el gate real
+          # de locks es deploy-time, lock_timeout en worker/migrate.ts). Quita de
+          # esta lista si quieres que una regla vuelva a bloquear.
+          exclude: prefer-robust-stmts,adding-not-nullable-field
+
+      - name: No migration changes
+        if: steps.changed.outputs.sql != 'true'
+        run: echo "Sin cambios en migraciones — Squawk omitido."
