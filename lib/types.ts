@@ -4,7 +4,8 @@ export type ReportType =
   | "shelter"
   | "nopower"
   | "missing"
-  | "building";
+  | "building"
+  | "starlink";
 
 export interface EmergencyReport {
   id: string;
@@ -88,6 +89,14 @@ export const REPORT_TYPES: Record<
     icon: "🏢",
     description:
       "Registro fotográfico del estado de un edificio o construcción. Útil para que ingenieros y autoridades evalúen daños estructurales.",
+  },
+  starlink: {
+    label: "Antena Starlink",
+    color: "#0f172a",
+    emoji: "⚫",
+    icon: "🛰️",
+    description:
+      "Punto con antena Starlink o internet satelital disponible para la comunidad. Indica la ubicación exacta y si el acceso es público.",
   },
 };
 

@@ -401,7 +401,7 @@ interface MapViewProps {
 	showEdificios?: boolean;
 }
 
-export default function MapView({
+function MapViewInner({
 	reports,
 	missingMarkers = [],
 	showMissingOnMap = true,
@@ -567,4 +567,26 @@ export default function MapView({
 			{draft && <Marker position={[draft.lat, draft.lng]} icon={draftIcon} />}
 		</MapContainer>
 	);
+}
+
+/** Leaflet usa DOM al crear iconos; esperamos al montaje en cliente. */
+export default function MapView(props: MapViewProps) {
+	const [mounted, setMounted] = useState(false);
+
+	useEffect(() => {
+		setMounted(true);
+	}, []);
+
+	if (!mounted) {
+		return (
+			<div
+				className="flex h-full w-full items-center justify-center bg-slate-100 text-slate-500"
+				aria-hidden
+			>
+				Cargando mapa…
+			</div>
+		);
+	}
+
+	return <MapViewInner {...props} />;
 }

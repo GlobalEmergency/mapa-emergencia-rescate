@@ -69,6 +69,15 @@ const COPY_BY_TYPE: Partial<Record<ReportType, Partial<FieldCopy>>> = {
     needsPlaceholder:
       "Ej: grietas verticales en columnas del 1er piso, fachada inclinada, vidrios rotos. Anexa foto para que ingenieros lo evalúen.",
   },
+  starlink: {
+    placeLabel: "Ubicación de la antena",
+    placePlaceholder:
+      "Ej: refugio comunitario en Chacao, iglesia San José, plaza principal",
+    showAffected: false,
+    needsLabel: "Detalles de conectividad",
+    needsPlaceholder:
+      "¿WiFi abierto? ¿Horario? ¿Cuántas personas puede atender? Red/contraseña si aplica.",
+  },
 };
 
 function copyFor(type: ReportType): FieldCopy {

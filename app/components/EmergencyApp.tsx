@@ -61,6 +61,7 @@ const REPORT_TYPE_SHORT: Record<ReportType, string> = {
 	nopower: "Sin luz",
 	missing: "Buscan",
 	building: "Edificios",
+	starlink: "Starlink",
 };
 
 type SubmitOutcome =
