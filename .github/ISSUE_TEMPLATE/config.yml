@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Reporte ciudadano o emergencia real
+    url: https://terremotovenezuela.app
+    about: GitHub no es el canal para pedir ayuda urgente o registrar casos reales.
+  - name: Coordinación de voluntarios
+    url: https://discord.gg/5hhaQxU3PM
+    about: Usa Discord para coordinar tareas operativas con el equipo.
+  - name: Seguridad o privacidad
+    url: mailto:info@terremotovenezuela.app
+    about: Reporta vulnerabilidades o fugas de datos por canal privado.

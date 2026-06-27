@@ -1,0 +1,30 @@
+name: Documentación
+description: Pide una corrección o mejora de documentación.
+title: "[Docs]: "
+body:
+  - type: textarea
+    id: ubicacion
+    attributes:
+      label: Archivo o página
+      description: Enlace o ruta donde viste el problema.
+      placeholder: README.md, docs/guides/..., app/...
+    validations:
+      required: true
+  - type: textarea
+    id: problema
+    attributes:
+      label: Qué falta o qué está confuso
+    validations:
+      required: true
+  - type: textarea
+    id: cambio
+    attributes:
+      label: Cambio sugerido
+      description: Opcional. Describe la mejora esperada.
+  - type: checkboxes
+    id: privacidad
+    attributes:
+      label: Revisión de privacidad
+      options:
+        - label: No incluí datos personales, coordenadas sensibles, fotos privadas ni secretos.
+          required: true

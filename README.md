@@ -38,6 +38,13 @@ npm run dev
 
 Abre http://localhost:3000.
 
+## Contribuir
+
+Antes de abrir una issue o pull request, lee [CONTRIBUTING.md](CONTRIBUTING.md).
+El proyecto usa un flujo fork-first para contribuciones externas, plantillas de
+issues/PRs y reglas estrictas para no publicar datos personales o sensibles en
+GitHub. Para vulnerabilidades o fugas de datos, usa [SECURITY.md](SECURITY.md).
+
 ## Despliegue en Vercel
 
 1. Sube el repositorio a GitHub e **importa el proyecto en Vercel**

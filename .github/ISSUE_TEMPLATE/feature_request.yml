@@ -1,0 +1,53 @@
+name: Propuesta de mejora
+description: Propone una mejora de producto, datos, operación o desarrollo.
+title: "[Mejora]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Para cambios grandes, esta issue puede convertirse en un RFC en
+        `docs/rfcs/`. No incluyas datos personales ni información sensible.
+  - type: textarea
+    id: problema
+    attributes:
+      label: Problema o necesidad
+      description: Qué usuario o flujo necesita esta mejora.
+    validations:
+      required: true
+  - type: textarea
+    id: propuesta
+    attributes:
+      label: Propuesta
+      description: Describe la solución sugerida o el comportamiento esperado.
+    validations:
+      required: true
+  - type: textarea
+    id: alternativas
+    attributes:
+      label: Alternativas consideradas
+      description: Opcional, pero útil si hay varias rutas posibles.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area principal
+      options:
+        - Mapa/reportes
+        - Personas desaparecidas
+        - Hospitales
+        - Acopio/donaciones
+        - Federación/sync
+        - Admin/operación
+        - Documentación
+        - Infraestructura/despliegue
+        - Otro
+    validations:
+      required: true
+  - type: checkboxes
+    id: sensibilidad
+    attributes:
+      label: Datos y seguridad
+      options:
+        - label: La propuesta no requiere publicar datos personales ni información sensible.
+          required: true
+        - label: Si toca datos, explicaré origen, permiso, frescura y campos sensibles antes de implementarla.
+          required: false
