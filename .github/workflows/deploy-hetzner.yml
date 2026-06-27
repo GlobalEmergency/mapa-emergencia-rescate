@@ -1,12 +1,11 @@
 # Deploy to Hetzner (k3s).
 #
-# Manually triggered (workflow_dispatch), same convention as boahaus/argo.
-#   action=plan   -> build the image, push to GHCR, but DON'T touch the cluster.
-#   action=deploy -> build+push, then roll the app (zero-downtime) via kubectl.
-#   ensure_cluster=true -> create the k3s cluster first if it doesn't exist.
-#   provision_confirm="apply-infra" -> provision the stateful tier via OpenTofu
-#     (private net, firewall, Postgres VPS+volume+DBs, Valkey VPS) + the cluster,
-#     then PRINT the DATABASE_URL/VALKEY_URL outputs to paste back as secrets.
+# Manually triggered (workflow_dispatch). One dropdown — "what":
+#   plan      -> build the image, push to GHCR, touch nothing else.
+#   deploy    -> build + push, then roll the app (zero-downtime). Everyday.
+#   provision -> one-time/infra: tofu apply (network, firewall, Postgres VPS +
+#                volume + DBs, Valkey VPS) + create the k3s cluster, then PRINT
+#                the DATABASE_URL/VALKEY_URL outputs to paste back as secrets.
 #
 # Zero-downtime is enforced by the manifests (maxUnavailable:0 + readinessProbe
 # /api/readyz) and confirmed here by `kubectl rollout status`, which blocks
@@ -16,21 +15,15 @@ name: Deploy to Hetzner (k3s)
 on:
   workflow_dispatch:
     inputs:
-      action:
+      what:
         description: "What to do"
         type: choice
-        default: plan
+        default: deploy
         options:
-          - plan      # build + push image only; no cluster changes
-          - deploy    # build + push, then roll the app
-      ensure_cluster:
-        description: "Create the k3s cluster if it doesn't exist yet"
-        type: boolean
-        default: false
-      provision_confirm:
-        description: "Provision stateful tier via OpenTofu — type apply-infra to run tofu apply (network, firewall, Postgres, Valkey)"
-        type: string
-        default: ""
+          - plan        # build + push the image only; touch nothing else
+          - deploy      # build + push, then roll the app (everyday release)
+          - plan-infra  # tofu plan only — REVIEW infra changes, apply nothing
+          - provision   # tofu apply (DB+Valkey+net) + create k3s cluster + roll app
 
 permissions:
   contents: read
@@ -43,7 +36,7 @@ permissions:
 
 jobs:
   deploy:
-    name: Build & ${{ inputs.action }}
+    name: ${{ inputs.what }}
     runs-on: ubuntu-latest
     # Repo-level secrets (no GitHub Environment configured). Add
     # `environment: production` here later if you want reviewer gates.
@@ -57,15 +50,14 @@ jobs:
 
       - name: Show inputs
         run: |
-          echo "action         = ${{ inputs.action }}"
-          echo "ensure_cluster = ${{ inputs.ensure_cluster }}"
-          echo "image          = ${{ env.IMAGE }}:${{ github.sha }}"
-          echo "actor          = ${{ github.actor }}"
+          echo "what  = ${{ inputs.what }}"
+          echo "image = ${{ env.IMAGE }}:${{ github.sha }}"
+          echo "actor = ${{ github.actor }}"
 
       # ---------------------------------------------------------------
-      # 1. Build the immutable app image and push to GHCR, tagged :<sha>
-      #    (+ :latest for convenience). Runs for BOTH plan and deploy so a
-      #    plan still proves the build is green.
+      # 1. Build the immutable app image and push to GHCR, tagged :<sha>.
+      #    Runs for all three: plan (prove build), deploy (roll it), provision
+      #    (provision rolls the app too, end-to-end).
       # ---------------------------------------------------------------
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -93,16 +85,18 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Plan stops here
-        if: ${{ inputs.action == 'plan' }}
+        if: ${{ inputs.what == 'plan' }}
         run: |
           echo "PLAN complete — image built & pushed, cluster untouched."
-          echo "Run again with action=deploy to roll it out."
+          echo "Run again with what=deploy to roll it out."
 
       # ---------------------------------------------------------------
       # 2. (deploy only) Ensure cluster, then roll.
       # ---------------------------------------------------------------
-      - name: Install hcloud + kubectl + tofu
-        if: ${{ inputs.action == 'deploy' || inputs.provision_confirm == 'apply-infra' }}
+      - name: Install hcloud + kubectl + tofu + hetzner-k3s
+        if: ${{ inputs.what == 'deploy' || inputs.what == 'provision' || inputs.what == 'plan-infra' }}
+        env:
+          HETZNER_K3S_VERSION: v2.6.0
         run: |
           # kubectl
           curl -sLO "https://dl.k8s.io/release/$(curl -sL https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
@@ -113,17 +107,42 @@ jobs:
           # OpenTofu
           curl -sL https://get.opentofu.org/install-opentofu.sh -o install-opentofu.sh
           chmod +x install-opentofu.sh && sudo ./install-opentofu.sh --install-method standalone
-          kubectl version --client && tofu version
+          # hetzner-k3s (standalone binary from GitHub releases — NOT a docker image)
+          curl -sL "https://github.com/vitobotta/hetzner-k3s/releases/download/${HETZNER_K3S_VERSION}/hetzner-k3s-linux-amd64" -o hetzner-k3s
+          sudo install -m0755 hetzner-k3s /usr/local/bin/hetzner-k3s
+          kubectl version --client && tofu version && hetzner-k3s --version
 
       # ---------------------------------------------------------------
-      # Provision the stateful tier (PETS) with OpenTofu. Armed only when
-      # provision_confirm == "apply-infra". State lives in Hetzner Object
+      # Provision the stateful tier (PETS) with OpenTofu. Runs when what ==
+      # "provision". State lives in Hetzner Object
       # Storage (infra/tofu/backend.tf); prevent_destroy guards the DB. After a
       # successful apply, paste the printed DATABASE_URL/VALKEY_URL secrets.
       # This is idempotent — safe to re-run; it only changes drift.
       # ---------------------------------------------------------------
+      # plan-infra: REVIEW only. Runs `tofu plan` and shows what WOULD change —
+      # applies nothing. The industry best practice (split plan/apply, review
+      # before apply) for safe infra changes once the DB holds real data.
+      - name: Plan infra (tofu plan — review only)
+        if: ${{ inputs.what == 'plan-infra' }}
+        working-directory: infra/tofu
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.HETZNER_S3_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.HETZNER_S3_SECRET_KEY }}
+          TF_VAR_hcloud_token: ${{ secrets.HCLOUD_TOKEN }}
+          TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
+          TF_VAR_postgres_user: ${{ secrets.POSTGRES_USER }}
+          TF_VAR_postgres_password: ${{ secrets.POSTGRES_PASSWORD }}
+          TF_VAR_postgres_app_db: ${{ secrets.POSTGRES_APP_DB }}
+          TF_VAR_postgres_imported_db: ${{ secrets.POSTGRES_IMPORTED_DB }}
+          TF_VAR_valkey_password: ${{ secrets.VALKEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          tofu init -input=false -lockfile=readonly
+          tofu plan -input=false
+          echo "::notice::Plan only — nothing applied. Run 'provision' to apply."
+
       - name: Provision stateful tier (tofu apply)
-        if: ${{ inputs.provision_confirm == 'apply-infra' }}
+        if: ${{ inputs.what == 'provision' }}
         working-directory: infra/tofu
         env:
           # S3 backend creds (Hetzner Object Storage) — the S3 backend reads the
@@ -144,6 +163,9 @@ jobs:
           # and FAIL if it doesn't match — never silently update it. The lock is
           # generated/updated locally and reviewed in PRs (best practice).
           tofu init -input=false -lockfile=readonly
+          # Plan first (visible in logs), then apply. -auto-approve is acceptable
+          # for greenfield; for risky changes, run 'plan-infra' first to review.
+          tofu plan -input=false
           tofu apply -input=false -auto-approve
           echo "::notice::Provision done. Set these repo secrets from the outputs below:"
           echo "  DATABASE_URL          = $(tofu output -raw database_url)"
@@ -151,12 +173,24 @@ jobs:
           echo "  VALKEY_URL            = $(tofu output -raw valkey_url)"
           echo "Postgres private IP: $(tofu output -raw postgres_private_ip)"
           echo "Valkey   private IP: $(tofu output -raw valkey_private_ip)"
-      # ╔═══════════════════════════════════════════════════════════════════╗
-      # ║  >>> NUKE AFTER FIRST RUN — END one-time stateful bootstrap <<<     ║
-      # ╚═══════════════════════════════════════════════════════════════════╝
+
+      - name: Write SSH keys for hetzner-k3s
+        # cluster.yaml points at ~/.ssh/mapa_k3s[.pub]; the runner doesn't have
+        # them, so materialize both from secrets before creating the cluster.
+        if: ${{ inputs.what == 'provision' }}
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_PUBLIC_KEY: ${{ secrets.SSH_PUBLIC_KEY }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh"
+          printf '%s\n' "$SSH_PRIVATE_KEY" > "$HOME/.ssh/mapa_k3s"
+          printf '%s\n' "$SSH_PUBLIC_KEY"  > "$HOME/.ssh/mapa_k3s.pub"
+          chmod 600 "$HOME/.ssh/mapa_k3s"
+          chmod 644 "$HOME/.ssh/mapa_k3s.pub"
 
       - name: Ensure cluster exists
-        if: ${{ (inputs.action == 'deploy' && inputs.ensure_cluster) || inputs.provision_confirm == 'apply-infra' }}
+        if: ${{ inputs.what == 'provision' }}
         env:
           HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
         run: |
@@ -167,46 +201,75 @@ jobs:
             echo "Cluster 'mapa' already present — skipping create."
           else
             echo "No cluster found — creating with hetzner-k3s..."
-            docker run --rm \
-              -e HCLOUD_TOKEN="$HCLOUD_TOKEN" \
-              -v "$PWD/infra:/infra" -v "$HOME/.ssh:/root/.ssh:ro" \
-              vitobotta/hetzner-k3s:latest create --config /infra/cluster.yaml
-            echo "::notice::Cluster created. Set KUBECONFIG secret: base64 -w0 infra/kubeconfig"
+            # hetzner-k3s reads HCLOUD_TOKEN from the env (cluster.yaml has the
+            # <%= ENV["HCLOUD_TOKEN"] %> placeholder) and the SSH key paths from
+            # ~/.ssh. It writes the kubeconfig to ./kubeconfig (per cluster.yaml).
+            hetzner-k3s create --config infra/cluster.yaml
           fi
 
+      # --- kubeconfig: provision uses the file the cluster step just wrote;
+      #     deploy uses the KUBECONFIG secret. Either way it lands at ~/.kube/config.
       - name: Configure kubectl
-        # `secrets` can't be used in an `if:` expression, so gate on action only
-        # and check KUBECONFIG presence in shell (mapped to an env var). On the
-        # FIRST bootstrap run the secret won't exist yet — the step no-ops and
-        # tells you to set it, then a normal deploy run uses it.
-        if: ${{ inputs.action == 'deploy' }}
+        if: ${{ inputs.what == 'deploy' || inputs.what == 'provision' }}
         env:
           KUBECONFIG_B64: ${{ secrets.KUBECONFIG }}
         run: |
           set -euo pipefail
-          if [ -z "$KUBECONFIG_B64" ]; then
-            echo "::warning::KUBECONFIG secret not set yet — skipping kubectl config."
-            echo "Set it (base64 -w0 infra/kubeconfig) then re-run action=deploy."
+          mkdir -p "$HOME/.kube"
+          if [ "${{ inputs.what }}" = "provision" ] && [ -f infra/kubeconfig ]; then
+            # Fresh cluster: use the kubeconfig hetzner-k3s just produced. No
+            # manual secret paste needed — end-to-end in one run.
+            cp infra/kubeconfig "$HOME/.kube/config"
+            echo "::notice::Using freshly-created kubeconfig. Also save it as the KUBECONFIG secret for future deploys: base64 -w0 infra/kubeconfig"
+          elif [ -n "$KUBECONFIG_B64" ]; then
+            echo "$KUBECONFIG_B64" | base64 -d > "$HOME/.kube/config"
+          else
+            echo "::warning::No kubeconfig (secret unset and no fresh file) — skipping kubectl steps."
             exit 0
           fi
-          mkdir -p "$HOME/.kube"
-          echo "$KUBECONFIG_B64" | base64 -d > "$HOME/.kube/config"
           chmod 600 "$HOME/.kube/config"
           kubectl get nodes
 
-      - name: Apply manifests
-        if: ${{ inputs.action == 'deploy' }}
+      # --- App runtime Secret. On provision, build it from the tofu outputs so
+      #     the app gets DATABASE_URL/VALKEY_URL with zero manual pasting.
+      - name: Create app-env secret (from tofu outputs)
+        if: ${{ inputs.what == 'provision' }}
+        working-directory: infra/tofu
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.HETZNER_S3_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.HETZNER_S3_SECRET_KEY }}
+          TF_VAR_hcloud_token: ${{ secrets.HCLOUD_TOKEN }}
+          TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
+          TF_VAR_postgres_user: ${{ secrets.POSTGRES_USER }}
+          TF_VAR_postgres_password: ${{ secrets.POSTGRES_PASSWORD }}
+          TF_VAR_postgres_app_db: ${{ secrets.POSTGRES_APP_DB }}
+          TF_VAR_postgres_imported_db: ${{ secrets.POSTGRES_IMPORTED_DB }}
+          TF_VAR_valkey_password: ${{ secrets.VALKEY_PASSWORD }}
         run: |
           set -euo pipefail
-          # Skip cleanly if kubectl isn't configured (KUBECONFIG not set yet on a
-          # first bootstrap run) — the previous step already warned.
+          [ -f "$HOME/.kube/config" ] || { echo "No kubeconfig — skipping secret."; exit 0; }
+          tofu init -input=false -lockfile=readonly >/dev/null
+          DB_URL=$(tofu output -raw database_url)
+          VK_URL=$(tofu output -raw valkey_url)
+          kubectl create namespace mapa --dry-run=client -o yaml | kubectl apply -f -
+          kubectl -n mapa create secret generic app-env \
+            --from-literal=DATABASE_URL="$DB_URL" \
+            --from-literal=VALKEY_URL="$VK_URL" \
+            --from-literal=DB_DRIVER=tcp \
+            --from-literal=TRUSTED_IP_HEADER=x-forwarded-for \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Apply manifests
+        if: ${{ inputs.what == 'deploy' || inputs.what == 'provision' }}
+        run: |
+          set -euo pipefail
           [ -f "$HOME/.kube/config" ] || { echo "No kubeconfig — skipping apply."; exit 0; }
           # Namespace + Service (LB). Deployment is applied then image-pinned.
           kubectl apply -f infra/k8s/service.yaml
           kubectl apply -f infra/k8s/deployment.yaml
 
       - name: Roll to the new image (zero-downtime)
-        if: ${{ inputs.action == 'deploy' }}
+        if: ${{ inputs.what == 'deploy' || inputs.what == 'provision' }}
         run: |
           set -euo pipefail
           [ -f "$HOME/.kube/config" ] || { echo "No kubeconfig — skipping roll."; exit 0; }
@@ -217,9 +280,9 @@ jobs:
           kubectl -n mapa rollout status deployment/app --timeout=300s
 
       - name: Rollback hint on failure
-        if: ${{ failure() && inputs.action == 'deploy' }}
+        if: ${{ failure() && inputs.what == 'deploy' }}
         run: |
           echo "::warning::Roll failed. To revert: kubectl -n mapa rollout undo deployment/app"
 
       - name: Done
-        run: echo "✅ ${{ inputs.action }} finished."
+        run: echo "✅ ${{ inputs.what }} finished."
