@@ -20,6 +20,17 @@ no surprise validation steps.
   Hetzner CCM), `--disable traefik servicelb`, private-network flannel. Drops the
   **CCM** + `hcloud` secret as k3s **auto-deploy manifests**
   (`/var/lib/rancher/k3s/server/manifests/`) so LoadBalancer Services work.
+  The CCM is a **raw Deployment** (the official `ccm-networks.yaml`), NOT a
+  HelmChart: `cloud-provider=external` taints nodes `uninitialized:NoSchedule`
+  until the CCM clears it, but the k3s HelmChart install-job can't tolerate that
+  taint → deadlock (k3s#1807). The raw Deployment already tolerates it.
+  Public IP is added as a TLS SAN at boot (config.yaml.d drop-in) so CI can reach
+  the API over the public IP.
+- **Recreating the cluster:** `ignore_changes=[user_data]` means editing the
+  cloud-init won't replace running nodes. To force the master to re-run its
+  cloud-init (e.g. after a template fix), use the `recreate-master` action in the
+  deploy workflow — it `-replace`s the master **and** the workers (a fresh master
+  gets a new cluster CA, so workers must rejoin). DB + Valkey are never touched.
 - `k3s-workers.tf` + `cloud-init/k3s-agent.yaml.tftpl` — `k3s_worker_count`
   (default 2) agents that join the master over the private net. This is the
   always-on floor (min 2) for zero-downtime rolls.

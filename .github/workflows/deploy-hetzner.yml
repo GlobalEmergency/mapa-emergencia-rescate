@@ -20,10 +20,11 @@ on:
         type: choice
         default: deploy
         options:
-          - plan        # build + push the image only; touch nothing else
-          - deploy      # build + push, then roll the app (everyday release)
-          - plan-infra  # tofu plan only — REVIEW infra changes, apply nothing
-          - provision   # tofu apply (DB+Valkey+net) + create k3s cluster + roll app
+          - plan            # build + push the image only; touch nothing else
+          - deploy          # build + push, then roll the app (everyday release)
+          - plan-infra      # tofu plan only — REVIEW infra changes, apply nothing
+          - provision       # tofu apply (DB+Valkey+net) + create k3s cluster + roll app
+          - recreate-master # REPLACE the k3s master (re-runs cloud-init) + provision flow
 
 permissions:
   contents: read
@@ -94,7 +95,7 @@ jobs:
       # 2. (deploy only) Ensure cluster, then roll.
       # ---------------------------------------------------------------
       - name: Install kubectl + tofu
-        if: ${{ inputs.what == 'deploy' || inputs.what == 'provision' || inputs.what == 'plan-infra' }}
+        if: ${{ inputs.what == 'deploy' || inputs.what == 'provision' || inputs.what == 'plan-infra' || inputs.what == 'recreate-master' }}
         run: |
           # kubectl
           curl -sLO "https://dl.k8s.io/release/$(curl -sL https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
@@ -135,7 +136,7 @@ jobs:
           echo "::notice::Plan only — nothing applied. Run 'provision' to apply."
 
       - name: Provision stateful tier (tofu apply)
-        if: ${{ inputs.what == 'provision' }}
+        if: ${{ inputs.what == 'provision' || inputs.what == 'recreate-master' }}
         working-directory: infra/tofu
         env:
           # S3 backend creds (Hetzner Object Storage) — the S3 backend reads the
@@ -157,10 +158,24 @@ jobs:
           # and FAIL if it doesn't match — never silently update it. The lock is
           # generated/updated locally and reviewed in PRs (best practice).
           tofu init -input=false -lockfile=readonly
+          # recreate-master: force-replace the WHOLE cluster (master + workers) so
+          # it re-runs the (fixed) cloud-init. ignore_changes=[user_data] means a
+          # plain apply won't touch them, so we pass -replace explicitly. We must
+          # replace the workers too: a fresh master generates a new cluster CA, so
+          # the old workers (enrolled against the old CA) would fail to reconnect
+          # (k3s-io/k3s#2852). DB + Valkey are NOT touched (separate resources).
+          REPLACE=""
+          if [ "${{ inputs.what }}" = "recreate-master" ]; then
+            REPLACE="-replace=hcloud_server.k3s_master"
+            # Workers are a counted resource — replace each index.
+            for i in 0 1; do
+              REPLACE="$REPLACE -replace=hcloud_server.k3s_worker[$i]"
+            done
+          fi
           # Plan first (visible in logs), then apply. -auto-approve is acceptable
           # for greenfield; for risky changes, run 'plan-infra' first to review.
-          tofu plan -input=false
-          tofu apply -input=false -auto-approve
+          tofu plan -input=false $REPLACE
+          tofu apply -input=false -auto-approve $REPLACE
           echo "::notice::Provision done. Set these repo secrets from the outputs below:"
           echo "  DATABASE_URL          = $(tofu output -raw database_url)"
           echo "  IMPORTED_DATABASE_URL = $(tofu output -raw imported_database_url)"
@@ -172,7 +187,7 @@ jobs:
       #     `tofu apply` above. Wait for the master's k3s to be ready, then scp
       #     its kubeconfig and rewrite the API address to the master's public IP.
       - name: Fetch kubeconfig from k3s master
-        if: ${{ inputs.what == 'provision' }}
+        if: ${{ inputs.what == 'provision' || inputs.what == 'recreate-master' }}
         working-directory: infra/tofu
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
@@ -232,7 +247,7 @@ jobs:
       # --- App runtime Secret. On provision, build it from the tofu outputs so
       #     the app gets DATABASE_URL/VALKEY_URL with zero manual pasting.
       - name: Create app-env secret (from tofu outputs)
-        if: ${{ inputs.what == 'provision' }}
+        if: ${{ inputs.what == 'provision' || inputs.what == 'recreate-master' }}
         working-directory: infra/tofu
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.HETZNER_S3_ACCESS_KEY }}
@@ -260,7 +275,7 @@ jobs:
             --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Apply manifests
-        if: ${{ inputs.what == 'deploy' || inputs.what == 'provision' }}
+        if: ${{ inputs.what == 'deploy' || inputs.what == 'provision' || inputs.what == 'recreate-master' }}
         run: |
           set -euo pipefail
           [ -f "$HOME/.kube/config" ] || { echo "No kubeconfig — skipping apply."; exit 0; }
@@ -269,7 +284,7 @@ jobs:
           kubectl apply -f infra/k8s/deployment.yaml
 
       - name: Roll to the new image (zero-downtime)
-        if: ${{ inputs.what == 'deploy' || inputs.what == 'provision' }}
+        if: ${{ inputs.what == 'deploy' || inputs.what == 'provision' || inputs.what == 'recreate-master' }}
         run: |
           set -euo pipefail
           [ -f "$HOME/.kube/config" ] || { echo "No kubeconfig — skipping roll."; exit 0; }
