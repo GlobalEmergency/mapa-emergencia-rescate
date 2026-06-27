@@ -201,9 +201,9 @@ jobs:
             echo "Cluster 'mapa' already present — skipping create."
           else
             echo "No cluster found — creating with hetzner-k3s..."
-            # hetzner-k3s reads HCLOUD_TOKEN from the env (cluster.yaml has the
-            # <%= ENV["HCLOUD_TOKEN"] %> placeholder) and the SSH key paths from
-            # ~/.ssh. It writes the kubeconfig to ./kubeconfig (per cluster.yaml).
+            # hetzner-k3s reads HCLOUD_TOKEN from the env (set above; takes
+            # precedence over the config) and the SSH key paths from ~/.ssh. It
+            # writes the kubeconfig to ./kubeconfig (per cluster.yaml).
             hetzner-k3s create --config infra/cluster.yaml
           fi
 

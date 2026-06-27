@@ -12,9 +12,11 @@
 # Postgres + Valkey are NOT in the cluster — they are separate VPS pets on the
 # same private network (provisioned via OpenTofu / by hand). See infra/README.
 #
-# Token is read from the HCLOUD_TOKEN env var (do NOT hardcode it here).
+# Token is read from the HCLOUD_TOKEN env var, which takes precedence over this
+# file (the workflow sets it). hetzner-k3s v2.x does NOT process ERB templates,
+# so we must NOT put `hetzner_token: <%= ENV[...] %>` here — that literal string
+# would be sent as the token and fail ("Unable to fetch instance types").
 config_format_version: 1
-hetzner_token: <%= ENV["HCLOUD_TOKEN"] %>
 cluster_name: mapa
 kubeconfig_path: "./kubeconfig"
 k3s_version: v1.32.0+k3s1
