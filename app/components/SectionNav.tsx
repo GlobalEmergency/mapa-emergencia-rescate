@@ -82,30 +82,42 @@ function usePeopleTotals() {
 
   useEffect(() => {
     let cancelled = false;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+
     const load = async () => {
       try {
-        const [activeRes, foundRes] = await Promise.all([
-          fetch("/api/missing?pageSize=1", { cache: "no-store" }),
-          fetch("/api/missing?status=found&pageSize=1", { cache: "no-store" }),
-        ]);
-        if (cancelled) return;
-        if (activeRes.ok) {
-          const data = await activeRes.json();
-          if (!cancelled) setMissing(data.total ?? 0);
-        }
-        if (foundRes.ok) {
-          const data = await foundRes.json();
-          if (!cancelled) setFound(data.total ?? 0);
-        }
-      } catch {
-        // se reintenta en el próximo ciclo
+        const res = await fetch("/api/missing/stats", { cache: "no-cache" });
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        const stats = data.stats;
+        if (cancelled || !stats) return;
+        setMissing(stats.active ?? 0);
+        setFound(stats.found ?? 0);
+      } catch {}
+    };
+
+    const start = () => {
+      if (intervalId !== null) return;
+      load();
+      intervalId = setInterval(load, 60_000);
+    };
+    const stop = () => {
+      if (intervalId !== null) {
+        clearInterval(intervalId);
+        intervalId = null;
       }
     };
-    load();
-    const id = setInterval(load, 60_000);
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") start();
+      else stop();
+    };
+
+    onVisibility();
+    document.addEventListener("visibilitychange", onVisibility);
     return () => {
       cancelled = true;
-      clearInterval(id);
+      stop();
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, []);
 

@@ -256,6 +256,7 @@ const PersonasPreview = forwardRef<PersonasPreviewHandle>(
   const [filter, setFilter] = useState<"all" | "active" | "found">("all");
   const gridRef = useRef<HTMLDivElement>(null);
   const skipScrollRef = useRef(true);
+  const peopleAbortRef = useRef<AbortController | null>(null);
   const gridCols = useHospitalGridColumns();
   const pageSize = gridCols * PERSON_PREVIEW_ROWS;
   const network = useLowBandwidthMode(
@@ -272,6 +273,9 @@ const PersonasPreview = forwardRef<PersonasPreviewHandle>(
   }, [query]);
 
   const fetchPeople = useCallback(async () => {
+    peopleAbortRef.current?.abort();
+    const controller = new AbortController();
+    peopleAbortRef.current = controller;
     try {
       const params = new URLSearchParams({
         status: filter,
@@ -281,7 +285,10 @@ const PersonasPreview = forwardRef<PersonasPreviewHandle>(
       if (debouncedQuery.trim().length >= MIN_SEARCH_LEN) {
         params.set("q", debouncedQuery.trim());
       }
-      const res = await fetch(`/api/missing?${params}`, { cache: "no-store" });
+      const res = await fetch(`/api/missing?${params}`, {
+        cache: "no-cache",
+        signal: controller.signal,
+      });
       if (!res.ok) return;
       const data = await res.json();
       setPeople(data.people ?? []);
@@ -290,10 +297,12 @@ const PersonasPreview = forwardRef<PersonasPreviewHandle>(
       if (typeof data.page === "number" && data.page !== page) {
         setPage(data.page);
       }
-    } catch {
-      // se reintentará en el próximo ciclo
+    } catch (err) {
+      if ((err as { name?: string }).name === "AbortError") return;
     }
   }, [debouncedQuery, page, pageSize, filter]);
+
+  useEffect(() => () => peopleAbortRef.current?.abort(), []);
 
   useEffect(() => {
     setPage(1);
@@ -306,7 +315,7 @@ const PersonasPreview = forwardRef<PersonasPreviewHandle>(
   const fetchFoundTotal = useCallback(async () => {
     try {
       const res = await fetch("/api/missing?status=found&pageSize=1", {
-        cache: "no-store",
+        cache: "no-cache",
       });
       if (!res.ok) return;
       const data = await res.json();
