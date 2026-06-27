@@ -54,12 +54,12 @@ export default function HelpSection() {
             <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-[20px] border border-blue-100 bg-blue-50 text-blue-600">
               <Globe size={28} strokeWidth={2} />
             </div>
-            <h3 className="mb-3 text-xl font-bold text-slate-900">Internacional</h3>
+            <h3 className="mb-3 text-xl font-bold text-slate-900">Apoyo global</h3>
             <p className="mb-8 flex-1 text-sm leading-relaxed text-slate-600">
               Estás fuera de Venezuela. Canales internacionales de donación y coordinación.
             </p>
             <Link
-              href="/internacional"
+              href="/apoyo-global"
               className="w-full rounded-full bg-[#2b51f0] px-6 py-3.5 text-sm font-bold text-white transition-colors hover:bg-blue-700"
             >
               Cómo ayudar
