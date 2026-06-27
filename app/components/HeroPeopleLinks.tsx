@@ -44,7 +44,7 @@ export default function HeroPeopleLinks() {
   return (
     <>
       <a
-        href="#desaparecidas"
+        href="#e-directory"
         className="flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
       >
         🧍 Personas desaparecidas
@@ -55,7 +55,7 @@ export default function HeroPeopleLinks() {
         )}
       </a>
       <a
-        href="#localizados"
+        href="#e-directory"
         className="flex items-center justify-center gap-2 rounded-lg border border-emerald-300 bg-emerald-50 px-5 py-2.5 text-sm font-semibold text-emerald-700 shadow-sm transition hover:bg-emerald-100"
       >
         💚 Localizados a salvo

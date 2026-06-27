@@ -18,14 +18,6 @@ const MissingPersonsCarousel = dynamic(
   },
 );
 
-const PersonsTabs = dynamic(() => import("./components/PersonsTabs"), {
-  loading: () => (
-    <section className="mx-auto w-full max-w-[1120px] px-4 pb-14 text-sm text-[var(--etext2)]">
-      Cargando personas…
-    </section>
-  ),
-});
-
 export default function Home() {
   return (
     <>
@@ -41,8 +33,6 @@ export default function Home() {
         <HelpSection />
 
         <EmergencyApp />
-
-        <PersonsTabs />
       </main >
 
       <SiteFooter />

@@ -52,7 +52,7 @@ function HeroAccessCard({
 
 export default function HeroSection() {
   const goMap = useCallback(() => scrollToSection("mapa"), []);
-  const goMissing = useCallback(() => scrollToSection("desaparecidas"), []);
+  const goMissing = useCallback(() => scrollToSection("e-directory"), []);
   const goHelp = useCallback(() => scrollToSection("tutorial"), []);
   const goVolunteer = useCallback(() => scrollToSection("equipo"), []);
 

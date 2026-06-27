@@ -214,7 +214,7 @@ function MissingClusterLayer({
 									<p className="text-slate-600">📍 {p.lastSeen}</p>
 								)}
 								<a
-									href="#desaparecidas"
+									href="#e-directory"
 									className="mt-1 inline-block text-xs font-medium text-purple-700 underline"
 								>
 									Ver ficha completa →

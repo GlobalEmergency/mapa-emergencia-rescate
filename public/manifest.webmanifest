@@ -28,7 +28,7 @@
     {
       "name": "Personas desaparecidas",
       "short_name": "Desaparecidas",
-      "url": "/#desaparecidas",
+      "url": "/#e-directory",
       "icons": [{ "src": "/icon.svg", "sizes": "192x192", "type": "image/svg+xml" }]
     },
     {

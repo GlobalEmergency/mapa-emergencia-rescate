@@ -195,7 +195,7 @@ export default function MissingPersons() {
       if (window.location.hash === "#reportar-desaparecido") {
         setShowForm(true);
         document
-          .getElementById("desaparecidas")
+          .getElementById("e-directory")
           ?.scrollIntoView({ behavior: "smooth", block: "start" });
       }
     };

@@ -146,7 +146,7 @@ export default function FoundPersons() {
             </p>
           </div>
           <a
-            href="#desaparecidas"
+            href="#e-directory"
             className="shrink-0 self-start rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 sm:self-end"
           >
             Ver personas en búsqueda →
