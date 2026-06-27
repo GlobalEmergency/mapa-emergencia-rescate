@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 export default function DonacionesPage() {
   return (
-    <SubPageShell breadcrumb="Inicio">
+    <SubPageShell breadcrumb="Donaciones">
       <section className="mx-auto w-full max-w-[1120px] px-4 py-8 sm:px-6">
         <h1 className="mb-2 text-[28px] font-bold text-slate-900 sm:text-[32px]">Donaciones</h1>
         <p className="mb-10 text-[15px] text-slate-600 sm:text-base">

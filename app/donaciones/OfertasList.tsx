@@ -210,7 +210,7 @@ function FilterPill({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+      className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold whitespace-nowrap transition-colors ${
         active
           ? "bg-[#c41a1a] text-white"
           : "border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
@@ -248,35 +248,37 @@ export default function OfertasList() {
 
   return (
     <div>
-      <div className="mb-4 flex flex-wrap gap-2">
-        <FilterPill
-          label="Todas"
-          active={activeCategory === null}
-          onClick={() => setActiveCategory(null)}
-        />
-        {categories.map((category) => (
+      <div className="sticky top-[62px] z-30 -mx-4 mb-4 border-b border-[var(--eborder)] bg-[var(--ebg)] px-4 pt-3 pb-3 sm:-mx-6 sm:px-6 md:static md:z-auto md:mx-0 md:mb-0 md:border-0 md:bg-transparent md:p-0">
+        <div className="mb-3 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] md:flex-wrap md:overflow-visible md:pb-0 [&::-webkit-scrollbar]:hidden">
           <FilterPill
-            key={category}
-            label={category}
-            active={activeCategory === category}
-            onClick={() => setActiveCategory(category)}
+            label="Todas"
+            active={activeCategory === null}
+            onClick={() => setActiveCategory(null)}
           />
-        ))}
-      </div>
+          {categories.map((category) => (
+            <FilterPill
+              key={category}
+              label={category}
+              active={activeCategory === category}
+              onClick={() => setActiveCategory(category)}
+            />
+          ))}
+        </div>
 
-      <div className="relative mb-6">
-        <Search
-          size={18}
-          className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-slate-400"
-        />
-        <input
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Buscar organización o servicio…"
-          aria-label="Buscar organización o servicio"
-          className="w-full rounded-full border border-slate-200 bg-white py-3 pr-4 pl-11 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#c41a1a] focus:ring-2 focus:ring-red-100 focus:outline-none"
-        />
+        <div className="relative">
+          <Search
+            size={18}
+            className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-slate-400"
+          />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Buscar organización o servicio…"
+            aria-label="Buscar organización o servicio"
+            className="w-full rounded-full border border-slate-200 bg-white py-3 pr-4 pl-11 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#c41a1a] focus:ring-2 focus:ring-red-100 focus:outline-none"
+          />
+        </div>
       </div>
 
       {groups.length === 0 ? (
@@ -284,10 +286,12 @@ export default function OfertasList() {
           No se encontraron resultados para “{query}”.
         </p>
       ) : (
-        <div className="flex flex-col gap-7">
+        <div className="mt-4 flex flex-col gap-7 md:mt-6">
           {groups.map((group) => (
             <div key={group.category}>
-              <h3 className="mb-2.5 text-[13px] font-bold text-slate-700">{group.category}</h3>
+              <h3 className="sticky top-[190px] z-20 -mx-4 bg-[var(--ebg)] px-4 py-2 text-[13px] font-bold text-slate-700 sm:-mx-6 sm:px-6 md:static md:z-auto md:mx-0 md:mb-2.5 md:bg-transparent md:px-0 md:py-0">
+                {group.category}
+              </h3>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
                 {group.items.map((item) => (
                   <OfertaCard key={item.name} {...item} />
