@@ -2,23 +2,90 @@ import type { Metadata } from "next";
 import SubPageShell from "../components/SubPageShell";
 
 export const metadata: Metadata = {
-  title: "Voluntario · Mapa de Emergencia Venezuela",
+  title: "Registrarme como voluntario · Mapa de Emergencia Venezuela",
   alternates: { canonical: "/voluntario" },
   description: "Ofrece tu tiempo en labores de rescate, apoyo logístico o asistencia médica.",
 };
 
 export default function VoluntarioPage() {
   return (
-    <SubPageShell breadcrumb="Voluntariado">
-      <section className="mx-auto w-full max-w-2xl px-4 py-10 sm:px-6">
-        <h1 className="qi-h1">Registro de Voluntarios</h1>
-        <p className="mt-2 text-sm leading-relaxed text-[var(--etext2)]">
-          Ofrece tu tiempo en labores de rescate, apoyo logístico o asistencia médica. Pronto agregaremos los formularios e información necesarios aquí.
-        </p>
+    <SubPageShell breadcrumb="Inicio">
+      <section className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6">
+        <div className="e-card rounded-[24px] bg-white p-6 sm:p-10">
+          <h1 className="mb-2 text-[22px] font-bold text-slate-900 sm:text-2xl">
+            Registrarme como voluntario
+          </h1>
+          <p className="mb-8 text-sm text-slate-600 sm:text-[15px]">
+            El equipo de coordinación se pondrá en contacto contigo en las próximas horas.
+          </p>
 
-        {/* Placeholder para los datos/diseño que enviará el usuario */}
-        <div className="e-card mt-6 min-h-[300px] flex items-center justify-center p-6 text-slate-400">
-          [ Espacio para el contenido de voluntarios ]
+          <form className="space-y-6">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+              <div>
+                <label htmlFor="name" className="mb-2 block text-sm font-semibold text-slate-900">
+                  Tu nombre
+                </label>
+                <input
+                  type="text"
+                  id="name"
+                  name="name"
+                  placeholder="Nombre completo"
+                  className="e-input w-full"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="phone" className="mb-2 block text-sm font-semibold text-slate-900">
+                  Teléfono de contacto
+                </label>
+                <input
+                  type="tel"
+                  id="phone"
+                  name="phone"
+                  placeholder="0414-XXX-XXXX"
+                  className="e-input w-full"
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="offer" className="mb-2 block text-sm font-semibold text-slate-900">
+                ¿Qué puedes ofrecer?
+              </label>
+              <textarea
+                id="offer"
+                name="offer"
+                rows={3}
+                placeholder="Ej. Tengo camioneta disponible, soy médico, puedo llevar víveres, manejo de grúas..."
+                className="e-input w-full resize-y"
+                required
+              />
+            </div>
+
+            <div>
+              <label htmlFor="zone" className="mb-2 block text-sm font-semibold text-slate-900">
+                Zona desde donde puedes ayudar
+              </label>
+              <input
+                type="text"
+                id="zone"
+                name="zone"
+                placeholder="Ej. Chacao, Caracas"
+                className="e-input w-full"
+                required
+              />
+            </div>
+
+            {/* Espacio reservado para la sección adicional */}
+
+            <button
+              type="submit"
+              className="mt-8 w-full rounded-full bg-[#0a8a6a] px-6 py-3.5 text-[15px] font-bold text-white transition-colors hover:bg-emerald-700"
+            >
+              Enviar registro
+            </button>
+          </form>
         </div>
       </section>
     </SubPageShell>
