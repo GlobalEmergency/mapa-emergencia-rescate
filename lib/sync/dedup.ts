@@ -24,7 +24,10 @@ const NORM_NAME = "translate(lower(trim(name)), 'áéíóúüñ', 'aeiouun')";
 const AGE_RATIO_THRESHOLD = 0.34;
 
 /** Clasifica un grupo (mismo nombre) por concentración de edades. */
-function classify(count: number, distinctAges: number): "same-person" | "homonyms" {
+export function classify(
+  count: number,
+  distinctAges: number,
+): "same-person" | "homonyms" {
   if (distinctAges <= 1) return "same-person";
   return distinctAges / count <= AGE_RATIO_THRESHOLD ? "same-person" : "homonyms";
 }
