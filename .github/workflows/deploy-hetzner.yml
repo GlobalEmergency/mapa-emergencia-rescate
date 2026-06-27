@@ -186,13 +186,18 @@ jobs:
             - systemctl restart postgresql
           EOF
 
+            # Create with basics ONLY. Attaching --network/--firewall at create
+            # time can return "forbidden" (Hetzner treats firewall-attach-on-
+            # create as a separate, restricted op — same reason the TF provider
+            # needs a workaround). Every working example creates bare, then
+            # attaches. So: create, then attach network + firewall separately.
             hcloud server create \
               --name mapa-postgres \
               --type cx22 --image debian-12 --location nbg1 \
               --ssh-key mapa-key \
-              --network mapa-net \
-              --firewall mapa-db-fw \
               --user-data-from-file pg-cloud-init.yaml
+            hcloud server attach-to-network mapa-postgres --network mapa-net
+            hcloud firewall apply-to-resource mapa-db-fw --type server --server mapa-postgres
             # Data volume (survives a server rebuild). Mount/migrate PGDATA to it
             # in a follow-up; created here so it exists from day one.
             hcloud volume create --name mapa-pgdata --size 40 --server mapa-postgres --automount --format ext4
@@ -222,9 +227,9 @@ jobs:
               --name mapa-valkey \
               --type cx22 --image debian-12 --location nbg1 \
               --ssh-key mapa-key \
-              --network mapa-net \
-              --firewall mapa-db-fw \
               --user-data-from-file valkey-cloud-init.yaml
+            hcloud server attach-to-network mapa-valkey --network mapa-net
+            hcloud firewall apply-to-resource mapa-db-fw --type server --server mapa-valkey
           fi
 
       - name: "[bootstrap] Print secrets to paste (option A)"
