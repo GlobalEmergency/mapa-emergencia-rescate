@@ -3,9 +3,9 @@
  * Extrae las fuentes Stara (OTF) embebidas en Terremoto Venezuela.html
  * hacia app/fonts/stara/. Ejecutar una vez si se actualiza el bundle de referencia.
  */
-const fs = require("fs");
-const zlib = require("zlib");
-const { promisify } = require("util");
+import fs from "node:fs";
+import zlib from "node:zlib";
+import { promisify } from "node:util";
 
 const gunzip = promisify(zlib.gunzip);
 

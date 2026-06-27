@@ -10,6 +10,11 @@ const nextConfig: NextConfig = {
   // `pg` solo se usa en desarrollo local (ver lib/db.ts). Lo mantenemos fuera
   // del bundle para que se cargue como módulo de Node en tiempo de ejecución.
   serverExternalPackages: ["pg"],
+  // Fija la raíz del workspace a este directorio. Sin esto Turbopack la infiere
+  // por lockfiles en carpetas superiores (p. ej. un pnpm-lock.yaml en el home).
+  turbopack: {
+    root: import.meta.dirname,
+  },
   // Protección anti version-skew para el roll multi-pod en Hetzner. `next build`
   // estampa un build-id ALEATORIO por defecto, así que los 2 pods de un mismo
   // deploy servirían URLs `/_next/static/<id>/…` distintas — un usuario en el pod

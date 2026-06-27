@@ -26,10 +26,15 @@ const PAGE_SIZE = 20; // fijo por la fuente
 const FETCH_TIMEOUT_MS = 45_000;
 const INTER_PAGE_DELAY_MS = 200;
 const HARD_PAGE_CAP = 10_000;
+// Tope defensivo al decodificar entrada externa. Una página real ronda ~12 KB
+// (20 personas); 10 MB deja margen amplio y acota el riesgo de DoS por payload
+// desproporcionado (cf. GHSA-rxv8-25v2-qmq8). El timeout cubre streams sin
+// Content-Length declarado.
+const MAX_PAYLOAD_BYTES = 10_000_000;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-interface ApiPerson {
+export interface ApiPerson {
   id?: string;
   firstName?: string;
   lastName?: string;
@@ -44,7 +49,7 @@ interface ApiPerson {
   reporter?: { name?: string; phone?: string; email?: string } | null;
 }
 
-interface LoaderData {
+export interface LoaderData {
   persons?: ApiPerson[];
   pagination?: { page?: number; hasMore?: boolean };
   totalCount?: number;
@@ -61,7 +66,7 @@ function absolutePhoto(url: unknown): string | null {
   return null;
 }
 
-function mapPerson(p: ApiPerson): ExternalPerson | null {
+export function mapPerson(p: ApiPerson): ExternalPerson | null {
   const externalId = String(p.id ?? "").trim();
   const name = [p.firstName, p.lastName].filter(Boolean).join(" ").trim();
   if (!externalId || !name) return null;
@@ -107,13 +112,38 @@ async function requestPage(page: number, ctx: FetchCtx): Promise<LoaderData> {
     throw new Error(`HTTP ${res.status} al consultar ${SOURCE_ID} (page ${page})`);
   }
 
-  const decoded = (await decode(res.body)) as { value: unknown; done?: Promise<unknown> };
-  await decoded.done?.catch(() => {});
-  const root = decoded.value as Record<string, { data?: LoaderData }> | LoaderData;
+  const declaredBytes = Number(res.headers.get("content-length") ?? 0);
+  if (declaredBytes > MAX_PAYLOAD_BYTES) {
+    throw new Error(
+      `Payload de ${SOURCE_ID} demasiado grande (${declaredBytes} bytes)`,
+    );
+  }
 
-  // React Router single-fetch: mapa por routeId; buscamos el que trae `persons`.
+  // La fuente (React Router) codifica el loader en formato turbo-stream v2, que
+  // NO es compatible con el decoder v3 (v3 devuelve un array plano). Mantener
+  // v2 aquí es obligatorio para que el sync extraiga los registros.
+  const decoded = (await decode(res.body)) as {
+    value: unknown;
+    done?: Promise<unknown>;
+  };
+  await decoded.done?.catch(() => {});
+  return extractLoaderData(
+    decoded.value as Record<string, { data?: LoaderData }> | LoaderData,
+  );
+}
+
+/**
+ * Extrae el `LoaderData` con `persons` de la respuesta single-fetch de React
+ * Router: el root es un mapa por routeId, así que buscamos la ruta que trae
+ * `persons`. Aislado para poder probarlo sin red (ver tests unitarios).
+ */
+export function extractLoaderData(
+  root: Record<string, { data?: LoaderData }> | LoaderData,
+): LoaderData {
   if (root && typeof root === "object" && !("persons" in root)) {
-    for (const entry of Object.values(root as Record<string, { data?: LoaderData }>)) {
+    for (const entry of Object.values(
+      root as Record<string, { data?: LoaderData }>,
+    )) {
       if (entry?.data?.persons) return entry.data;
     }
   }

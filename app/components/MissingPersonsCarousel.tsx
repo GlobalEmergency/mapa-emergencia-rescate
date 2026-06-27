@@ -5,11 +5,9 @@ import {
   useCallback,
   useEffect,
   useImperativeHandle,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
-  type ReactNode,
 } from "react";
 import MissingPersonForm, {
   type MissingPersonPayload,
@@ -106,86 +104,6 @@ function tabFromHash(hash: string): DirectoryTab | null {
 
 function hashForTab(tab: DirectoryTab): string {
   return tab === "hospitales" ? "#hospitales" : "#e-directory";
-}
-
-function useHorizontalScroll(itemCount: number) {
-  const scrollerRef = useRef<HTMLDivElement>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
-
-  const updateArrows = useCallback(() => {
-    const node = scrollerRef.current;
-    if (!node) return;
-    const { scrollLeft, scrollWidth, clientWidth } = node;
-    setCanScrollLeft(scrollLeft > 4);
-    setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 4);
-  }, []);
-
-  useLayoutEffect(() => {
-    updateArrows();
-    const node = scrollerRef.current;
-    if (!node) return;
-    const onScroll = () => updateArrows();
-    node.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", updateArrows);
-    return () => {
-      node.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", updateArrows);
-    };
-  }, [updateArrows, itemCount]);
-
-  const scrollBy = useCallback((direction: 1 | -1) => {
-    const node = scrollerRef.current;
-    if (!node) return;
-    const amount = Math.round(node.clientWidth * 0.85) * direction;
-    node.scrollBy({ left: amount, behavior: "smooth" });
-  }, []);
-
-  return { scrollerRef, canScrollLeft, canScrollRight, scrollBy };
-}
-
-function HorizontalScrollRow({
-  itemCount,
-  children,
-}: {
-  itemCount: number;
-  children: ReactNode;
-}) {
-  const { scrollerRef, canScrollLeft, canScrollRight, scrollBy } =
-    useHorizontalScroll(itemCount);
-
-  return (
-    <div className="relative mt-5">
-      {canScrollLeft && (
-        <button
-          type="button"
-          aria-label="Desplazar a la izquierda"
-          onClick={() => scrollBy(-1)}
-          className="absolute left-0 top-1/2 z-10 hidden -translate-y-1/2 rounded-full border border-[var(--eborder)] bg-[var(--esurf)] p-2 text-[var(--etext)] shadow-md transition hover:bg-[var(--einput)] sm:block"
-        >
-          ◀
-        </button>
-      )}
-      {canScrollRight && (
-        <button
-          type="button"
-          aria-label="Desplazar a la derecha"
-          onClick={() => scrollBy(1)}
-          className="absolute right-0 top-1/2 z-10 hidden -translate-y-1/2 rounded-full border border-[var(--eborder)] bg-[var(--esurf)] p-2 text-[var(--etext)] shadow-md transition hover:bg-[var(--einput)] sm:block"
-        >
-          ▶
-        </button>
-      )}
-
-      <div
-        ref={scrollerRef}
-        className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-3 sm:gap-4 [scrollbar-width:thin]"
-        role="list"
-      >
-        {children}
-      </div>
-    </div>
-  );
 }
 
 export default function MissingPersonsCarousel() {

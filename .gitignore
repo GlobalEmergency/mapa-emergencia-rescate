@@ -10,6 +10,12 @@
 !.yarn/releases
 !.yarn/versions
 
+# lockfiles de otros gestores: este repo usa npm (package-lock.json)
+bun.lock
+bun.lockb
+yarn.lock
+pnpm-lock.yaml
+
 # testing
 /coverage
 

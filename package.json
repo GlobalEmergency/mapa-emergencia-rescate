@@ -9,12 +9,18 @@
     "openapi": "node --import tsx scripts/gen-openapi.mts",
     "start": "next start",
     "lint": "eslint",
+    "lint:fix": "eslint --fix",
+    "typecheck": "tsc --noEmit",
     "worker": "node --import tsx worker/index.ts",
     "migrate:enqueue": "node --import tsx worker/enqueue.ts",
     "migrate": "node --import tsx worker/migrate.ts",
     "db:generate": "drizzle-kit generate --config infra/db/drizzle.config.ts",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "prepare": "husky"
+  },
+  "engines": {
+    "node": ">=24"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.700.0",
@@ -35,21 +41,29 @@
     "react-leaflet": "^5.0.0",
     "react-zoom-pan-pinch": "^4.0.3",
     "supercluster": "^8.0.1",
-    "turbo-stream": "^2.4.1"
+    "turbo-stream": "2.4.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/leaflet": "^1.9.21",
-    "@types/node": "^20",
+    "@types/node": "24.13.2",
     "@types/pg": "^8.20.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "drizzle-kit": "^0.31.10",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
+    "husky": "9.1.7",
+    "lint-staged": "17.0.8",
     "tailwindcss": "^4",
     "tsx": "^4.19.2",
     "typescript": "^5",
     "vitest": "^4.1.9"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,mjs,js}": "eslint --fix"
+  },
+  "overrides": {
+    "postcss": "^8.5.10"
   }
 }
