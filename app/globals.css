@@ -511,6 +511,70 @@ a:focus-visible,
 	}
 }
 
+.e-ayuda-card {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	width: 100%;
+	padding: 14px 20px;
+	text-align: left;
+	text-decoration: none;
+	color: inherit;
+	border: 1.5px solid var(--eborder);
+	border-radius: 16px;
+	background: var(--ebg);
+	transition: background 150ms ease;
+}
+
+.e-ayuda-card:hover {
+	background: var(--einput);
+}
+
+.e-ayuda-card__icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	width: 38px;
+	height: 38px;
+	border-radius: 10px;
+}
+
+.e-ayuda-card__icon--guides {
+	background: #fef3c7;
+}
+
+.e-ayuda-card__icon--support {
+	background: #ebf0ff;
+}
+
+.e-ayuda-card__icon--shelter {
+	background: #e3f5f0;
+}
+
+.e-ayuda-card__body {
+	flex: 1;
+	min-width: 0;
+}
+
+.e-ayuda-card__title {
+	font-size: 15px;
+	font-weight: 700;
+	line-height: 1.25;
+	color: var(--etext);
+}
+
+.e-ayuda-card__desc {
+	font-size: 12px;
+	line-height: 1.35;
+	color: var(--etext2);
+}
+
+.e-ayuda-card__chevron {
+	flex-shrink: 0;
+	color: var(--etext3);
+}
+
 .e-int-2col {
 	display: grid;
 	grid-template-columns: 1fr;

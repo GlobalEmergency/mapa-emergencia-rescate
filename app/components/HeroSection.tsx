@@ -33,16 +33,18 @@ function HeroAccessCard({
     <button
       type="button"
       onClick={onClick}
-      className="e-card-hover flex w-fit flex-col items-center justify-center rounded-[20px] bg-white px-4 py-3.5 text-center shadow-lg transition-transform hover:-translate-y-1 sm:px-6 sm:py-3"
+      className="e-card-hover flex w-full flex-col items-center justify-center rounded-[20px] bg-white px-4 py-6 text-center shadow-lg transition-transform hover:-translate-y-1 sm:px-6 sm:py-8"
+      style={{ padding: "clamp(20px, 3vw, 32px) clamp(16px, 2vw, 24px)" }}
     >
       <div
-        className="mb-3 sm:mb-2 text-[32px] sm:text-[40px] leading-none"
+        className="mb-3 sm:mb-4"
+        style={{ fontSize: "clamp(48px, 6vw, 72px)", lineHeight: 1 }}
         role="img"
         aria-hidden
       >
         {emoji}
       </div>
-      <div className="text-[17px] font-bold text-slate-900 sm:text-[19px] whitespace-nowrap">{title}</div>
+      <div className="mb-2 text-[17px] font-bold text-slate-900 sm:text-[19px]">{title}</div>
       <div className="text-[13px] leading-snug text-slate-600 sm:text-[14px]">{description}</div>
     </button>
   );
@@ -76,7 +78,7 @@ export default function HeroSection() {
           aria-hidden
         />
 
-        <div className="relative z-10 mx-auto max-w-[1120px] px-4 py-8 text-center sm:px-6 sm:py-10">
+        <div className="relative z-10 mx-auto max-w-[1120px] px-4 py-10 text-center sm:px-6 sm:py-14">
           <h1
             className="mb-2.5 font-[family-name:var(--qi-font-display)] !text-white"
             style={{
@@ -101,7 +103,7 @@ export default function HeroSection() {
             Da clic en una opción  para recibir o brindar ayuda.
           </p>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6 max-w-5xl mx-auto">
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 lg:gap-6">
             <HeroAccessCard
               emoji="🔎"
               title="Buscar personas"

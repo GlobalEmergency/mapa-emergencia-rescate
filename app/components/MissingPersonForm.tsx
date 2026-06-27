@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { trackEvent } from "./openpanel";
 
 export type MissingReportType = "missing" | "found";
-type FoundPlace = "hospital" | "street";
+export type FoundPlace = "hospital" | "street";
 type PersonStatus = "safe" | "deceased";
 
 export interface MissingPersonPayload {
@@ -21,6 +21,8 @@ export interface MissingPersonPayload {
 interface Props {
   onCancel: () => void;
   onSubmit: (payload: MissingPersonPayload) => Promise<void>;
+  initialReportType?: MissingReportType;
+  initialFoundPlace?: FoundPlace | null;
 }
 
 const MAX_DIM = 800;
@@ -171,10 +173,18 @@ function StreetIcon({ className }: { className?: string }) {
   );
 }
 
-export default function MissingPersonForm({ onCancel, onSubmit }: Props) {
+export default function MissingPersonForm({
+  onCancel,
+  onSubmit,
+  initialReportType = "missing",
+  initialFoundPlace = null,
+}: Props) {
   const [mounted, setMounted] = useState(false);
-  const [reportType, setReportType] = useState<MissingReportType>("missing");
-  const [foundPlace, setFoundPlace] = useState<FoundPlace | null>(null);
+  const [reportType, setReportType] =
+    useState<MissingReportType>(initialReportType);
+  const [foundPlace, setFoundPlace] = useState<FoundPlace | null>(
+    initialFoundPlace,
+  );
   const [personStatus, setPersonStatus] = useState<PersonStatus | null>(null);
   const [name, setName] = useState("");
   const [age, setAge] = useState("");

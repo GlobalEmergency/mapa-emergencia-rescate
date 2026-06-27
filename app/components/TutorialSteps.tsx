@@ -9,10 +9,10 @@ export default function TutorialSteps() {
   return (
     <section
       id="tutorial"
-      className="w-full scroll-mt-20 border-b border-[var(--eborder)] py-6 px-4 sm:px-6"
+      className="w-full scroll-mt-20 border-b border-[var(--eborder)] py-6"
       style={{ backgroundColor: "rgb(249, 250, 251)" }}
     >
-      <div className="mx-auto w-full max-w-[1120px] py-10">
+      <div className="mx-auto w-full max-w-[1120px] px-4 py-10 sm:px-6">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
           <div className="mx-auto">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-[rgb(17,24,39)] text-center m-[0px_0px_8px] leading-[1.1]">¿Necesitas ayuda?</h2>
@@ -110,45 +110,36 @@ export default function TutorialSteps() {
           </form>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3 md:gap-8 mt-6 w-full mb-20">
-          <Link
-            href="/guia"
-            className="bg-white rounded-[24px] p-8 shadow-[0_4px_24px_rgba(0,0,0,0.04)] flex items-center gap-[12px] cursor-pointer text-left w-full hover:-translate-y-1 transition-transform"
-          >
-            <div className="w-[38px] h-[38px] bg-[#fef3c7] rounded-[10px] flex items-center justify-center shrink-0">
+        <div className="e-ayuda-3cards mt-6 mx-auto mb-20 max-w-[1120px]">
+          <Link href="/guia" className="e-ayuda-card">
+            <div className="e-ayuda-card__icon e-ayuda-card__icon--guides">
               <BookOpen size={18} color="#92400E" strokeWidth={2} />
             </div>
-            <div className="flex-1">
-              <div className="text-[15px] font-bold text-[var(--etext)]">Guías rápidas</div>
-              <div className="text-[12px] text-[var(--etext2)]">Qué hacer en cada situación</div>
+            <div className="e-ayuda-card__body">
+              <div className="e-ayuda-card__title">Guías rápidas</div>
+              <div className="e-ayuda-card__desc">Qué hacer en cada situación</div>
             </div>
-            <ChevronRight size={14} className="text-[var(--etext3)]" strokeWidth={2.5} />
+            <ChevronRight size={14} className="e-ayuda-card__chevron" strokeWidth={2.5} />
           </Link>
-          <Link
-            href="/apoyo-global"
-            className="bg-white rounded-[24px] p-8 shadow-[0_4px_24px_rgba(0,0,0,0.04)] flex items-center gap-[12px] cursor-pointer text-left w-full hover:-translate-y-1 transition-transform"
-          >
-            <div className="w-[38px] h-[38px] bg-[#ebf0ff] rounded-[10px] flex items-center justify-center shrink-0">
+          <Link href="/apoyo-global" className="e-ayuda-card">
+            <div className="e-ayuda-card__icon e-ayuda-card__icon--support">
               <Heart size={18} color="#1649CC" strokeWidth={2} />
             </div>
-            <div className="flex-1">
-              <div className="text-[15px] font-bold text-[var(--etext)]">Apoyo</div>
-              <div className="text-[12px] text-[var(--etext2)]">Psicológico y Protección Civil</div>
+            <div className="e-ayuda-card__body">
+              <div className="e-ayuda-card__title">Apoyo</div>
+              <div className="e-ayuda-card__desc">Psicológico y Protección Civil</div>
             </div>
-            <ChevronRight size={14} className="text-[var(--etext3)]" strokeWidth={2.5} />
+            <ChevronRight size={14} className="e-ayuda-card__chevron" strokeWidth={2.5} />
           </Link>
-          <a
-            href="/acopio"
-            className="bg-white rounded-[24px] p-8 shadow-[0_4px_24px_rgba(0,0,0,0.04)] flex items-center gap-[12px] cursor-pointer text-left w-full hover:-translate-y-1 transition-transform"
-          >
-            <div className="w-[38px] h-[38px] bg-[#e3f5f0] rounded-[10px] flex items-center justify-center shrink-0">
+          <a href="/acopio" className="e-ayuda-card">
+            <div className="e-ayuda-card__icon e-ayuda-card__icon--shelter">
               <Home size={18} color="#0A8A6A" strokeWidth={2} />
             </div>
-            <div className="flex-1">
-              <div className="text-[15px] font-bold text-[var(--etext)]">Centros de acopio</div>
-              <div className="text-[12px] text-[var(--etext2)]">Puntos activos de ayuda</div>
+            <div className="e-ayuda-card__body">
+              <div className="e-ayuda-card__title">Centros de acopio</div>
+              <div className="e-ayuda-card__desc">Puntos activos de ayuda</div>
             </div>
-            <ChevronRight size={14} className="text-[var(--etext3)]" strokeWidth={2.5} />
+            <ChevronRight size={14} className="e-ayuda-card__chevron" strokeWidth={2.5} />
           </a>
         </div>
       </div>

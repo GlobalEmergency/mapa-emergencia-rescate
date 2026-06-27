@@ -1,15 +1,16 @@
 "use client";
 
 import {
+  forwardRef,
   useCallback,
   useEffect,
+  useImperativeHandle,
   useLayoutEffect,
   useMemo,
   useRef,
   useState,
   type ReactNode,
 } from "react";
-import Link from "next/link";
 import MissingPersonForm, {
   type MissingPersonPayload,
 } from "./MissingPersonForm";
@@ -44,6 +45,10 @@ interface MissingPerson {
 }
 
 type DirectoryTab = "personas" | "hospitales";
+
+type PersonasPreviewHandle = {
+  refresh: () => void;
+};
 
 const POLL_INTERVAL_MS = 8000;
 const LOW_BANDWIDTH_POLL_INTERVAL_MS = 45_000;
@@ -184,11 +189,38 @@ function HorizontalScrollRow({
 
 export default function MissingPersonsCarousel() {
   const [activeTab, setActiveTab] = useState<DirectoryTab>("personas");
+  const [showForm, setShowForm] = useState(false);
+  const [formSessionKey, setFormSessionKey] = useState(0);
+  const personasRef = useRef<PersonasPreviewHandle>(null);
 
   const selectTab = useCallback((tab: DirectoryTab) => {
     setActiveTab(tab);
     window.history.replaceState(null, "", hashForTab(tab));
   }, []);
+
+  const openReportForm = useCallback(() => {
+    setFormSessionKey((k) => k + 1);
+    setShowForm(true);
+  }, []);
+
+  const handleFormSubmit = useCallback(
+    async (payload: MissingPersonPayload) => {
+      const res = await fetch("/api/missing", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(
+          data?.error ?? "No se pudo guardar el reporte. Intenta de nuevo.",
+        );
+      }
+      setShowForm(false);
+      personasRef.current?.refresh();
+    },
+    [],
+  );
 
   useEffect(() => {
     const syncFromHash = () => {
@@ -216,34 +248,43 @@ export default function MissingPersonsCarousel() {
         aria-hidden
       />
       <div className="mx-auto w-full max-w-[1120px] px-4 py-8 sm:px-6 sm:py-10">
-        <div
-          role="tablist"
-          aria-label="Directorio de personas y hospitales"
-          className="-mx-4 mb-7 flex border-b-2 border-[var(--eborder)] px-4 sm:mx-0 sm:px-0"
-        >
+        <div className="-mx-4 mb-7 flex flex-wrap items-end justify-between gap-3 border-b-2 border-[var(--eborder)] px-4 sm:mx-0 sm:px-0">
+          <div
+            role="tablist"
+            aria-label="Directorio de personas y hospitales"
+            className="flex min-w-0 flex-1"
+          >
+            <button
+              type="button"
+              role="tab"
+              id="tab-personas"
+              aria-selected={activeTab === "personas"}
+              aria-controls="panel-personas"
+              data-active={activeTab === "personas"}
+              onClick={() => selectTab("personas")}
+              className="e-tab-label flex flex-1 items-center justify-center sm:flex-none"
+            >
+              Personas
+            </button>
+            <button
+              type="button"
+              role="tab"
+              id="tab-hospitales"
+              aria-selected={activeTab === "hospitales"}
+              aria-controls="panel-hospitales"
+              data-active={activeTab === "hospitales"}
+              onClick={() => selectTab("hospitales")}
+              className="e-tab-label flex flex-1 items-center justify-center sm:flex-none"
+            >
+              Hospitales
+            </button>
+          </div>
           <button
             type="button"
-            role="tab"
-            id="tab-personas"
-            aria-selected={activeTab === "personas"}
-            aria-controls="panel-personas"
-            data-active={activeTab === "personas"}
-            onClick={() => selectTab("personas")}
-            className="e-tab-label flex flex-1 items-center justify-center sm:flex-none"
+            onClick={openReportForm}
+            className="e-btn e-btn-primary mb-1 shrink-0 px-5 py-2.5"
           >
-            Personas
-          </button>
-          <button
-            type="button"
-            role="tab"
-            id="tab-hospitales"
-            aria-selected={activeTab === "hospitales"}
-            aria-controls="panel-hospitales"
-            data-active={activeTab === "hospitales"}
-            onClick={() => selectTab("hospitales")}
-            className="e-tab-label flex flex-1 items-center justify-center sm:flex-none"
-          >
-            Hospitales
+            <span aria-hidden>＋</span> Quiero reportar
           </button>
         </div>
 
@@ -253,7 +294,7 @@ export default function MissingPersonsCarousel() {
             id="panel-personas"
             aria-labelledby="tab-personas"
           >
-            <PersonasPreview />
+            <PersonasPreview ref={personasRef} />
           </div>
         ) : (
           <div
@@ -264,18 +305,32 @@ export default function MissingPersonsCarousel() {
             <HospitalesPreview />
           </div>
         )}
+
+        {showForm && (
+          <MissingPersonForm
+            key={`${activeTab}-${formSessionKey}`}
+            initialReportType={
+              activeTab === "hospitales" ? "found" : "missing"
+            }
+            initialFoundPlace={
+              activeTab === "hospitales" ? "hospital" : null
+            }
+            onCancel={() => setShowForm(false)}
+            onSubmit={handleFormSubmit}
+          />
+        )}
       </div>
     </section>
   );
 }
 
-function PersonasPreview() {
+const PersonasPreview = forwardRef<PersonasPreviewHandle>(
+  function PersonasPreview(_props, ref) {
   const [people, setPeople] = useState<MissingPerson[]>([]);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [page, setPage] = useState(1);
   const [foundTotal, setFoundTotal] = useState(0);
-  const [showForm, setShowForm] = useState(false);
   const [selected, setSelected] = useState<MissingPerson | null>(null);
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
@@ -373,6 +428,18 @@ function PersonasPreview() {
     fetchPeople();
   }, [fetchPeople]);
 
+  useImperativeHandle(
+    ref,
+    () => ({
+      refresh() {
+        setPage(1);
+        fetchPeople();
+        fetchFoundTotal();
+      },
+    }),
+    [fetchFoundTotal, fetchPeople],
+  );
+
   useEffect(() => {
     if (skipScrollRef.current) {
       skipScrollRef.current = false;
@@ -380,37 +447,6 @@ function PersonasPreview() {
     }
     gridRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [page]);
-
-  const handleSubmit = useCallback(
-    async (payload: MissingPersonPayload) => {
-      const res = await fetch("/api/missing", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(
-          data?.error ?? "No se pudo guardar el reporte. Intenta de nuevo.",
-        );
-      }
-      setShowForm(false);
-      setPage(1);
-      if (data.person?.status === "found") {
-        fetchPeople();
-      } else if (data.person) {
-        setPeople((prev) =>
-          prev.some((p) => p.id === data.person.id)
-            ? prev
-            : [data.person, ...prev].slice(0, pageSize),
-        );
-        setTotal((t) => t + 1);
-      } else {
-        fetchPeople();
-      }
-    },
-    [fetchPeople, pageSize],
-  );
 
   const handleMarkFound = useCallback(
     async (id: string, payload: { note: string; photo: string | null }) => {
@@ -443,47 +479,37 @@ function PersonasPreview() {
 
   return (
     <>
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="qi-h2">Personas</h2>
-            <span
-              className="e-pill bg-red-50 text-red-700"
-              aria-label={`${total} personas reportadas`}
-            >
-              {total.toLocaleString("es-VE")} reportadas
-            </span>
-          </div>
-
-          <div className="e-person-stats">
-            <span className="e-person-stats__item">
-              <span
-                className="e-person-stats__dot e-person-stats__dot--missing"
-                aria-hidden
-              />
-              {total.toLocaleString("es-VE")} desaparecidos
-            </span>
-            <span className="e-person-stats__item">
-              <span
-                className="e-person-stats__dot e-person-stats__dot--found"
-                aria-hidden
-              />
-              {foundTotal.toLocaleString("es-VE")} encontrados
-            </span>
-          </div>
-
-          <p className="mt-2 max-w-2xl text-sm text-[var(--etext2)]">
-            Si reconoces a alguien, contacta a quien la reportó.
-          </p>
+      <div>
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="qi-h2">Personas</h2>
+          <span
+            className="e-pill bg-red-50 text-red-700"
+            aria-label={`${total} personas reportadas`}
+          >
+            {total.toLocaleString("es-VE")} reportadas
+          </span>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setShowForm(true)}
-          className="e-btn e-btn-primary shrink-0 self-end px-5 py-2.5 sm:self-start"
-        >
-          <span aria-hidden>＋</span> Quiero reportar
-        </button>
+        <div className="e-person-stats">
+          <span className="e-person-stats__item">
+            <span
+              className="e-person-stats__dot e-person-stats__dot--missing"
+              aria-hidden
+            />
+            {total.toLocaleString("es-VE")} desaparecidos
+          </span>
+          <span className="e-person-stats__item">
+            <span
+              className="e-person-stats__dot e-person-stats__dot--found"
+              aria-hidden
+            />
+            {foundTotal.toLocaleString("es-VE")} encontrados
+          </span>
+        </div>
+
+        <p className="mt-2 max-w-2xl text-sm text-[var(--etext2)]">
+          Si reconoces a alguien, contacta a quien la reportó.
+        </p>
       </div>
 
       <div className="my-3 flex flex-wrap items-center justify-end gap-2">
@@ -642,13 +668,6 @@ function PersonasPreview() {
         </p>
       )}
 
-      {showForm && (
-        <MissingPersonForm
-          onCancel={() => setShowForm(false)}
-          onSubmit={handleSubmit}
-        />
-      )}
-
       {selected && (
         <MissingPersonDetail
           person={selected}
@@ -660,7 +679,7 @@ function PersonasPreview() {
       )}
     </>
   );
-}
+});
 
 function MissingPersonCard({
   person,
@@ -793,17 +812,12 @@ function HospitalesPreview() {
 
   return (
     <>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h2 className="qi-h2">Hospitales y centros de salud</h2>
-          <p className="mt-1 max-w-2xl text-sm text-[var(--etext2)]">
-            Lista priorizada de la red hospitalaria de Venezuela según la zona
-            de afectación. Toca un hospital para ver los pacientes registrados.
-          </p>
-        </div>
-        <Link href="/hospitales" className="e-btn e-btn-secondary shrink-0 px-4 py-2.5">
-          Ver directorio completo →
-        </Link>
+      <div>
+        <h2 className="qi-h2">Hospitales y centros de salud</h2>
+        <p className="mt-1 max-w-2xl text-sm text-[var(--etext2)]">
+          Lista priorizada de la red hospitalaria de Venezuela según la zona
+          de afectación. Toca un hospital para ver los pacientes registrados.
+        </p>
       </div>
 
       {!loading && hospitals.length > 0 && (
