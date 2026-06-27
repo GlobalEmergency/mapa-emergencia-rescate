@@ -41,7 +41,7 @@ type DirectoryTab = "personas" | "hospitales";
 const POLL_INTERVAL_MS = 8000;
 const LOW_BANDWIDTH_POLL_INTERVAL_MS = 45_000;
 const MAX_PREVIEW = 24;
-const GRID_PAGE_SIZE = 9;
+const GRID_PAGE_SIZE = 16;
 const MIN_SEARCH_LEN = 3;
 
 function pageWindow(page: number, totalPages: number): number[] {

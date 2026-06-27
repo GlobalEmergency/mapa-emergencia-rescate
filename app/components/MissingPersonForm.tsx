@@ -652,21 +652,10 @@ export default function MissingPersonForm({ onCancel, onSubmit }: Props) {
           </div>
 
           <div className="e-report-modal__warning rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs leading-relaxed text-amber-950">
-            <p className="e-report-modal__warning-title mb-1 flex items-center gap-1.5 font-extrabold text-amber-700">
+            <p className="e-report-modal__warning-title mb-3 flex items-center gap-1.5 font-extrabold text-amber-700">
               <span aria-hidden>⚠</span> Antes de publicar
             </p>
-            <ul className="list-disc space-y-0.5 pl-4">
-              <li>
-                Estos datos serán públicos: visibles para cualquier persona.
-              </li>
-              <li>
-                No publiques datos sensibles (cédula, dirección exacta).
-              </li>
-              <li>
-                Si la persona aparece, avísanos para retirar el reporte.
-              </li>
-            </ul>
-            <label className="e-report-modal__consent mt-3 flex cursor-pointer items-start gap-2">
+            <label className="e-report-modal__consent flex cursor-pointer items-start gap-2">
               <input
                 type="checkbox"
                 checked={consent}
