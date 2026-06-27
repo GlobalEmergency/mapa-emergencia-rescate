@@ -23,6 +23,13 @@ ENV APP_BUILD_SHA=$APP_BUILD_SHA
 # served by the app, same as today). See next.config.ts + static-assets plan.
 ARG NEXT_PUBLIC_ASSET_PREFIX
 ENV NEXT_PUBLIC_ASSET_PREFIX=$NEXT_PUBLIC_ASSET_PREFIX
+# OpenPanel analytics. NEXT_PUBLIC_* is inlined at build, so it MUST be a
+# build-arg (a k8s runtime secret would never reach the client bundle).
+# The host gate (OpenPanelProduction.tsx) keeps tracking off outside prod.
+ARG NEXT_PUBLIC_OPENPANEL_CLIENT_ID
+ENV NEXT_PUBLIC_OPENPANEL_CLIENT_ID=$NEXT_PUBLIC_OPENPANEL_CLIENT_ID
+ARG NEXT_PUBLIC_OPENPANEL_PRODUCTION_HOST
+ENV NEXT_PUBLIC_OPENPANEL_PRODUCTION_HOST=$NEXT_PUBLIC_OPENPANEL_PRODUCTION_HOST
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
