@@ -34,6 +34,13 @@ const OFERTAS: { category: string; items: Oferta[] }[] = [
         action: "Donar",
         url: "#",
       },
+      {
+        name: "Cáritas de Venezuela",
+        logo: "/logos/caritas-venezuela.png",
+        description: "Organización católica de ayuda humanitaria: nutrición, salud, agua y apoyo a las comunidades más vulnerables.",
+        action: "Donar",
+        url: "https://caritasvenezuela.org/donaciones/",
+      },
     ],
   },
   {
@@ -112,6 +119,13 @@ const OFERTAS: { category: string; items: Oferta[] }[] = [
         action: "Consultar",
         url: "https://latydo.com",
       },
+      {
+        name: "Banco de Sangre — Hospital Vargas",
+        description:
+          "Av. La Paz, Los Dos Caminos, Caracas · Lun–Sáb 7am–12pm. Lleva cédula y acude en ayunas (mínimo 4 horas).",
+        action: "Llamar",
+        url: "tel:+582122572111",
+      },
     ],
   },
   {
@@ -183,7 +197,7 @@ function OfertaCard({ name, logo, description, action, url }: Oferta) {
         )}
         <h3 className="truncate text-[13px] font-semibold text-slate-400">{name}</h3>
       </div>
-      <p className="mt-3 line-clamp-2 flex-1 text-[12.5px] leading-snug text-slate-600">{description}</p>
+      <p className="mt-3 line-clamp-3 flex-1 text-[12.5px] leading-snug text-slate-600">{description}</p>
       <span className="mt-4 inline-flex items-center gap-1.5 self-start rounded-full bg-red-50 px-3.5 py-1.5 text-[13px] font-bold text-[#c41a1a] ring-1 ring-red-100 transition-all duration-200 group-hover:bg-[#c41a1a] group-hover:text-white group-hover:ring-[#c41a1a]">
         {action}
         <ArrowRight

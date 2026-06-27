@@ -589,10 +589,18 @@ a:focus-visible,
 .e-footer-grid {
 	display: grid;
 	grid-template-columns: 1fr;
-	gap: 2rem;
+	gap: 1rem;
+	align-items: start;
 }
 
-@media (min-width: 761px) {
+@media (min-width: 640px) {
+	.e-footer-grid {
+		grid-template-columns: repeat(2, 1fr);
+		gap: 1.25rem;
+	}
+}
+
+@media (min-width: 1024px) {
 	.e-footer-grid {
 		grid-template-columns: repeat(3, 1fr);
 	}
