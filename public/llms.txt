@@ -1,0 +1,25 @@
+# Mapa de Emergencia y Rescate
+
+> Plataforma ciudadana que centraliza información útil durante emergencias y desastres en Venezuela. No es un canal oficial de emergencia.
+
+## Páginas principales
+
+- Mapa interactivo: https://terremotovenezuela.app/
+- Directorio de hospitales: https://terremotovenezuela.app/hospitales
+- Guía de supervivencia: https://terremotovenezuela.app/guia
+- Centros de acopio: https://terremotovenezuela.app/acopio
+- Teléfonos de emergencia: https://terremotovenezuela.app/telefonos
+- Apoyo global: https://terremotovenezuela.app/apoyo-global
+- Apoyo disponible: https://terremotovenezuela.app/apoyo-disponible
+- Donaciones: https://terremotovenezuela.app/donaciones
+- Voluntariado: https://terremotovenezuela.app/voluntario
+- Riesgo sísmico: https://terremotovenezuela.app/riesgo-sismico
+- Contacto: https://terremotovenezuela.app/contacto
+- Privacidad: https://terremotovenezuela.app/privacidad
+
+## Facts
+
+- Esta es una plataforma ciudadana y humanitaria, no un canal oficial de emergencia.
+- En caso de emergencia, llama a los números de emergencia locales.
+- La información de hospitales se actualiza periódicamente pero puede no estar completa.
+- Los datos provienen de fuentes abiertas y reportes voluntarios.

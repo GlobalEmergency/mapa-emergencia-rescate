@@ -457,7 +457,7 @@ const PersonasPreview = forwardRef<PersonasPreviewHandle>(
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(data.error ?? "No se pudo marcar como localizada.");
+        throw new Error(data.error ?? "No se pudo marcar como encontrada.");
       }
       setPeople((prev) => prev.filter((p) => p.id !== id));
       setTotal((t) => Math.max(0, t - 1));
@@ -503,7 +503,7 @@ const PersonasPreview = forwardRef<PersonasPreviewHandle>(
               className="e-person-stats__dot e-person-stats__dot--found"
               aria-hidden
             />
-            {foundTotal.toLocaleString("es-VE")} localizadas
+            {foundTotal.toLocaleString("es-VE")} encontradas
           </span>
         </div>
 
@@ -531,7 +531,7 @@ const PersonasPreview = forwardRef<PersonasPreviewHandle>(
           className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1 text-xs font-semibold transition-colors ${filter === "found" ? "border-blue-300 bg-blue-50 text-blue-800" : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50"}`}
         >
           <span className={`h-1.5 w-1.5 rounded-full ${filter === "found" ? "bg-blue-500" : "bg-blue-500/50"}`} aria-hidden />
-          Localizadas
+          Encontradas
         </button>
       </div>
 
@@ -694,14 +694,14 @@ function MissingPersonCard({
     <button
       type="button"
       onClick={onOpen}
-      className="e-person-card"
+      className={`e-person-card${isFound ? " e-person-card--found" : ""}`}
       role="listitem"
     >
       <div className="e-person-card__media">
         <span
           className={`e-person-card__badge${isFound ? " e-person-card__badge--found" : ""}`}
         >
-          {isFound ? "LOCALIZADA" : "DESAPARECIDA"}
+          {isFound ? "ENCONTRADA" : "DESAPARECIDA"}
         </span>
         {person.photoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element

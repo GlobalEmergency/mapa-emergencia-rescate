@@ -266,7 +266,7 @@ function ControlledCard({
           <p className="text-xs font-semibold uppercase tracking-widest text-white/70">
             {card.subtitle}
           </p>
-          <h2 className="text-xl font-bold leading-tight text-white sm:text-2xl">
+          <h2 className="text-xl font-bold leading-tight !text-white sm:text-2xl">
             {card.title}
           </h2>
         </div>

@@ -8,18 +8,25 @@ const SITE_URL = "https://terremotovenezuela.app";
 // necesidad de un redeploy completo.
 export const revalidate = 3600;
 
+// Fecha de construcción estable. Se actualiza solo al hacer build, para que
+// lastModified no cambie en cada petición.
+const BUILD_DATE = new Date();
+
 // Rutas públicas estáticas. Se excluyen a propósito /admin (panel interno),
 // /chat (herramienta efímera de voluntarios) y /api/* (endpoints no indexables).
 const STATIC_PATHS = [
-  { path: "/", changeFrequency: "hourly", priority: 1 },
-  { path: "/hospitales", changeFrequency: "hourly", priority: 0.9 },
-  { path: "/telefonos", changeFrequency: "weekly", priority: 0.8 },
-  { path: "/guia", changeFrequency: "weekly", priority: 0.8 },
-  { path: "/acopio", changeFrequency: "daily", priority: 0.7 },
-  { path: "/apoyo-global", changeFrequency: "weekly", priority: 0.7 },
-  { path: "/riesgo-sismico", changeFrequency: "monthly", priority: 0.6 },
-  { path: "/privacidad", changeFrequency: "yearly", priority: 0.3 },
-  { path: "/contacto", changeFrequency: "monthly", priority: 0.5 },
+  { path: "/", changeFrequency: "hourly" as const, priority: 1 },
+  { path: "/hospitales", changeFrequency: "hourly" as const, priority: 0.9 },
+  { path: "/telefonos", changeFrequency: "weekly" as const, priority: 0.8 },
+  { path: "/guia", changeFrequency: "weekly" as const, priority: 0.8 },
+  { path: "/acopio", changeFrequency: "daily" as const, priority: 0.7 },
+  { path: "/apoyo-global", changeFrequency: "weekly" as const, priority: 0.7 },
+  { path: "/riesgo-sismico", changeFrequency: "monthly" as const, priority: 0.6 },
+  { path: "/privacidad", changeFrequency: "yearly" as const, priority: 0.3 },
+  { path: "/contacto", changeFrequency: "monthly" as const, priority: 0.5 },
+  { path: "/donaciones", changeFrequency: "monthly" as const, priority: 0.6 },
+  { path: "/voluntario", changeFrequency: "monthly" as const, priority: 0.6 },
+  { path: "/apoyo-disponible", changeFrequency: "weekly" as const, priority: 0.7 },
 ] as const;
 
 const DB_TIMEOUT_MS = 5_000;
@@ -34,7 +41,7 @@ async function listHospitalsWithTimeout() {
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const lastModified = new Date();
+  const lastModified = BUILD_DATE;
 
   const staticEntries: MetadataRoute.Sitemap = STATIC_PATHS.map((entry) => ({
     url: `${SITE_URL}${entry.path}`,

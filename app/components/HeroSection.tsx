@@ -33,19 +33,19 @@ function HeroAccessCard({
     <button
       type="button"
       onClick={onClick}
-      className="e-card-hover flex w-full flex-col items-center justify-center rounded-[20px] bg-white px-4 py-6 text-center shadow-lg transition-transform hover:-translate-y-1 sm:px-6 sm:py-8"
-      style={{ padding: "clamp(20px, 3vw, 32px) clamp(16px, 2vw, 24px)" }}
+      className="e-card-hover e-pulse-border group flex w-full flex-col items-center justify-center rounded-[16px] border-2 border-slate-200 bg-gradient-to-b from-white to-slate-50 text-center shadow-[0_2px_0_0_rgba(15,23,42,0.08),0_6px_16px_-4px_rgba(15,23,42,0.18)] transition-all hover:-translate-y-0.5 hover:[animation-play-state:paused] hover:border-[#1B3A6B]/40 hover:shadow-[0_4px_0_0_rgba(15,23,42,0.1),0_10px_24px_-6px_rgba(27,58,107,0.35)] active:translate-y-0 active:scale-[0.98] active:shadow-[0_1px_0_0_rgba(15,23,42,0.08),0_3px_8px_-4px_rgba(15,23,42,0.18)]"
+      style={{ padding: "clamp(14px, 2.2vw, 22px) clamp(12px, 1.6vw, 18px)" }}
     >
       <div
-        className="mb-3 sm:mb-4"
-        style={{ fontSize: "clamp(48px, 6vw, 72px)", lineHeight: 1 }}
+        className="mb-2 sm:mb-2.5"
+        style={{ fontSize: "clamp(36px, 4.4vw, 52px)", lineHeight: 1 }}
         role="img"
         aria-hidden
       >
         {emoji}
       </div>
-      <div className="mb-2 text-[17px] font-bold text-slate-900 sm:text-[19px]">{title}</div>
-      <div className="text-[13px] leading-snug text-slate-600 sm:text-[14px]">{description}</div>
+      <div className="mb-1 text-[15px] font-bold text-slate-900 sm:text-[17px]">{title}</div>
+      <div className="text-[12px] leading-snug text-slate-600 sm:text-[13px]">{description}</div>
     </button>
   );
 }
@@ -103,12 +103,12 @@ export default function HeroSection() {
             Da clic en una opción  para recibir o brindar ayuda.
           </p>
 
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 lg:gap-6">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-5">
             <HeroAccessCard
               emoji="🔎"
               title="Buscar personas"
               description="No encuentro a alguien que conozco."
-              onClick={goMap}
+              onClick={goMissing}
             />
             <HeroAccessCard
               emoji="📢"
@@ -143,7 +143,7 @@ export function SiteBrand({ onClick }: { onClick?: () => void }) {
         <AlertTriangle aria-hidden className="h-3.5 w-3.5 text-white" strokeWidth={2.5} />
       </span>
       <span
-        className="font-[family-name:var(--qi-font-display)] text-lg font-semibold text-[var(--etext)]"
+        className="font-[family-name:var(--qi-font-display)] text-sm font-semibold text-[var(--etext)] sm:text-lg"
       >
         Terremoto Venezuela
       </span>

@@ -41,17 +41,17 @@ function shareUrl(_person: MissingPerson): string {
 
 function shareTitle(person: MissingPerson): string {
   return person.status === "found"
-    ? `Ya localizaron a ${person.name}`
+    ? `Ya encontraron a ${person.name}`
     : `Buscamos a ${person.name}`;
 }
 
 function shareText(person: MissingPerson): string {
-  // Ya localizada: el texto de búsqueda no aplica, se comparte la buena noticia.
-  // Fraseo neutro en género ("localizaron a") porque la persona puede ser
+  // Ya encontrada: el texto de búsqueda no aplica, se comparte la buena noticia.
+  // Fraseo neutro en género ("encontraron a") porque la persona puede ser
   // hombre o mujer.
   if (person.status === "found") {
     return [
-      `✅ ¡Buenas noticias! Ya localizaron a ${person.name}, está a salvo.`,
+      `✅ ¡Buenas noticias! Ya encontraron a ${person.name}, está a salvo.`,
       "Gracias a todos por ayudar a difundir 🙏",
     ].join(" ");
   }
@@ -201,8 +201,8 @@ export default function MissingPersonDetail({
             {!isFound ? (
               <span className="e-person-modal__status">DESAPARECIDA</span>
             ) : (
-              <span className="e-person-modal__status !bg-emerald-100 !text-emerald-800">
-                LOCALIZADA
+              <span className="e-person-modal__status !bg-blue-100 !text-blue-800">
+                ENCONTRADA
               </span>
             )}
 
@@ -272,7 +272,7 @@ export default function MissingPersonDetail({
 
           {isFound ? (
             <div className="e-person-modal__found">
-              <p>✓ Reportada como localizada</p>
+              <p>✓ Reportada como encontrada</p>
               {person.resolvedAt && (
                 <p>El {new Date(person.resolvedAt).toLocaleString("es-VE")}</p>
               )}
@@ -289,7 +289,7 @@ export default function MissingPersonDetail({
                   <img
                     src={person.resolutionPhotoUrl}
                     alt="Prueba de contacto"
-                    className="mt-2 max-h-48 w-full rounded-lg object-cover ring-1 ring-emerald-200"
+                    className="mt-2 max-h-48 w-full rounded-lg object-cover ring-1 ring-blue-200"
                   />
                 </a>
               )}
@@ -299,14 +299,14 @@ export default function MissingPersonDetail({
               <div className="e-person-modal__found">
                 <p>¿Ya lograste comunicarte?</p>
                 <p>
-                  Márcala como localizada y su familia podrá respirar tranquila.
+                  Márcala como encontrada y su familia podrá respirar tranquila.
                 </p>
                 <button
                   type="button"
                   onClick={() => setShowFoundForm(true)}
                   className="e-person-modal__found-btn"
                 >
-                  ✓ Marcar como localizada
+                  ✓ Marcar como encontrada
                 </button>
               </div>
             )

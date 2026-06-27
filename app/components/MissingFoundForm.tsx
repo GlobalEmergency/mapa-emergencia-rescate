@@ -112,7 +112,7 @@ export default function MissingFoundForm({
       >
         <div className="flex items-start justify-between gap-3">
           <h3 id="found-title" className="text-lg font-bold text-slate-900">
-            ✓ Marcar como localizada
+            ✓ Marcar como encontrada
           </h3>
           <button
             type="button"
@@ -227,7 +227,7 @@ export default function MissingFoundForm({
             <button
               type="submit"
               disabled={submitting || processing || !photo}
-              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
             >
               {submitting ? "Enviando…" : "Confirmar"}
             </button>
