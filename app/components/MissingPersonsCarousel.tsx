@@ -434,13 +434,6 @@ function PersonasPreview() {
               />
               {foundTotal.toLocaleString("es-VE")} encontrados
             </span>
-            <span className="e-person-stats__item">
-              <span
-                className="e-person-stats__dot e-person-stats__dot--safe"
-                aria-hidden
-              />
-              {foundTotal.toLocaleString("es-VE")} a salvo
-            </span>
           </div>
 
           <p className="mt-2 max-w-2xl text-sm text-[var(--etext2)]">
