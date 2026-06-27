@@ -104,7 +104,7 @@ export default function PersonsTabs() {
               <span aria-hidden>{tab.icon}</span>
               <span className="hidden sm:inline">{tab.label}</span>
               <span className="sm:hidden">
-                {tab.id === "desaparecidas" ? "Desaparecidas" : "Localizados"}
+                {tab.id === "desaparecidas" ? "Desaparecidas" : "Localizadas"}
               </span>
               {tab.count !== null && (
                 <span className="e-pill bg-red-50 text-red-700 text-xs">

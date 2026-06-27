@@ -180,7 +180,7 @@ export default function FoundPersons() {
                 )}
                 <div className="min-w-0 flex-1">
                   <span className="inline-flex items-center gap-1 rounded-full bg-emerald-600 px-2 py-0.5 text-[11px] font-semibold text-white">
-                    <span aria-hidden>✓</span> Localizado a salvo
+                    <span aria-hidden>✓</span> Localizada a salvo
                   </span>
                   <p className="mt-1 font-semibold text-slate-900">
                     {person.name}

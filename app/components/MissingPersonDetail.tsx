@@ -199,7 +199,7 @@ export default function MissingPersonDetail({
         <div className="e-person-modal__hero">
           <div className="e-person-modal__photo-wrap">
             {!isFound ? (
-              <span className="e-person-modal__status">DESAPARECIDO</span>
+              <span className="e-person-modal__status">DESAPARECIDA</span>
             ) : (
               <span className="e-person-modal__status !bg-emerald-100 !text-emerald-800">
                 LOCALIZADA

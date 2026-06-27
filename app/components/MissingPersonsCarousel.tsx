@@ -496,14 +496,14 @@ const PersonasPreview = forwardRef<PersonasPreviewHandle>(
               className="e-person-stats__dot e-person-stats__dot--missing"
               aria-hidden
             />
-            {total.toLocaleString("es-VE")} desaparecidos
+            {total.toLocaleString("es-VE")} desaparecidas
           </span>
           <span className="e-person-stats__item">
             <span
               className="e-person-stats__dot e-person-stats__dot--found"
               aria-hidden
             />
-            {foundTotal.toLocaleString("es-VE")} encontrados
+            {foundTotal.toLocaleString("es-VE")} localizadas
           </span>
         </div>
 
@@ -531,7 +531,7 @@ const PersonasPreview = forwardRef<PersonasPreviewHandle>(
           className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1 text-xs font-semibold transition-colors ${filter === "found" ? "border-blue-300 bg-blue-50 text-blue-800" : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50"}`}
         >
           <span className={`h-1.5 w-1.5 rounded-full ${filter === "found" ? "bg-blue-500" : "bg-blue-500/50"}`} aria-hidden />
-          Encontradas
+          Localizadas
         </button>
       </div>
 
@@ -696,7 +696,13 @@ function MissingPersonCard({
       role="listitem"
     >
       <div className="e-person-card__media">
-        <span className="e-person-card__badge">DESAPARECIDO</span>
+        {person.status === "found" ? (
+          <span className="e-person-card__badge !bg-emerald-100 !text-emerald-800">
+            LOCALIZADA
+          </span>
+        ) : (
+          <span className="e-person-card__badge">DESAPARECIDA</span>
+        )}
         {person.photoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img

@@ -73,7 +73,7 @@ function formatLastSeen(
   });
   const suffix =
     reportType === "found"
-      ? `Encontrada el ${when}`
+      ? `Localizada el ${when}`
       : `Sin contacto desde ${when}`;
   return base ? `${base} · ${suffix}` : suffix;
 }
@@ -253,7 +253,7 @@ export default function MissingPersonForm({
       }
       if (!isMissing) {
         if (!foundPlace) {
-          setError("Indica dónde fue encontrada.");
+          setError("Indica dónde fue localizada.");
           return;
         }
         if (!location.trim()) {
@@ -343,7 +343,7 @@ export default function MissingPersonForm({
               id="report-modal-title"
               className="e-report-modal__title text-lg font-extrabold text-[var(--etext)]"
             >
-              Reportar persona desaparecida o encontrada
+              Reportar persona desaparecida o localizada
             </h2>
             <p className="e-report-modal__subtitle mt-1.5 text-[13px] leading-snug text-[var(--etext2)]">
               Comparte los datos para que alguien pueda ayudar a ubicarla o
@@ -402,7 +402,7 @@ export default function MissingPersonForm({
               >
                 <PinIcon className="e-report-modal__type-icon h-5 w-5" />
                 <span className="text-sm font-extrabold">
-                  Persona encontrada
+                  Persona localizada
                 </span>
                 <span
                   className={`text-xs ${!isMissing ? "text-white/85" : "text-[var(--etext2)]"}`}
@@ -526,7 +526,7 @@ export default function MissingPersonForm({
             <>
               <fieldset className="border-0 p-0">
                 <legend className="e-report-modal__label mb-1.5 block text-[13px] font-bold text-[var(--etext)]">
-                  ¿Dónde fue encontrada?{" "}
+                  ¿Dónde fue localizada?{" "}
                   <span className="text-red-600">*</span>
                 </legend>
                 <div className="grid grid-cols-2 gap-2.5">
@@ -583,7 +583,7 @@ export default function MissingPersonForm({
 
               <div>
                 <label htmlFor="report-found-when" className="e-report-modal__label mb-1.5 block text-[13px] font-bold text-[var(--etext)]">
-                  Cuándo fue encontrada
+                  Cuándo fue localizada
                 </label>
                 <input
                   id="report-found-when"

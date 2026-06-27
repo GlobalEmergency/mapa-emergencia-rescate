@@ -58,7 +58,7 @@ export default function HeroPeopleLinks() {
         href="#e-directory"
         className="flex items-center justify-center gap-2 rounded-lg border border-emerald-300 bg-emerald-50 px-5 py-2.5 text-sm font-semibold text-emerald-700 shadow-sm transition hover:bg-emerald-100"
       >
-        💚 Localizados a salvo
+        💚 Localizadas a salvo
         {found !== null && (
           <span className="inline-flex items-center rounded-full bg-emerald-600 px-2 py-0.5 text-xs font-bold text-white">
             {found.toLocaleString("es-VE")}

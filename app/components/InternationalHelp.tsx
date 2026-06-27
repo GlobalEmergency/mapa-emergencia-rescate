@@ -2324,7 +2324,7 @@ export default function InternationalHelp() {
             href="/#e-directory"
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-red-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-red-800"
           >
-            Buscar en la lista de desaparecidos
+            Buscar en la lista de desaparecidas
           </Link>
           <Link
             href="/#mapa"

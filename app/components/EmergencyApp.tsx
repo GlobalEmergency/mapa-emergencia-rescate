@@ -810,7 +810,7 @@ export default function EmergencyApp() {
 					<div className="flex items-start justify-between gap-2 border-b border-[var(--eborder)] px-3 py-3">
 						<div aria-live="polite">
 							<p className="text-sm font-semibold text-[var(--etext)]">
-								Desaparecidos activos:{" "}
+								Desaparecidas activas:{" "}
 								{missingStats ? (
 									<span className="font-bold text-red-600 tabular-nums">
 										{missingStats.active.toLocaleString("es-VE")}

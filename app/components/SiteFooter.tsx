@@ -152,7 +152,7 @@ export default function SiteFooter() {
                       Venezuela Reporta
                     </span>
                     <span className="block text-xs text-[var(--etext2)]">
-                      Reporta desaparecidos, confirma a salvo o avistamientos
+                      Reporta desaparecidas, confirma a salvo o avistamientos
                     </span>
                   </a>
                 </li>
