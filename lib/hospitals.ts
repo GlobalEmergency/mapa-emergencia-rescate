@@ -67,7 +67,13 @@ function ensureSchema(): Promise<void> {
         CREATE INDEX IF NOT EXISTS idx_hospital_patients_hospital
         ON hospital_patients (hospital_id, status, admitted_at DESC)
       `;
-    })();
+    })().catch((err) => {
+      // No memoizar un fallo transitorio (p. ej. query_wait_timeout de Neon):
+      // si dejamos la promesa rechazada en caché, el endpoint queda roto hasta
+      // reiniciar. Reseteamos para que el próximo request reintente el esquema.
+      _schemaReady = null;
+      throw err;
+    });
   }
   return _schemaReady;
 }
