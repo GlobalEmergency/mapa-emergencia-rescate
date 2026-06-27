@@ -23,7 +23,7 @@ metadata:
   namespace: mapa
   annotations:
     # Provision the LB in the same location as the nodes.
-    load-balancer.hetzner.cloud/location: "nbg1"
+    load-balancer.hetzner.cloud/location: "hel1"
     # Route to pods over the private network (no public pod IPs).
     load-balancer.hetzner.cloud/use-private-ip: "true"
     load-balancer.hetzner.cloud/name: "mapa-lb"

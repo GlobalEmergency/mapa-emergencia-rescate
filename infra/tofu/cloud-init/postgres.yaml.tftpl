@@ -1,0 +1,10 @@
+#cloud-config
+package_update: true
+packages: [postgresql]
+runcmd:
+  - sudo -u postgres psql -c "CREATE USER ${postgres_user} WITH ENCRYPTED PASSWORD '${postgres_password}';"
+  - sudo -u postgres psql -c "CREATE DATABASE ${postgres_app_db} OWNER ${postgres_user};"
+  - sudo -u postgres psql -c "CREATE DATABASE ${postgres_imported_db} OWNER ${postgres_user};"
+  - PGDIR=$(ls -d /etc/postgresql/*/main); echo "listen_addresses = '*'" >> $PGDIR/postgresql.conf
+  - PGDIR=$(ls -d /etc/postgresql/*/main); echo "host all ${postgres_user} 10.0.0.0/16 scram-sha-256" >> $PGDIR/pg_hba.conf
+  - systemctl restart postgresql

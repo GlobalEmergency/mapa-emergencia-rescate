@@ -1,0 +1,15 @@
+# Example tfvars. In CI these come from TF_VAR_* env vars (GitHub secrets), so
+# you usually DON'T need this file there. For a local `tofu plan`, copy to
+# terraform.tfvars (gitignored) and fill in. NEVER commit real secrets.
+hcloud_token         = "your-hcloud-read-write-token"
+ssh_public_key       = "ssh-ed25519 AAAA... mapa-k3s-deploy"
+postgres_user        = "mapa_app"
+postgres_password    = "from openssl rand -hex 32"
+valkey_password      = "from openssl rand -hex 32"
+
+# Optional overrides (defaults shown):
+# location             = "hel1"
+# server_type          = "cx23"
+# postgres_app_db      = "app"
+# postgres_imported_db = "imported"
+# postgres_volume_size = 40

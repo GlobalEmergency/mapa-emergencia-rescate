@@ -46,15 +46,15 @@ networking:
 protect_against_deletion: true
 
 masters_pool:
-  instance_type: cx22      # 2 vCPU / 4GB — fine for a single control plane
+  instance_type: cx23      # 2 vCPU / 4GB — fine for a single control plane
   instance_count: 1
-  location: nbg1
+  location: hel1
 
 worker_node_pools:
   - name: app
-    instance_type: cx22    # 2 vCPU / 4GB app nodes
+    instance_type: cx23    # 2 vCPU / 4GB app nodes
     instance_count: 2
-    location: nbg1
+    location: hel1
     autoscaling:
       enabled: true
       min_instances: 2     # never below 2 -> always >=1 serving during a roll
