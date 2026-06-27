@@ -28,22 +28,24 @@ function HeroAccessCard({
   title,
   description,
   onClick,
-  highlight,
 }: HeroAccessCardProps) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`e-card e-card-hover flex w-full flex-col items-center px-2.5 py-4 text-center sm:px-4 sm:py-6 ${
-        highlight ? "border-red-200 bg-red-50" : ""
-      }`}
-      style={{ padding: "clamp(14px, 2.5vw, 24px) clamp(10px, 2vw, 18px)" }}
+      className="e-card-hover flex w-full flex-col items-center justify-center rounded-[20px] bg-white px-4 py-6 text-center shadow-lg transition-transform hover:-translate-y-1 sm:px-6 sm:py-8"
+      style={{ padding: "clamp(20px, 3vw, 32px) clamp(16px, 2vw, 24px)" }}
     >
-      <div className="e-hero-emoji" role="img" aria-hidden>
+      <div
+        className="mb-3 sm:mb-4"
+        style={{ fontSize: "clamp(48px, 6vw, 72px)", lineHeight: 1 }}
+        role="img"
+        aria-hidden
+      >
         {emoji}
       </div>
-      <div className="mb-1.5 text-[17px] font-bold text-[var(--etext)]">{title}</div>
-      <div className="text-[13px] leading-snug text-[var(--etext2)]">{description}</div>
+      <div className="mb-2 text-[17px] font-bold text-slate-900 sm:text-[19px]">{title}</div>
+      <div className="text-[13px] leading-snug text-slate-600 sm:text-[14px]">{description}</div>
     </button>
   );
 }
@@ -90,7 +92,7 @@ export default function HeroSection() {
             Estamos contigo. ¿Qué necesitas hacer?
           </h1>
           <p
-            className="mx-auto mb-6 max-w-2xl !text-white"
+            className="mx-auto mb-8 max-w-2xl !text-white"
             style={{
               fontSize: "clamp(13px, 1.5vw, 17px)",
               color: "#FFFFFF",
@@ -101,30 +103,29 @@ export default function HeroSection() {
             Selecciona una opción para recibir o brindar ayuda.
           </p>
 
-          <div className="e-grid">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
             <HeroAccessCard
               emoji="🔎"
-              title="Buscar"
-              description="Encuentra personas, reportes y zonas afectadas en el mapa."
+              title="Buscar personas"
+              description="No encuentro a alguien que conozco."
               onClick={goMap}
             />
             <HeroAccessCard
               emoji="📢"
-              title="Reportar"
-              description="Marca una emergencia, daño o necesidad en tu zona."
+              title="Reportar Personas"
+              description="Encontré a alguien y quiero reportarlo."
               onClick={goMap}
             />
             <HeroAccessCard
               emoji="🆘"
-              title="Necesito ayuda"
-              description="Consulta cómo solicitar rescate o suministros urgentes."
+              title="Necesito Ayuda"
+              description="Estoy en peligro o necesito insumos."
               onClick={goHelp}
-              highlight
             />
             <HeroAccessCard
               emoji="🤝"
-              title="Puedo ayudar"
-              description="Únete como voluntario o comparte recursos disponibles."
+              title="Puedo Ayudar"
+              description="Siendo voluntario, donando o apoyando."
               onClick={goVolunteer}
             />
           </div>

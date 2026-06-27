@@ -16,10 +16,17 @@ import MissingPersonForm, {
 import MissingPersonDetail from "./MissingPersonDetail";
 import { useLowBandwidthMode } from "./useLowBandwidthMode";
 import {
-  buildHospitalSlug,
-  PRIORITY_ZONE_META,
   type Hospital,
+  type HospitalPriorityZone,
 } from "@/lib/hospitals-meta";
+import {
+  filterHospitals,
+  HospitalCard,
+  HospitalStatsRow,
+  HospitalZoneFilters,
+} from "./HospitalDirectoryUI";
+import { HospitalDetailOverlay } from "./Hospitals";
+import { trackHospitalDetailViewed } from "./analytics";
 
 interface MissingPerson {
   id: string;
@@ -40,8 +47,7 @@ type DirectoryTab = "personas" | "hospitales";
 
 const POLL_INTERVAL_MS = 8000;
 const LOW_BANDWIDTH_POLL_INTERVAL_MS = 45_000;
-const MAX_PREVIEW = 24;
-const GRID_PAGE_SIZE = 9;
+const GRID_PAGE_SIZE = 16;
 const MIN_SEARCH_LEN = 3;
 
 function pageWindow(page: number, totalPages: number): number[] {
@@ -428,13 +434,6 @@ function PersonasPreview() {
               />
               {foundTotal.toLocaleString("es-VE")} encontrados
             </span>
-            <span className="e-person-stats__item">
-              <span
-                className="e-person-stats__dot e-person-stats__dot--safe"
-                aria-hidden
-              />
-              {foundTotal.toLocaleString("es-VE")} a salvo
-            </span>
           </div>
 
           <p className="mt-2 max-w-2xl text-sm text-[var(--etext2)]">
@@ -662,8 +661,14 @@ function MissingPersonCard({
 
 function HospitalesPreview() {
   const [hospitals, setHospitals] = useState<Hospital[]>([]);
-  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [zoneFilter, setZoneFilter] = useState<HospitalPriorityZone | "all">(
+    "all",
+  );
+  const [selectedHospital, setSelectedHospital] = useState<Hospital | null>(
+    null,
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -676,9 +681,7 @@ function HospitalesPreview() {
         if (!res.ok) return;
         const data = await res.json();
         if (cancelled) return;
-        const list: Hospital[] = data.hospitals ?? [];
-        setTotal(list.length);
-        setHospitals(list.slice(0, MAX_PREVIEW));
+        setHospitals(data.hospitals ?? []);
       } catch {
         // se reintenta al volver a la pestaña
       } finally {
@@ -691,110 +694,97 @@ function HospitalesPreview() {
     };
   }, []);
 
-  const preview = hospitals;
-  const hasMore = total > preview.length;
-  const itemCount = loading ? 1 : preview.length + (hasMore ? 1 : 0);
+  const visible = useMemo(
+    () => filterHospitals(hospitals, search, zoneFilter),
+    [hospitals, search, zoneFilter],
+  );
 
   return (
     <>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="qi-h2">Hospitales y centros de salud</h2>
-            {!loading && (
-              <span
-                className="e-pill bg-sky-50 text-sky-800"
-                aria-label={`${total} hospitales en la red`}
-              >
-                {total.toLocaleString("es-VE")} registrados
-              </span>
-            )}
-          </div>
+          <h2 className="qi-h2">Hospitales y centros de salud</h2>
           <p className="mt-1 max-w-2xl text-sm text-[var(--etext2)]">
-            Red hospitalaria priorizada según la zona de afectación. Toca un
-            hospital para ver pacientes y detalles.
+            Lista priorizada de la red hospitalaria de Venezuela según la zona
+            de afectación. Toca un hospital para ver los pacientes registrados.
           </p>
         </div>
-        <Link href="/hospitales" className="e-btn e-btn-secondary px-4 py-2.5">
-          Ver lista completa →
+        <Link href="/hospitales" className="e-btn e-btn-secondary shrink-0 px-4 py-2.5">
+          Ver directorio completo →
         </Link>
       </div>
 
-      <HorizontalScrollRow itemCount={itemCount}>
+      {!loading && hospitals.length > 0 && (
+        <HospitalStatsRow hospitals={hospitals} />
+      )}
+
+      <div className="e-hospital-toolbar">
+        <label className="sr-only" htmlFor="hospitales-directory-search">
+          Buscar hospitales
+        </label>
+        <input
+          id="hospitales-directory-search"
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="🔍 Buscar por nombre, municipio o dirección…"
+          className="e-input w-full lg:max-w-md"
+        />
+        <HospitalZoneFilters
+          zoneFilter={zoneFilter}
+          onZoneFilterChange={setZoneFilter}
+        />
+      </div>
+
+      <div className="e-hospital-grid" role="list">
         {loading ? (
           <div
-            className="e-card flex w-[260px] shrink-0 snap-start items-center justify-center border-dashed p-6 text-sm text-[var(--etext2)]"
+            className="e-card col-span-full flex items-center justify-center border-dashed p-8 text-sm text-[var(--etext2)]"
             role="listitem"
           >
             Cargando hospitales…
           </div>
-        ) : preview.length === 0 ? (
+        ) : visible.length === 0 ? (
           <div
-            className="e-card flex w-[260px] shrink-0 snap-start flex-col items-center justify-center gap-1 border-dashed p-4 text-center text-[var(--etext2)]"
+            className="e-card col-span-full flex flex-col items-center justify-center gap-1 border-dashed p-8 text-center text-[var(--etext2)]"
             role="listitem"
           >
             <span className="text-2xl">🏥</span>
-            <p className="text-sm font-medium">Aún no hay hospitales</p>
+            <p className="text-sm font-medium">
+              {hospitals.length === 0
+                ? "Aún no hay hospitales"
+                : "No se encontraron hospitales"}
+            </p>
             <p className="text-xs">
-              La lista se actualizará cuando se registren centros de salud.
+              {hospitals.length === 0
+                ? "La lista se actualizará cuando se registren centros de salud."
+                : "Prueba con otro nombre, municipio o filtro de zona."}
             </p>
           </div>
         ) : (
-          preview.map((hospital) => {
-            const zone = PRIORITY_ZONE_META[hospital.priorityZone];
-            return (
-              <Link
-                key={hospital.id}
-                href={`/hospitales/${buildHospitalSlug(hospital)}`}
-                className="e-card e-card-hover group flex w-[200px] shrink-0 snap-start flex-col gap-2 p-4 sm:w-[220px]"
-                role="listitem"
-                style={{ borderLeft: `4px solid ${zone.color}` }}
-              >
-                <span
-                  className="inline-flex w-fit items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white"
-                  style={{ background: zone.color }}
-                >
-                  {zone.emoji} {hospital.priorityZone}
-                </span>
-                <p
-                  className="line-clamp-2 text-sm font-semibold text-[var(--etext)] group-hover:text-red-700"
-                  title={hospital.name}
-                >
-                  {hospital.name}
-                </p>
-                <p className="line-clamp-1 text-[11px] text-[var(--etext2)]">
-                  {hospital.state}
-                  {hospital.municipality ? ` · ${hospital.municipality}` : ""}
-                </p>
-                <span className="mt-auto inline-flex items-center gap-1 text-[11px] font-medium text-sky-800">
-                  {hospital.activePatients > 0
-                    ? `${hospital.activePatients} hospitalizados · `
-                    : ""}
-                  Ver detalles →
-                </span>
-              </Link>
-            );
-          })
+          visible.map((hospital) => (
+            <HospitalCard
+              key={hospital.id}
+              hospital={hospital}
+              onOpen={() => {
+                trackHospitalDetailViewed({
+                  priorityZone: hospital.priorityZone,
+                  patientCount: hospital.activePatients,
+                  source: "hospital_card_overlay",
+                });
+                setSelectedHospital(hospital);
+              }}
+            />
+          ))
         )}
+      </div>
 
-        {!loading && hasMore && (
-          <Link
-            href="/hospitales"
-            className="e-card e-card-hover flex w-[160px] shrink-0 snap-start flex-col items-center justify-center gap-2 p-4 text-center sm:w-[180px]"
-            role="listitem"
-          >
-            <span className="grid h-12 w-12 place-items-center rounded-full bg-sky-100 text-2xl text-sky-700">
-              →
-            </span>
-            <span className="text-sm font-semibold text-[var(--etext)]">
-              Ver todos
-            </span>
-            <span className="text-[11px] text-[var(--etext2)]">
-              Ir al directorio completo
-            </span>
-          </Link>
-        )}
-      </HorizontalScrollRow>
+      {selectedHospital && (
+        <HospitalDetailOverlay
+          hospital={selectedHospital}
+          onClose={() => setSelectedHospital(null)}
+        />
+      )}
     </>
   );
 }
