@@ -1,0 +1,102 @@
+# Deploy to Hetzner (k3s) — SKELETON / print-only.
+#
+# This first version does NOT touch any infrastructure. It is a manually
+# triggered (workflow_dispatch) skeleton whose only job is to PRINT the plan,
+# so the workflow shows up in the Actions tab and can be run green before any
+# Hetzner token or destructive call exists. Same trigger convention as the
+# boahaus / argo (Hermes) deploy workflows.
+#
+# The structure already lays out the real flow we'll fill in next:
+#   ensure cluster (create k3s only if missing) -> gated DB migrate Job
+#   -> roll app (kubectl set image, zero-downtime via maxUnavailable:0).
+name: Deploy to Hetzner (k3s)
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "What to do"
+        type: choice
+        default: plan
+        options:
+          - plan      # print only — no infra changes
+          - deploy    # (later) build image, migrate, roll the app
+      ensure_cluster:
+        description: "Create the k3s cluster if it doesn't exist yet"
+        type: boolean
+        default: false
+
+# Reserved for later: kubectl/hcloud will need these. Harmless while print-only.
+permissions:
+  contents: read
+  packages: write       # push images to GHCR (later)
+  deployments: write    # deploy ledger / GitHub Deployments (later)
+
+jobs:
+  deploy:
+    name: Plan / Deploy
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Show inputs
+        run: |
+          echo "================ Hetzner deploy — SKELETON ================"
+          echo "action         = ${{ inputs.action }}"
+          echo "ensure_cluster = ${{ inputs.ensure_cluster }}"
+          echo "ref            = ${{ github.ref_name }}"
+          echo "sha            = ${{ github.sha }}"
+          echo "actor          = ${{ github.actor }}"
+          echo "=========================================================="
+
+      - name: Check required secrets are present (no values printed)
+        run: |
+          missing=0
+          check() {
+            if [ -z "$2" ]; then
+              echo "  ✗ $1 is NOT set"
+              missing=1
+            else
+              echo "  ✓ $1 is set"
+            fi
+          }
+          echo "Secrets check (presence only — values are never printed):"
+          check HCLOUD_TOKEN          "${{ secrets.HCLOUD_TOKEN }}"
+          check SSH_PRIVATE_KEY       "${{ secrets.SSH_PRIVATE_KEY }}"
+          check KUBECONFIG            "${{ secrets.KUBECONFIG }}"
+          echo ""
+          if [ "$missing" -eq 1 ]; then
+            echo "NOTE: missing secrets are expected for now — this is the print-only skeleton."
+          fi
+
+      # ---- Branch the skeleton mirrors the real flow we'll fill in next ----
+
+      - name: (ensure cluster) — placeholder
+        if: ${{ inputs.ensure_cluster }}
+        run: |
+          echo "Would ensure the k3s cluster exists:"
+          echo "  1. hcloud server list --selector cluster=mapa"
+          echo "  2. if empty   -> hetzner-k3s create --config infra/cluster.yaml"
+          echo "  3. if present -> skip (cluster already up)"
+          echo "(no-op in the skeleton)"
+
+      - name: (plan) — print intended actions
+        if: ${{ inputs.action == 'plan' }}
+        run: |
+          echo "PLAN — nothing will be changed."
+          echo "Real deploy will:"
+          echo "  - build app image -> push ghcr.io/<owner>/<repo>:${{ github.sha }}"
+          echo "  - run gated DB migrate Job (backward-compatible schema)"
+          echo "  - kubectl set image deployment/app app=ghcr.io/...:${{ github.sha }}"
+          echo "  - k3s rolling update: new pod passes /readyz -> drains old (zero downtime)"
+
+      - name: (deploy) — placeholder
+        if: ${{ inputs.action == 'deploy' }}
+        run: |
+          echo "DEPLOY path selected — not implemented yet in the skeleton."
+          echo "This is where the build -> migrate -> roll steps will go."
+
+      - name: Done
+        run: echo "✅ Hetzner deploy workflow wired and runnable."
