@@ -31,20 +31,6 @@ import {
 const DUPLICATE_RADIUS_M = 50;
 const DUPLICATE_WINDOW_MS = 24 * 60 * 60 * 1000;
 
-type TimeFilter = "all" | "1h" | "24h" | "7d";
-const TIME_FILTER_WINDOWS: Record<TimeFilter, number | null> = {
-	all: null,
-	"1h": 60 * 60 * 1000,
-	"24h": 24 * 60 * 60 * 1000,
-	"7d": 7 * 24 * 60 * 60 * 1000,
-};
-const TIME_FILTER_LABELS: Record<TimeFilter, string> = {
-	all: "Todos",
-	"1h": "1 h",
-	"24h": "24 h",
-	"7d": "7 d",
-};
-
 const MapView = dynamic(() => import("./MapView"), {
 	ssr: false,
 	loading: () => (
@@ -122,9 +108,10 @@ export default function EmergencyApp() {
 	const [draft, setDraft] = useState<{ lat: number; lng: number } | null>(null);
 	const [persistent, setPersistent] = useState(true);
 	// Filtro multi-selección inclusivo: se muestran TODOS los tipos elegidos
-	// (unión). Por defecto: emergencias críticas y personas buscadas.
+	// (unión). Por defecto solo viene activo un tipo; el resto se enciende al
+	// tocar su chip (cada chip prende/apaga su capa en el mapa).
 	const [selectedTypes, setSelectedTypes] = useState<Set<ReportType>>(
-		() => new Set<ReportType>(["critical", "missing"]),
+		() => new Set<ReportType>(["critical"]),
 	);
 	const [confirmed, setConfirmed] = useState<Set<string>>(() => {
 		if (typeof window === "undefined") return new Set();
@@ -135,7 +122,6 @@ export default function EmergencyApp() {
 			return new Set();
 		}
 	});
-	const [timeFilter, setTimeFilter] = useState<TimeFilter>("all");
 	const [now, setNow] = useState<number>(() => Date.now());
 	const [query, setQuery] = useState("");
 	const [listLimit, setListLimit] = useState(LIST_PAGE_SIZE);
@@ -617,18 +603,16 @@ export default function EmergencyApp() {
 				.normalize("NFD")
 				.replace(/[\u0300-\u036f]/g, "");
 		const terms = normalize(query).split(/\s+/).filter(Boolean);
-		const window = TIME_FILTER_WINDOWS[timeFilter];
 
 		return reports.filter((report) => {
 			if (!selectedTypes.has(report.type)) return false;
-			if (window !== null && now - report.createdAt > window) return false;
 			if (terms.length === 0) return true;
 			const haystack = normalize(`${report.place} ${report.needs}`);
 			return terms.every((term) => haystack.includes(term));
 		});
-	}, [reports, selectedTypes, query, timeFilter, now]);
+	}, [reports, selectedTypes, query]);
 
-	const filterKey = `${[...selectedTypes].sort().join(",")}|${timeFilter}|${query}`;
+	const filterKey = `${[...selectedTypes].sort().join(",")}|${query}`;
 	const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
 	if (filterKey !== prevFilterKey) {
 		setPrevFilterKey(filterKey);
@@ -641,9 +625,9 @@ export default function EmergencyApp() {
 	return (
 		<section
 			id="mapa"
-			className="mx-auto w-full max-w-[1120px] px-4 py-10 sm:px-6"
+			className="mx-auto w-full max-w-[1760px] px-4 py-10 sm:px-6 lg:px-10"
 		>
-			<div className="mb-5">
+			<div className="mx-auto mb-5 w-full max-w-[1120px]">
 				<h2 className="qi-h2">Mapa de reportes en tiempo real</h2>
 				<p className="mt-1 text-sm text-[var(--etext2)]">
 					Toca un punto del mapa para reportar o ver el estado de una zona.
@@ -683,7 +667,7 @@ export default function EmergencyApp() {
 			)}
 			<div className={`e-map-grid ${placing ? "is-placing" : ""}`}>
 				<div
-					className={`map-shell e-leaflet-wrap relative h-full min-h-[280px] w-full overflow-hidden md:min-h-[420px] ${
+					className={`map-shell e-leaflet-wrap relative h-full min-h-[360px] w-full overflow-hidden md:min-h-[720px] ${
 						placing ? "is-placing" : ""
 					}`}
 				>
@@ -705,16 +689,70 @@ export default function EmergencyApp() {
 						showEdificios={showEdificios}
 					/>
 
-					{/* Control flotante: buscador de direcciones. Los filtros por tipo viven
-            ahora en el panel lateral (cajas de estadística). */}
-					<div className="map-overlay pointer-events-none absolute inset-x-0 top-0 z-[1000] flex p-3 sm:pr-14">
-						<div className="pointer-events-auto w-full max-w-sm">
-							<AddressSearch
-								onSelect={handleAddressSelect}
-								bias={
-									focus ? { lat: focus.lat, lng: focus.lng } : AFFECTED_CENTER
-								}
-							/>
+					{/* Buscador + filtros por tipo sobre el mapa (referencia QiHealth). */}
+					<div className="map-overlay pointer-events-none absolute inset-x-0 top-0 z-[1000] flex flex-col gap-2 p-3 sm:pr-14">
+						<div className="pointer-events-auto flex min-w-0 flex-col gap-2 xl:flex-row xl:items-stretch">
+							<div className="w-full shrink-0 xl:max-w-xs">
+								<AddressSearch
+									onSelect={handleAddressSelect}
+									bias={
+										focus ? { lat: focus.lat, lng: focus.lng } : AFFECTED_CENTER
+									}
+								/>
+							</div>
+							<div
+								className="e-map-type-filters flex min-w-0 flex-1 flex-nowrap items-center gap-1.5 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible sm:pb-0"
+								role="group"
+								aria-label="Filtrar capas del mapa por tipo"
+							>
+								{(Object.keys(REPORT_TYPES) as ReportType[]).map((type) => {
+									const meta = REPORT_TYPES[type];
+									const active = selectedTypes.has(type);
+									return (
+										<div
+											key={type}
+											className="e-map-type-chip-wrap group relative shrink-0"
+										>
+											<button
+												type="button"
+												onClick={() => handleChipClick(type)}
+												aria-pressed={active}
+												aria-label={`${meta.label}: ${counts[type]} reportes. ${
+													active
+														? "Visible en el mapa, toca para ocultar."
+														: "Oculto en el mapa, toca para mostrar."
+												}`}
+												className={`e-map-type-chip flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-xs font-semibold shadow-sm backdrop-blur transition ${
+													active
+														? "is-active border-transparent bg-slate-900 text-white"
+														: "border-slate-200 bg-white/90 text-slate-400 hover:text-slate-600"
+												}`}
+											>
+												<span
+													className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-[12px] leading-none text-white transition ${
+														active ? "" : "opacity-35 grayscale"
+													}`}
+													style={{ background: meta.color }}
+													aria-hidden
+												>
+													{meta.icon}
+												</span>
+												<span className="tabular-nums">
+													{counts[type].toLocaleString("es-VE")}
+												</span>
+												<span>{REPORT_TYPE_SHORT[type]}</span>
+											</button>
+											<span
+												role="tooltip"
+												className="e-map-type-tip pointer-events-none absolute left-1/2 top-full z-[1300] mt-2 w-60 max-w-[70vw] rounded-lg bg-slate-900 px-3 py-2 text-[11px] font-medium leading-snug text-white shadow-xl"
+											>
+												<span className="font-bold">{meta.label}.</span>{" "}
+												{meta.description}
+											</span>
+										</div>
+									);
+								})}
+							</div>
 						</div>
 					</div>
 
@@ -788,7 +826,7 @@ export default function EmergencyApp() {
 									: ""}
 							</p>
 							<p className="text-[11px] text-[var(--etext2)]">
-								Toca un tipo para filtrar la lista
+								Toca un tipo en el mapa para filtrar la lista
 							</p>
 						</div>
 						{isAdmin ? (
@@ -811,65 +849,7 @@ export default function EmergencyApp() {
 						)}
 					</div>
 
-					{/* Cajas de estadística por tipo: tocar una alterna el filtro de la lista
-              y de los pines del mapa (reusa handleChipClick). */}
-					<div
-						className="grid grid-cols-3 gap-2 px-3 pt-3"
-						role="group"
-						aria-label="Filtrar por tipo"
-					>
-						{(Object.keys(REPORT_TYPES) as ReportType[]).map((type) => {
-							const meta = REPORT_TYPES[type];
-							const active = selectedTypes.has(type);
-							return (
-								<button
-									key={type}
-									type="button"
-									onClick={() => handleChipClick(type)}
-									aria-pressed={active}
-									aria-label={`${meta.label}: ${counts[type]}${active ? " (filtro activo, toca para quitarlo)" : ""}`}
-									className="flex flex-col items-start gap-0.5 rounded-xl border px-2.5 py-2 text-left transition hover:brightness-95"
-									style={{
-										background: `${meta.color}${active ? "26" : "14"}`,
-										borderColor: active ? meta.color : `${meta.color}33`,
-										boxShadow: active ? `0 0 0 1px ${meta.color}` : undefined,
-									}}
-								>
-									<span className="flex items-center gap-1 text-base font-bold leading-none tabular-nums text-[var(--etext)]">
-										{counts[type].toLocaleString("es-VE")}
-									</span>
-									<span className="flex items-center gap-1 text-[11px] font-medium text-[var(--etext2)]">
-										<span aria-hidden>{meta.emoji}</span>
-										{REPORT_TYPE_SHORT[type]}
-									</span>
-								</button>
-							);
-						})}
-					</div>
-
 					<div className="mt-3 flex flex-col gap-2 px-3">
-						<div
-							className="flex flex-wrap items-center gap-1 rounded-xl border border-[var(--eborder)] bg-[var(--einput)] p-1 text-xs"
-							role="group"
-							aria-label="Filtrar por antigüedad"
-						>
-							{(Object.keys(TIME_FILTER_LABELS) as TimeFilter[]).map((key) => (
-								<button
-									key={key}
-									type="button"
-									onClick={() => setTimeFilter(key)}
-									aria-pressed={timeFilter === key}
-									className={`flex-1 rounded-lg px-3 py-1.5 font-medium transition sm:flex-none ${
-										timeFilter === key
-											? "bg-[var(--etext)] text-white"
-											: "text-[var(--etext2)] hover:bg-[var(--esurf)]"
-									}`}
-								>
-									{TIME_FILTER_LABELS[key]}
-								</button>
-							))}
-						</div>
-
 						<div className="flex flex-1 items-center gap-2 rounded-xl border border-[var(--eborder)] bg-[var(--einput)] px-3 py-1.5">
 							<svg
 								viewBox="0 0 24 24"
@@ -941,7 +921,7 @@ export default function EmergencyApp() {
 								{query.trim()
 									? `No se encontraron reportes para “${query.trim()}”.`
 									: selectedTypes.size === 0
-										? "Selecciona un tipo en los chips de arriba para ver reportes."
+										? "Selecciona un tipo en el mapa para ver reportes."
 										: `Aún no hay reportes${allTypesSelected ? "" : " de los tipos seleccionados"}. Usa el botón "+ Reportar" para crear el primero.`}
 							</p>
 						) : (

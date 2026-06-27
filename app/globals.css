@@ -535,7 +535,7 @@ a:focus-visible,
 }
 
 .e-map-grid {
-	--e-map-height: 600px;
+	--e-map-height: 720px;
 	display: grid;
 	grid-template-columns: 1fr;
 	border: 1.5px solid var(--eborder);
@@ -546,7 +546,7 @@ a:focus-visible,
 
 @media (min-width: 760px) {
 	.e-map-grid {
-		grid-template-columns: 1fr 360px;
+		grid-template-columns: 1fr 320px;
 	}
 }
 
@@ -565,17 +565,52 @@ a:focus-visible,
 		/* Misma altura que el mapa: el encabezado, las cajas y las pestañas quedan
        fijos y solo la lista de reportes hace scroll interno (la página no crece
        hacia abajo al cargar más). */
-		height: var(--e-map-height, 600px);
+		height: var(--e-map-height, 720px);
 	}
 }
 
 .e-leaflet-wrap {
-	height: 280px;
+	height: 360px;
 }
 
 @media (min-width: 760px) {
 	.e-leaflet-wrap {
-		height: var(--e-map-height, 600px);
+		height: var(--e-map-height, 720px);
+	}
+}
+
+.e-map-type-filters {
+	-ms-overflow-style: none;
+	scrollbar-width: none;
+}
+
+.e-map-type-filters::-webkit-scrollbar {
+	display: none;
+}
+
+/* Tooltip de cada chip de tipo: visible al pasar el cursor o enfocar con
+   teclado. Se define en CSS plano para no depender del orden de las variantes
+   de Tailwind (opacity-0 + group-hover puede no resolverse de forma fiable). */
+.e-map-type-tip {
+	opacity: 0;
+	visibility: hidden;
+	transform: translateX(-50%) translateY(4px);
+	transition:
+		opacity 0.15s ease,
+		visibility 0.15s ease,
+		transform 0.15s ease;
+}
+
+.e-map-type-chip-wrap:hover .e-map-type-tip,
+.e-map-type-chip-wrap:focus-within .e-map-type-tip {
+	opacity: 1;
+	visibility: visible;
+	transform: translateX(-50%) translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.e-map-type-tip {
+		transition: none;
 	}
 }
 
@@ -1851,7 +1886,7 @@ input[type="search"]::-webkit-search-decoration {
 
 @media (max-width: 767px) {
 	.leaflet-top.leaflet-right {
-		top: 7rem;
+		top: 9.5rem;
 	}
 }
 
