@@ -1,46 +1,19 @@
-import { getSql, hasDbEnv } from "./db";
+import { eq, sql } from "drizzle-orm";
+import { getDb, hasDbEnv, schema } from "./drizzle";
+
+const { clickCounters, clickCounterDedup } = schema;
 
 const PSYCHOLOGY_HELP_KEY = "psychology_help";
 
 let memoryCount = 0;
 const memoryDedup = new Set<string>();
 
-let _schemaReady: Promise<void> | null = null;
-
-function ensureSchema(): Promise<void> {
-  if (!_schemaReady) {
-    const sql = getSql();
-    _schemaReady = (async () => {
-      await sql`
-        CREATE TABLE IF NOT EXISTS click_counters (
-          key TEXT PRIMARY KEY,
-          count INTEGER NOT NULL DEFAULT 0
-        )
-      `;
-      await sql`
-        CREATE TABLE IF NOT EXISTS click_counter_dedup (
-          counter_key TEXT NOT NULL,
-          ip_hash TEXT NOT NULL,
-          created_at BIGINT NOT NULL,
-          PRIMARY KEY (counter_key, ip_hash)
-        )
-      `;
-      await sql`
-        INSERT INTO click_counters (key, count)
-        VALUES (${PSYCHOLOGY_HELP_KEY}, 0)
-        ON CONFLICT DO NOTHING
-      `;
-    })();
-  }
-  return _schemaReady;
-}
-
 export async function getPsychologyHelpClickCount(): Promise<number> {
   if (hasDbEnv()) {
-    await ensureSchema();
-    const rows = (await getSql()`
-      SELECT count FROM click_counters WHERE key = ${PSYCHOLOGY_HELP_KEY}
-    `) as { count: number }[];
+    const rows = await getDb()
+      .select({ count: clickCounters.count })
+      .from(clickCounters)
+      .where(eq(clickCounters.key, PSYCHOLOGY_HELP_KEY));
     return Number(rows[0]?.count ?? 0);
   }
   return memoryCount;
@@ -51,30 +24,41 @@ export async function incrementPsychologyHelpClick(
   ipKey: string,
 ): Promise<number> {
   if (hasDbEnv()) {
-    await ensureSchema();
-    const sql = getSql();
+    const db = getDb();
+    // Aseguramos primero que la fila base del contador exista (igual que el
+    // antiguo ensureSchema, ahora que el CREATE TABLE lo gestiona drizzle-kit).
+    await db
+      .insert(clickCounters)
+      .values({ key: PSYCHOLOGY_HELP_KEY, count: 0 })
+      .onConflictDoNothing({ target: clickCounters.key });
+
     // Dedup por IP + incremento + lectura del total en UNA sentencia:
     //  - si la IP es nueva, `ins` trae fila → `upd` incrementa y devuelve el
     //    nuevo total.
     //  - si la IP repite, `ins` queda vacío → `upd` no corre → caemos al total
     //    actual sin incrementar.
-    const rows = (await sql`
+    // CTE atómico con escape `sql`: la query builder no expresa
+    // INSERT...RETURNING encadenado a un UPDATE condicional en una sentencia.
+    const result = await db.execute(sql`
       WITH ins AS (
-        INSERT INTO click_counter_dedup (counter_key, ip_hash, created_at)
+        INSERT INTO ${clickCounterDedup} (${clickCounterDedup.counterKey}, ${clickCounterDedup.ipHash}, ${clickCounterDedup.createdAt})
         VALUES (${PSYCHOLOGY_HELP_KEY}, ${ipKey}, ${Date.now()})
         ON CONFLICT DO NOTHING
-        RETURNING counter_key
+        RETURNING ${clickCounterDedup.counterKey}
       ),
       upd AS (
-        UPDATE click_counters SET count = count + 1
-        WHERE key = ${PSYCHOLOGY_HELP_KEY} AND EXISTS (SELECT 1 FROM ins)
-        RETURNING count
+        UPDATE ${clickCounters} SET ${clickCounters.count} = ${clickCounters.count} + 1
+        WHERE ${clickCounters.key} = ${PSYCHOLOGY_HELP_KEY} AND EXISTS (SELECT 1 FROM ins)
+        RETURNING ${clickCounters.count}
       )
       SELECT COALESCE(
         (SELECT count FROM upd),
-        (SELECT count FROM click_counters WHERE key = ${PSYCHOLOGY_HELP_KEY})
+        (SELECT ${clickCounters.count} FROM ${clickCounters} WHERE ${clickCounters.key} = ${PSYCHOLOGY_HELP_KEY})
       ) AS count
-    `) as { count: number }[];
+    `);
+    const rows = (Array.isArray(result) ? result : result.rows) as {
+      count: number;
+    }[];
     return Number(rows[0]?.count ?? 0);
   }
   if (memoryDedup.has(ipKey)) return memoryCount;

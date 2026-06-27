@@ -1,38 +1,46 @@
-# Gated schema/migrate Job — PLACEHOLDER (intentionally not wired yet).
+# Gated schema-migrate Job — aplica las migraciones de Drizzle ANTES del roll.
 #
-# ponytail: this app has NO explicit migrations. It creates its schema lazily
-# (CREATE TABLE IF NOT EXISTS in lib/*.ts on first query — see lib/store.ts
-# ensureSchema()). So a gated migrate step would today be a no-op, and adding a
-# fake one is over-engineering. The schema simply self-creates on first request
-# against a fresh DB.
+# El esquema ya NO se crea de forma perezosa (se eliminó el ensureSchema() de
+# lib/*). La fuente de verdad es infra/db/schema.ts; drizzle-kit genera los .sql
+# en infra/db/migrations/ y este Job los aplica con el migrator de drizzle-orm
+# (`npm run migrate` -> worker/migrate.ts). Idempotente: registra lo aplicado en
+# __drizzle_migrations y salta lo ya aplicado, así que es seguro re-correrlo.
 #
-# This file documents WHERE the gated migrate step goes for when migrations
-# become explicit (e.g. a destructive/expand-contract change that must NOT rely
-# on lazy creation). At that point:
-#   1. add an idempotent `npm run migrate` (or a migrations runner),
-#   2. uncomment the Job below, point its command at it,
-#   3. in CI: run this Job and BLOCK the roll on its success
-#      (`kubectl wait --for=condition=complete job/migrate-<sha>`),
-#   4. keep migrations backward-compatible (expand-contract): the OLD pods are
-#      still serving during the roll, so new schema must work with old code.
+# Usa la imagen `worker` (lleva el node_modules completo + tsx + pg + los .sql);
+# la imagen `app` es standalone y no incluiría drizzle ni las migraciones.
 #
-# --- uncomment when explicit migrations exist ---
-# apiVersion: batch/v1
-# kind: Job
-# metadata:
-#   name: migrate            # CI appends -<sha> for an immutable per-deploy name
-#   namespace: mapa
-# spec:
-#   backoffLimit: 2
-#   ttlSecondsAfterFinished: 600
-#   template:
-#     metadata:
-#       labels: { app: mapa, role: migrate }
-#     spec:
-#       restartPolicy: Never
-#       containers:
-#         - name: migrate
-#           image: ghcr.io/OWNER/REPO:latest   # same :<sha> as the Deployment
-#           envFrom:
-#             - secretRef: { name: app-env }
-#           command: ["npm", "run", "migrate"]
+# El workflow (deploy-hetzner.yml) lo corre y BLOQUEA el roll de la app hasta que
+# complete (kubectl wait --for=condition=complete). CI le pone el nombre
+# migrate-<sha> (inmutable por deploy) y le inyecta la imagen :<sha>.
+#
+# Regla expand-contract: las migraciones deben ser compatibles hacia atrás — los
+# pods viejos siguen sirviendo durante el roll, así que el esquema nuevo tiene
+# que funcionar con el código viejo.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  # CI reemplaza este nombre por migrate-<sha> (inmutable por deploy).
+  name: migrate
+  namespace: mapa
+spec:
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels: { app: mapa, role: migrate }
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migrate
+          # CI reemplaza el tag por la imagen worker :<sha> del deploy.
+          image: ghcr.io/OWNER/REPO-worker:latest
+          command: ["npm", "run", "migrate"]
+          envFrom:
+            - secretRef:
+                name: app-env # DATABASE_URL (+ DB_DRIVER)
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              memory: "256Mi"

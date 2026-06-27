@@ -6,7 +6,7 @@
  * Ver docs/rfcs/0001-sincronizacion-fuentes.md
  */
 
-import { hasDbEnv } from "../db";
+import { hasDbEnv } from "../drizzle";
 import { upsertExternalMissingBatch } from "../missing";
 import type { SourceAdapter, SyncResult, ExternalPerson } from "./types";
 import { enabledSources, getSource } from "./sources";

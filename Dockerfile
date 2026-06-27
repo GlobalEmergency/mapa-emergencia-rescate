@@ -36,6 +36,9 @@ ENV NODE_ENV=production
 COPY --from=deps /app/node_modules ./node_modules
 COPY package.json package-lock.json ./
 COPY worker ./worker
+# Migraciones de esquema: el Job `migrate` (npm run migrate) las aplica con el
+# migrator de drizzle-orm en runtime. Necesita los .sql en la imagen.
+COPY infra/db/migrations ./infra/db/migrations
 USER node
 # Default to the worker process; the enqueue Job overrides this command.
 CMD ["node", "--import", "tsx", "worker/index.ts"]

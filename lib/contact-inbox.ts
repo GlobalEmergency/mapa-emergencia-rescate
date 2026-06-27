@@ -1,4 +1,7 @@
-import { getSql, hasDbEnv } from "./db";
+import { sql, desc } from "drizzle-orm";
+import { getDb, hasDbEnv, schema } from "./drizzle";
+
+const { contactMessages } = schema;
 
 export interface ContactMessage {
   id: string;
@@ -24,46 +27,11 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 const memoryMessages: ContactMessage[] = [];
 
-let _schemaReady: Promise<void> | null = null;
-
-function ensureSchema(): Promise<void> {
-  if (!_schemaReady) {
-    const sql = getSql();
-    _schemaReady = (async () => {
-      await sql`
-        CREATE TABLE IF NOT EXISTS contact_messages (
-          id TEXT PRIMARY KEY,
-          name TEXT NOT NULL,
-          email TEXT NOT NULL,
-          subject TEXT NOT NULL,
-          message TEXT NOT NULL,
-          read BOOLEAN NOT NULL DEFAULT false,
-          ip_hash TEXT,
-          created_at BIGINT NOT NULL
-        )
-      `;
-      await sql`
-        CREATE INDEX IF NOT EXISTS contact_messages_created_at_idx
-        ON contact_messages (created_at DESC)
-      `;
-      await sql`
-        CREATE INDEX IF NOT EXISTS contact_messages_unread_idx
-        ON contact_messages (read, created_at DESC)
-      `;
-    })();
-  }
-  return _schemaReady;
-}
-
-interface ContactRow {
-  id: string;
-  name: string;
-  email: string;
-  subject: string;
-  message: string;
-  read: boolean;
-  created_at: number;
-}
+// Tipo de fila que devuelve Drizzle para las columnas que seleccionamos.
+type ContactRow = Pick<
+  typeof contactMessages.$inferSelect,
+  "id" | "name" | "email" | "subject" | "message" | "read" | "createdAt"
+>;
 
 function rowToMessage(row: ContactRow): ContactMessage {
   return {
@@ -73,9 +41,20 @@ function rowToMessage(row: ContactRow): ContactMessage {
     subject: row.subject,
     message: row.message,
     read: Boolean(row.read),
-    createdAt: Number(row.created_at),
+    createdAt: Number(row.createdAt),
   };
 }
+
+// Columnas comunes a las listas (sin exponer ip_hash).
+const listColumns = {
+  id: contactMessages.id,
+  name: contactMessages.name,
+  email: contactMessages.email,
+  subject: contactMessages.subject,
+  message: contactMessages.message,
+  read: contactMessages.read,
+  createdAt: contactMessages.createdAt,
+} as const;
 
 export function validateContactInput(input: {
   name?: unknown;
@@ -130,22 +109,16 @@ export async function createContactMessage(input: {
   };
 
   if (hasDbEnv()) {
-    await ensureSchema();
-    await getSql()`
-      INSERT INTO contact_messages (
-        id, name, email, subject, message, read, ip_hash, created_at
-      )
-      VALUES (
-        ${row.id},
-        ${row.name},
-        ${row.email},
-        ${row.subject},
-        ${row.message},
-        false,
-        ${input.ipHash ?? null},
-        ${row.createdAt}
-      )
-    `;
+    await getDb().insert(contactMessages).values({
+      id: row.id,
+      name: row.name,
+      email: row.email,
+      subject: row.subject,
+      message: row.message,
+      read: false,
+      ipHash: input.ipHash ?? null,
+      createdAt: row.createdAt,
+    });
     return row;
   }
 
@@ -155,12 +128,10 @@ export async function createContactMessage(input: {
 
 export async function listContactMessages(): Promise<ContactMessage[]> {
   if (hasDbEnv()) {
-    await ensureSchema();
-    const rows = (await getSql()`
-      SELECT id, name, email, subject, message, read, created_at
-      FROM contact_messages
-      ORDER BY created_at DESC
-    `) as ContactRow[];
+    const rows = await getDb()
+      .select(listColumns)
+      .from(contactMessages)
+      .orderBy(desc(contactMessages.createdAt));
     return rows.map(rowToMessage);
   }
 
@@ -169,15 +140,14 @@ export async function listContactMessages(): Promise<ContactMessage[]> {
 
 export async function getContactStats(): Promise<ContactStats> {
   if (hasDbEnv()) {
-    await ensureSchema();
     const cutoff = Date.now() - DAY_MS;
-    const rows = (await getSql()`
-      SELECT
-        COUNT(*)::int AS total,
-        COUNT(*) FILTER (WHERE read = false)::int AS unread,
-        COUNT(*) FILTER (WHERE created_at >= ${cutoff})::int AS last24h
-      FROM contact_messages
-    `) as { total: number; unread: number; last24h: number }[];
+    const rows = await getDb()
+      .select({
+        total: sql<number>`COUNT(*)::int`,
+        unread: sql<number>`COUNT(*) FILTER (WHERE ${contactMessages.read} = false)::int`,
+        last24h: sql<number>`COUNT(*) FILTER (WHERE ${contactMessages.createdAt} >= ${cutoff})::int`,
+      })
+      .from(contactMessages);
 
     const row = rows[0];
     return {
@@ -197,12 +167,13 @@ export async function getContactStats(): Promise<ContactStats> {
 
 export async function markContactMessageRead(id: string): Promise<boolean> {
   if (hasDbEnv()) {
-    await ensureSchema();
-    const rows = (await getSql()`
-      UPDATE contact_messages SET read = true
-      WHERE id = ${id}
-      RETURNING id
-    `) as { id: string }[];
+    // El builder de update().returning() no resuelve sobre el tipo unión de
+    // drivers (neon-http | node-postgres); usamos el escape `sql` preservando
+    // la semántica exacta del UPDATE ... RETURNING id.
+    const result = await getDb().execute(
+      sql`UPDATE ${contactMessages} SET ${contactMessages.read} = true WHERE ${contactMessages.id} = ${id} RETURNING ${contactMessages.id}`,
+    );
+    const rows = (Array.isArray(result) ? result : result.rows) as unknown[];
     return rows.length > 0;
   }
 

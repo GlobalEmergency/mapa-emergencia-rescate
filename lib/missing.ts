@@ -1,6 +1,17 @@
-import { getSql, hasDbEnv } from "./db";
+import { eq, sql } from "drizzle-orm";
+import { getDb, hasDbEnv, schema } from "./drizzle";
 import { isR2Configured, uploadPhotoDataUrl } from "./r2";
 import type { ExternalPerson } from "./sync/types";
+
+const { missingPersons } = schema;
+
+/**
+ * Normaliza el resultado de `getDb().execute()` a un arreglo de filas. El driver
+ * neon-http devuelve el arreglo directo; node-postgres devuelve `{ rows }`.
+ */
+function execRows<T>(result: unknown): T[] {
+  return (Array.isArray(result) ? result : (result as { rows: T[] }).rows) as T[];
+}
 
 export type MissingStatus = "active" | "found";
 
@@ -81,109 +92,28 @@ export const MIN_SEARCH_LEN = 3;
 export const SEARCH_COUNT_CAP = 500;
 
 /**
- * Indica si la búsqueda acento-insensitiva (unaccent + pg_trgm) quedó lista.
- * Si las extensiones no están disponibles, se cae a ILIKE sobre las columnas
- * crudas (sensible a acentos) para no perder la funcionalidad.
+ * Indica si la búsqueda acento-insensitiva (unaccent + pg_trgm) está disponible.
+ * El esquema/índices los gestiona drizzle-kit; aquí solo detectamos (una vez,
+ * cacheado) si el índice `idx_missing_search` y la función `f_unaccent` existen.
+ * Si no, se cae a ILIKE sobre las columnas crudas (sensible a acentos) para no
+ * perder la funcionalidad.
  */
-let accentSearchReady = false;
-
-let _schemaReady: Promise<void> | null = null;
-function ensureSchema(): Promise<void> {
-  if (!_schemaReady) {
-    const sql = getSql();
-    _schemaReady = (async () => {
-      await sql`
-        CREATE TABLE IF NOT EXISTS missing_persons (
-          id TEXT PRIMARY KEY,
-          name TEXT NOT NULL,
-          age INTEGER,
-          description TEXT NOT NULL DEFAULT '',
-          last_seen TEXT NOT NULL DEFAULT '',
-          contact TEXT NOT NULL DEFAULT '',
-          photo TEXT,
-          created_at BIGINT NOT NULL
-        )
-      `;
-      // Columnas nuevas: ALTER ... IF NOT EXISTS para no romper datos previos.
-      await sql`ALTER TABLE missing_persons ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'active'`;
-      await sql`ALTER TABLE missing_persons ADD COLUMN IF NOT EXISTS resolution_note TEXT`;
-      await sql`ALTER TABLE missing_persons ADD COLUMN IF NOT EXISTS resolution_photo TEXT`;
-      await sql`ALTER TABLE missing_persons ADD COLUMN IF NOT EXISTS resolved_at BIGINT`;
-      await sql`ALTER TABLE missing_persons ADD COLUMN IF NOT EXISTS external_id TEXT`;
-      await sql`ALTER TABLE missing_persons ADD COLUMN IF NOT EXISTS source TEXT`;
-      await sql`ALTER TABLE missing_persons ADD COLUMN IF NOT EXISTS source_url TEXT`;
-      await sql`ALTER TABLE missing_persons ADD COLUMN IF NOT EXISTS photo_external_url TEXT`;
-      await sql`ALTER TABLE missing_persons ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION`;
-      await sql`ALTER TABLE missing_persons ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION`;
-      // Marca cuándo la foto se movió a R2 (ver worker/). NULL = pendiente.
-      await sql`ALTER TABLE missing_persons ADD COLUMN IF NOT EXISTS photo_migrated_at BIGINT`;
-      // Identidad de registros externos por (source, external_id): permite que
-      // dos fuentes usen el mismo id crudo sin chocar. Migra desde el índice
-      // antiguo de solo external_id (crea el nuevo y luego suelta el viejo, de
-      // modo que la unicidad nunca queda sin proteger).
-      await sql`CREATE UNIQUE INDEX IF NOT EXISTS missing_persons_source_external_id_idx ON missing_persons (source, external_id) WHERE external_id IS NOT NULL`;
-      await sql`DROP INDEX IF EXISTS missing_persons_external_id_idx`;
-
-      // Índice del listado paginado: filtro por estado + orden + offset.
-      await sql`
-        CREATE INDEX IF NOT EXISTS idx_missing_status_created
-        ON missing_persons (status, created_at DESC, id DESC)
-      `;
-      await sql`
-        CREATE INDEX IF NOT EXISTS idx_missing_map_coords
-        ON missing_persons (status, lat, lng)
-        WHERE lat IS NOT NULL AND lng IS NOT NULL
-      `;
-
-      await sql`
-        CREATE TABLE IF NOT EXISTS geocode_cache (
-          normalized_key TEXT PRIMARY KEY,
-          lat DOUBLE PRECISION NOT NULL,
-          lng DOUBLE PRECISION NOT NULL,
-          label TEXT NOT NULL DEFAULT '',
-          updated_at BIGINT NOT NULL
-        )
-      `;
-
-      // Búsqueda acento-insensitiva (best-effort). Un fallo aquí (p. ej. sin
-      // permiso para crear extensiones) no debe romper el listado.
-      //
-      // Si el índice ya existe (caso normal tras el primer arranque) saltamos el
-      // DDL caro (CREATE EXTENSION/FUNCTION/INDEX): repetirlo en cada cold start
-      // genera contención de locks de catálogo bajo un pico de tráfico.
+let _accentSearchReady: Promise<boolean> | null = null;
+function accentSearchReady(): Promise<boolean> {
+  if (!_accentSearchReady) {
+    _accentSearchReady = (async () => {
       try {
-        const existing = (await sql`
-          SELECT to_regclass('public.idx_missing_search') AS oid
-        `) as { oid: string | null }[];
-        if (existing[0]?.oid) {
-          accentSearchReady = true;
-          return;
-        }
-        await sql`CREATE EXTENSION IF NOT EXISTS unaccent`;
-        await sql`CREATE EXTENSION IF NOT EXISTS pg_trgm`;
-        // El primer argumento debe ser un regdictionary explícito: así la
-        // función es realmente IMMUTABLE y puede usarse en un índice (la forma
-        // de 1 argumento es STABLE y la de 2 args sin cast no resuelve el
-        // overload al inlinear en el índice).
-        await sql`
-          CREATE OR REPLACE FUNCTION f_unaccent(text) RETURNS text
-          LANGUAGE sql IMMUTABLE PARALLEL SAFE STRICT AS
-          $func$ SELECT public.unaccent('public.unaccent'::regdictionary, $1) $func$
-        `;
-        await sql`
-          CREATE INDEX IF NOT EXISTS idx_missing_search ON missing_persons
-          USING gin (
-            f_unaccent(name || ' ' || last_seen || ' ' || coalesce(description, ''))
-            gin_trgm_ops
-          )
-        `;
-        accentSearchReady = true;
+        const res = await getDb().execute(
+          sql`SELECT to_regclass('public.idx_missing_search') AS oid`,
+        );
+        const rows = execRows<{ oid: string | null }>(res);
+        return Boolean(rows[0]?.oid);
       } catch {
-        accentSearchReady = false;
+        return false;
       }
     })();
   }
-  return _schemaReady;
+  return _accentSearchReady;
 }
 
 interface MemoryRecord extends MissingPerson {
@@ -192,6 +122,8 @@ interface MemoryRecord extends MissingPerson {
 }
 const memoryStore = new Map<string, MemoryRecord>();
 
+// Tipo de fila tal como sale del builder para las columnas que seleccionamos
+// (has_photo / has_resolution_photo se derivan en SQL, no son columnas reales).
 type Row = {
   id: string;
   name: string;
@@ -246,14 +178,25 @@ export function isValidPhotoDataUrl(photo: string): boolean {
   return /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(photo);
 }
 
-/** Columnas que alimentan `rowToPerson` (sin exponer las fotos embebidas). */
-const SELECT_COLS = `id, name, age, description, last_seen, contact,
-  (photo IS NOT NULL) AS has_photo,
-  photo_external_url,
-  status,
-  resolution_note,
-  (resolution_photo IS NOT NULL) AS has_resolution_photo,
-  resolved_at, created_at`;
+/**
+ * Columnas que alimentan `rowToPerson` (sin exponer las fotos embebidas).
+ * Se usa con getDb().select({...}) para mapear a la forma `Row`.
+ */
+const selectCols = {
+  id: missingPersons.id,
+  name: missingPersons.name,
+  age: missingPersons.age,
+  description: missingPersons.description,
+  last_seen: missingPersons.lastSeen,
+  contact: missingPersons.contact,
+  has_photo: sql<boolean>`(${missingPersons.photo} IS NOT NULL)`,
+  photo_external_url: missingPersons.photoExternalUrl,
+  status: missingPersons.status,
+  resolution_note: missingPersons.resolutionNote,
+  has_resolution_photo: sql<boolean>`(${missingPersons.resolutionPhoto} IS NOT NULL)`,
+  resolved_at: missingPersons.resolvedAt,
+  created_at: missingPersons.createdAt,
+} as const;
 
 export interface ListMissingOptions {
   /** Si es true, incluye también las que ya fueron marcadas como localizadas. */
@@ -269,12 +212,12 @@ export async function listMissing(
 ): Promise<MissingPerson[]> {
   const includeFound = Boolean(options.includeFound);
   if (hasDbEnv()) {
-    await ensureSchema();
-    const sql = getSql();
-    const where = includeFound ? "" : "WHERE status = 'active'";
-    const rows = (await sql.query(
-      `SELECT ${SELECT_COLS} FROM missing_persons ${where} ORDER BY created_at DESC, id DESC`,
-      [],
+    const base = getDb().select(selectCols).from(missingPersons);
+    const query = includeFound
+      ? base
+      : base.where(eq(missingPersons.status, "active"));
+    const rows = (await query.orderBy(
+      sql`${missingPersons.createdAt} DESC, ${missingPersons.id} DESC`,
     )) as Row[];
     return rows.map(rowToPerson);
   }
@@ -337,6 +280,10 @@ function searchTerms(search: string | undefined): string[] {
  * búsqueda no se agrega predicado, de modo que `idx_missing_status_created`
  * sirve el orden + LIMIT sin ordenar toda la tabla; cada término es un ILIKE
  * explícito que el índice GIN de trigramas (`idx_missing_search`) puede usar.
+ *
+ * Se mantiene SQL crudo (getDb().execute) porque el WHERE/ORDER se arma de forma
+ * dinámica y la expresión de búsqueda usa f_unaccent/ILIKE no expresables sin
+ * fricción en el query builder; las condiciones se siguen pasando como params.
  */
 export async function listMissingPage(
   params: ListMissingPageParams = {},
@@ -347,54 +294,57 @@ export async function listMissingPage(
   const rawTerms = searchTerms(params.search);
 
   if (hasDbEnv()) {
-    await ensureSchema();
-    const sql = getSql();
+    const db = getDb();
+    const useAccent = await accentSearchReady();
 
-    const conditions: string[] = [];
-    const values: unknown[] = [];
-    let n = 1;
+    const conditions: ReturnType<typeof sql>[] = [];
 
     if (status !== "all") {
-      conditions.push(`status = $${n++}`);
-      values.push(status);
+      conditions.push(sql`status = ${status}`);
     }
 
-    const fieldExpr = accentSearchReady
-      ? "f_unaccent(name || ' ' || last_seen || ' ' || coalesce(description, ''))"
-      : "lower(name || ' ' || last_seen || ' ' || coalesce(description, ''))";
+    const fieldExpr = useAccent
+      ? sql`f_unaccent(name || ' ' || last_seen || ' ' || coalesce(description, ''))`
+      : sql`lower(name || ' ' || last_seen || ' ' || coalesce(description, ''))`;
     // Con acentos disponibles comparamos contra el texto sin acentos en ambos
     // lados; en el fallback respetamos el texto crudo (sensible a acentos).
-    const terms = accentSearchReady ? rawTerms.map(stripAccents) : rawTerms;
+    const terms = useAccent ? rawTerms.map(stripAccents) : rawTerms;
     for (const term of terms) {
-      conditions.push(`${fieldExpr} ILIKE $${n++}`);
-      values.push(`%${term}%`);
+      conditions.push(sql`${fieldExpr} ILIKE ${`%${term}%`}`);
     }
 
     const whereSql = conditions.length
-      ? `WHERE ${conditions.join(" AND ")}`
-      : "";
+      ? sql`WHERE ${sql.join(conditions, sql` AND `)}`
+      : sql``;
     const orderSql =
       status === "found"
-        ? "COALESCE(resolved_at, created_at) DESC, id DESC"
-        : "created_at DESC, id DESC";
+        ? sql`COALESCE(resolved_at, created_at) DESC, id DESC`
+        : sql`created_at DESC, id DESC`;
 
     // Con búsqueda acotamos el conteo (para temprano en SEARCH_COUNT_CAP); sin
     // búsqueda usamos el conteo exacto (es el número que se muestra de titular).
     const hasSearch = terms.length > 0;
-    const countSql = hasSearch
-      ? `SELECT count(*)::int AS n FROM (SELECT 1 FROM missing_persons ${whereSql} LIMIT ${SEARCH_COUNT_CAP}) t`
-      : `SELECT count(*)::int AS n FROM missing_persons ${whereSql}`;
-    const countRows = (await sql.query(countSql, values)) as { n: number }[];
-    const total = countRows[0]?.n ?? 0;
+    const countQuery = hasSearch
+      ? sql`SELECT count(*)::int AS n FROM (SELECT 1 FROM missing_persons ${whereSql} LIMIT ${SEARCH_COUNT_CAP}) t`
+      : sql`SELECT count(*)::int AS n FROM missing_persons ${whereSql}`;
+    const countRes = await db.execute(countQuery);
+    const total = execRows<{ n: number }>(countRes)[0]?.n ?? 0;
     const totalCapped = hasSearch && total >= SEARCH_COUNT_CAP;
     const totalPages = Math.max(1, Math.ceil(total / pageSize));
     const page = Math.min(requestedPage, totalPages);
     const offset = (page - 1) * pageSize;
 
-    const rows = (await sql.query(
-      `SELECT ${SELECT_COLS} FROM missing_persons ${whereSql} ORDER BY ${orderSql} LIMIT $${n} OFFSET $${n + 1}`,
-      [...values, pageSize, offset],
-    )) as Row[];
+    const listRes = await db.execute(
+      sql`SELECT id, name, age, description, last_seen, contact,
+                 (photo IS NOT NULL) AS has_photo,
+                 photo_external_url,
+                 status,
+                 resolution_note,
+                 (resolution_photo IS NOT NULL) AS has_resolution_photo,
+                 resolved_at, created_at
+          FROM missing_persons ${whereSql} ORDER BY ${orderSql} LIMIT ${pageSize} OFFSET ${offset}`,
+    );
+    const rows = execRows<Row>(listRes);
 
     return { people: rows.map(rowToPerson), total, page, pageSize, totalPages, totalCapped };
   }
@@ -461,17 +411,20 @@ export async function addMissing(
   }
 
   if (hasDbEnv()) {
-    await ensureSchema();
-    await getSql()`
-      INSERT INTO missing_persons
-        (id, name, age, description, last_seen, contact, photo, photo_migrated_at,
-         created_at, status, resolution_note, resolved_at)
-      VALUES (
-        ${id}, ${name}, ${age}, ${description}, ${lastSeen},
-        ${contact}, ${stored}, ${migratedAt}, ${createdAt},
-        ${status}, ${resolutionNote}, ${resolvedAt}
-      )
-    `;
+    await getDb().insert(missingPersons).values({
+      id,
+      name,
+      age,
+      description,
+      lastSeen,
+      contact,
+      photo: stored,
+      photoMigratedAt: migratedAt,
+      createdAt,
+      status,
+      resolutionNote,
+      resolvedAt,
+    });
   } else {
     memoryStore.set(id, {
       id,
@@ -533,22 +486,25 @@ export async function markMissingFound(
   }
 
   if (hasDbEnv()) {
-    await ensureSchema();
-    const rows = (await getSql()`
-      UPDATE missing_persons
-      SET status = 'found',
-          resolution_note = ${cleanNote},
-          resolution_photo = ${photo},
-          resolved_at = ${resolvedAt}
-      WHERE id = ${id} AND COALESCE(status, 'active') = 'active'
-      RETURNING id, name, age, description, last_seen, contact,
-                (photo IS NOT NULL) AS has_photo,
-                COALESCE(status, 'active') AS status,
-                resolution_note,
-                (resolution_photo IS NOT NULL) AS has_resolution_photo,
-                resolved_at,
-                created_at
-    `) as Row[];
+    // El builder de update().set().where().returning() con alias `sql` no
+    // resuelve sobre el tipo unión de drivers (neon-http | node-postgres);
+    // usamos el escape `sql` preservando la semántica exacta del UPDATE.
+    const result = await getDb().execute(
+      sql`UPDATE missing_persons
+          SET status = 'found',
+              resolution_note = ${cleanNote},
+              resolution_photo = ${photo},
+              resolved_at = ${resolvedAt}
+          WHERE id = ${id} AND COALESCE(status, 'active') = 'active'
+          RETURNING id, name, age, description, last_seen, contact,
+                    (photo IS NOT NULL) AS has_photo,
+                    COALESCE(status, 'active') AS status,
+                    resolution_note,
+                    (resolution_photo IS NOT NULL) AS has_resolution_photo,
+                    resolved_at,
+                    created_at`,
+    );
+    const rows = execRows<Row>(result);
     return rows.length > 0 ? rowToPerson(rows[0]) : null;
   }
   const record = memoryStore.get(id);
@@ -566,17 +522,18 @@ export async function markMissingFound(
 
 export async function restoreMissing(id: string): Promise<boolean> {
   if (hasDbEnv()) {
-    await ensureSchema();
-    const rows = (await getSql()`
-      UPDATE missing_persons
-      SET status = 'active',
-          resolution_note = NULL,
-          resolution_photo = NULL,
-          resolved_at = NULL
-      WHERE id = ${id} AND COALESCE(status, 'active') = 'found'
-      RETURNING id
-    `) as { id: string }[];
-    return rows.length > 0;
+    // Escape `sql` por el tipo unión de drivers (ver markMissingFound). Misma
+    // semántica que el UPDATE ... RETURNING id previo.
+    const result = await getDb().execute(
+      sql`UPDATE missing_persons
+          SET status = 'active',
+              resolution_note = NULL,
+              resolution_photo = NULL,
+              resolved_at = NULL
+          WHERE id = ${id} AND COALESCE(status, 'active') = 'found'
+          RETURNING id`,
+    );
+    return execRows<{ id: string }>(result).length > 0;
   }
   const record = memoryStore.get(id);
   if (!record || record.status !== "found") return false;
@@ -616,12 +573,15 @@ export async function getMissingPhoto(
   let stored: string | null = null;
   let externalUrl: string | null = null;
   if (hasDbEnv()) {
-    await ensureSchema();
-    const rows = (await getSql()`
-      SELECT photo, photo_external_url FROM missing_persons WHERE id = ${id}
-    `) as { photo: string | null; photo_external_url: string | null }[];
+    const rows = await getDb()
+      .select({
+        photo: missingPersons.photo,
+        photoExternalUrl: missingPersons.photoExternalUrl,
+      })
+      .from(missingPersons)
+      .where(eq(missingPersons.id, id));
     stored = rows[0]?.photo ?? null;
-    externalUrl = rows[0]?.photo_external_url ?? null;
+    externalUrl = rows[0]?.photoExternalUrl ?? null;
   } else {
     stored = memoryStore.get(id)?.photo ?? null;
   }
@@ -641,11 +601,11 @@ export async function getMissingResolutionPhoto(
 ): Promise<PhotoData | RemotePhoto | null> {
   let dataUrl: string | null = null;
   if (hasDbEnv()) {
-    await ensureSchema();
-    const rows = (await getSql()`
-      SELECT resolution_photo FROM missing_persons WHERE id = ${id}
-    `) as { resolution_photo: string | null }[];
-    dataUrl = rows[0]?.resolution_photo ?? null;
+    const rows = await getDb()
+      .select({ resolutionPhoto: missingPersons.resolutionPhoto })
+      .from(missingPersons)
+      .where(eq(missingPersons.id, id));
+    dataUrl = rows[0]?.resolutionPhoto ?? null;
   } else {
     dataUrl = memoryStore.get(id)?.resolutionPhoto ?? null;
   }
@@ -656,11 +616,12 @@ export async function getMissingResolutionPhoto(
 
 export async function removeMissing(id: string): Promise<boolean> {
   if (hasDbEnv()) {
-    await ensureSchema();
-    const rows = (await getSql()`
-      DELETE FROM missing_persons WHERE id = ${id} RETURNING id
-    `) as { id: string }[];
-    return rows.length > 0;
+    // Escape `sql` por el tipo unión de drivers (ver chat.removeMessage). Misma
+    // semántica que el DELETE ... RETURNING id previo.
+    const result = await getDb().execute(
+      sql`DELETE FROM missing_persons WHERE id = ${id} RETURNING id`,
+    );
+    return execRows<{ id: string }>(result).length > 0;
   }
   return memoryStore.delete(id);
 }
@@ -673,23 +634,22 @@ export async function countMissingStats(): Promise<MissingStats> {
     const found = all.filter((m) => m.status === "found").length;
     return { active, found, total: all.length, onMap: 0 };
   }
-  await ensureSchema();
-  const rows = (await getSql()`
-    SELECT
-      count(*)::int AS total,
-      count(*) FILTER (WHERE status = 'active')::int AS active,
-      count(*) FILTER (WHERE status = 'found')::int AS found,
-      count(*) FILTER (
-        WHERE status = 'active' AND lat IS NOT NULL AND lng IS NOT NULL
-      )::int AS on_map
-    FROM missing_persons
-  `) as { total: number; active: number; found: number; on_map: number }[];
+  const rows = await getDb()
+    .select({
+      total: sql<number>`count(*)::int`,
+      active: sql<number>`count(*) FILTER (WHERE ${missingPersons.status} = 'active')::int`,
+      found: sql<number>`count(*) FILTER (WHERE ${missingPersons.status} = 'found')::int`,
+      on_map: sql<number>`count(*) FILTER (
+        WHERE ${missingPersons.status} = 'active' AND ${missingPersons.lat} IS NOT NULL AND ${missingPersons.lng} IS NOT NULL
+      )::int`,
+    })
+    .from(missingPersons);
   const row = rows[0] ?? { total: 0, active: 0, found: 0, on_map: 0 };
   return {
-    total: row.total,
-    active: row.active,
-    found: row.found,
-    onMap: row.on_map,
+    total: Number(row.total),
+    active: Number(row.active),
+    found: Number(row.found),
+    onMap: Number(row.on_map),
   };
 }
 
@@ -721,15 +681,11 @@ export async function listMissingMapMarkers(
 
   if (!hasDbEnv()) return [];
 
-  await ensureSchema();
-  const sql = getSql();
-  const conditions = [
-    "status = 'active'",
-    "lat IS NOT NULL",
-    "lng IS NOT NULL",
+  const conditions: ReturnType<typeof sql>[] = [
+    sql`status = 'active'`,
+    sql`lat IS NOT NULL`,
+    sql`lng IS NOT NULL`,
   ];
-  const values: unknown[] = [];
-  let n = 1;
 
   const { north, south, east, west } = params;
   if (
@@ -742,23 +698,25 @@ export async function listMissingMapMarkers(
     Number.isFinite(east) &&
     Number.isFinite(west)
   ) {
-    conditions.push(`lat BETWEEN $${n++} AND $${n++}`);
-    values.push(Math.min(south, north), Math.max(south, north));
-    conditions.push(`lng BETWEEN $${n++} AND $${n++}`);
-    values.push(Math.min(west, east), Math.max(west, east));
+    conditions.push(
+      sql`lat BETWEEN ${Math.min(south, north)} AND ${Math.max(south, north)}`,
+    );
+    conditions.push(
+      sql`lng BETWEEN ${Math.min(west, east)} AND ${Math.max(west, east)}`,
+    );
   }
 
-  const rows = (await sql.query(
-    `SELECT id, name, age, last_seen,
-            (photo IS NOT NULL) AS has_photo,
-            photo_external_url,
-            lat, lng, created_at
-     FROM missing_persons
-     WHERE ${conditions.join(" AND ")}
-     ORDER BY created_at DESC
-     LIMIT $${n}`,
-    [...values, limit],
-  )) as MapRow[];
+  const res = await getDb().execute(
+    sql`SELECT id, name, age, last_seen,
+               (photo IS NOT NULL) AS has_photo,
+               photo_external_url,
+               lat, lng, created_at
+        FROM missing_persons
+        WHERE ${sql.join(conditions, sql` AND `)}
+        ORDER BY created_at DESC
+        LIMIT ${limit}`,
+  );
+  const rows = execRows<MapRow>(res);
 
   return rows.map((row) => ({
     id: row.id,
@@ -825,8 +783,9 @@ const CONFLICT_UPDATE_SET = `
 /**
  * Prepara los valores de una fila a partir de un registro externo. El
  * `external_id` se guarda CRUDO; la unicidad es por (source, external_id) — ver
- * índice compuesto en ensureSchema. Devuelve null si el registro es inválido
- * (sin source/externalId/name) para que el caller lo cuente como saltado.
+ * índice compuesto en infra/db/schema.ts. Devuelve null si el registro es
+ * inválido (sin source/externalId/name) para que el caller lo cuente como
+ * saltado.
  */
 function buildExternalRow(
   input: ExternalPerson,
@@ -869,6 +828,11 @@ function buildExternalRow(
  * Deduplica por (source, external_id) quedándose con el último, porque Postgres
  * falla si una misma clave aparece dos veces en el mismo ON CONFLICT (el feed
  * vivo + paginación por offset produce solapes). Ver ADR 0002.
+ *
+ * Se mantiene SQL crudo (getDb().execute) porque arma un INSERT multi-fila
+ * dinámico con ON CONFLICT sobre un índice parcial (WHERE external_id IS NOT
+ * NULL) y RETURNING (xmax = 0); el query builder no expresa el predicado del
+ * índice parcial ni el xmax de forma directa. Semántica idéntica a la previa.
  */
 export async function upsertExternalMissingBatch(
   people: ExternalPerson[],
@@ -895,25 +859,17 @@ export async function upsertExternalMissingBatch(
   const rows = [...byKey.values()];
   if (rows.length === 0) return result;
 
-  await ensureSchema();
-  const sql = getSql();
+  const db = getDb();
 
   for (let i = 0; i < rows.length; i += batchSize) {
     const chunk = rows.slice(i, i + batchSize);
-    const tuples: string[] = [];
-    const params: unknown[] = [];
-    let n = 1;
-    for (const values of chunk) {
-      tuples.push(`(${values.map(() => `$${n++}`).join(",")})`);
-      params.push(...values);
-    }
-    const text =
-      `INSERT INTO missing_persons (${EXTERNAL_COLS.join(", ")}) VALUES ${tuples.join(",")}` +
-      ` ON CONFLICT (source, external_id) WHERE external_id IS NOT NULL DO UPDATE SET${CONFLICT_UPDATE_SET}` +
-      ` RETURNING (xmax = 0) AS inserted`;
+    const tuples = chunk.map(
+      (values) => sql`(${sql.join(values.map((v) => sql`${v}`), sql`,`)})`,
+    );
+    const query = sql`INSERT INTO missing_persons (${sql.raw(EXTERNAL_COLS.join(", "))}) VALUES ${sql.join(tuples, sql`,`)} ON CONFLICT (source, external_id) WHERE external_id IS NOT NULL DO UPDATE SET${sql.raw(CONFLICT_UPDATE_SET)} RETURNING (xmax = 0) AS inserted`;
     try {
-      const out = (await sql.query(text, params)) as { inserted: boolean }[];
-      for (const r of out) {
+      const out = await db.execute(query);
+      for (const r of execRows<{ inserted: boolean }>(out)) {
         if (r.inserted) result.inserted++;
         else result.updated++;
       }

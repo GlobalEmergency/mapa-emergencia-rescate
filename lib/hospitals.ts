@@ -1,4 +1,5 @@
-import { getSql, hasDbEnv } from "./db";
+import { eq, sql } from "drizzle-orm";
+import { getDb, hasDbEnv, schema } from "./drizzle";
 import hospitalsSeed from "./data/hospitals-seed.json";
 import {
   HOSPITAL_FACILITY_TYPES,
@@ -19,125 +20,71 @@ import {
 
 export * from "./hospitals-meta";
 
-let _schemaReady: Promise<void> | null = null;
-let _seedDone = false;
+const { hospitals, hospitalPatients } = schema;
 
-function ensureSchema(): Promise<void> {
-  if (!_schemaReady) {
-    const sql = getSql();
-    _schemaReady = (async () => {
-      await sql`
-        CREATE TABLE IF NOT EXISTS hospitals (
-          id TEXT PRIMARY KEY,
-          external_id TEXT,
-          name TEXT NOT NULL,
-          facility_type TEXT NOT NULL DEFAULT 'hospital',
-          state TEXT NOT NULL DEFAULT '',
-          municipality TEXT NOT NULL DEFAULT '',
-          address TEXT NOT NULL DEFAULT '',
-          level TEXT,
-          priority_zone TEXT NOT NULL DEFAULT 'P3',
-          is_priority BOOLEAN NOT NULL DEFAULT false,
-          created_at BIGINT NOT NULL
-        )
-      `;
-      await sql`
-        CREATE UNIQUE INDEX IF NOT EXISTS hospitals_external_id_idx
-        ON hospitals (external_id) WHERE external_id IS NOT NULL
-      `;
-      await sql`
-        CREATE INDEX IF NOT EXISTS idx_hospitals_state
-        ON hospitals (state, priority_zone, name)
-      `;
-      await sql`
-        CREATE TABLE IF NOT EXISTS hospital_patients (
-          id TEXT PRIMARY KEY,
-          hospital_id TEXT NOT NULL REFERENCES hospitals(id) ON DELETE CASCADE,
-          name TEXT NOT NULL,
-          age INTEGER,
-          condition TEXT NOT NULL DEFAULT 'unknown',
-          status TEXT NOT NULL DEFAULT 'hospitalized',
-          notes TEXT NOT NULL DEFAULT '',
-          contact TEXT NOT NULL DEFAULT '',
-          admitted_at BIGINT NOT NULL,
-          updated_at BIGINT NOT NULL
-        )
-      `;
-      await sql`
-        CREATE INDEX IF NOT EXISTS idx_hospital_patients_hospital
-        ON hospital_patients (hospital_id, status, admitted_at DESC)
-      `;
-    })().catch((err) => {
-      // No memoizar un fallo transitorio (p. ej. query_wait_timeout de Neon):
-      // si dejamos la promesa rechazada en caché, el endpoint queda roto hasta
-      // reiniciar. Reseteamos para que el próximo request reintente el esquema.
-      _schemaReady = null;
-      throw err;
-    });
-  }
-  return _schemaReady;
-}
+let _seedDone = false;
 
 async function seedHospitalsIfNeeded(): Promise<void> {
   if (_seedDone) return;
   _seedDone = true;
-  const sql = getSql();
-  const [{ count }] = (await sql`
-    SELECT COUNT(*)::int AS count FROM hospitals WHERE external_id IS NOT NULL
-  `) as { count: number }[];
+  const rows = await getDb()
+    .select({ count: sql<number>`COUNT(*)::int` })
+    .from(hospitals)
+    .where(sql`${hospitals.externalId} IS NOT NULL`);
+  const count = Number(rows[0]?.count ?? 0);
   if (count >= hospitalsSeed.length) return;
 
   for (const h of hospitalsSeed) {
     try {
-      await sql`
-        INSERT INTO hospitals (
-          id, external_id, name, facility_type, state, municipality,
-          address, level, priority_zone, is_priority, created_at
-        ) VALUES (
-          ${crypto.randomUUID()}, ${h.externalId}, ${h.name},
-          ${h.facilityType}, ${h.state}, ${h.municipality},
-          ${h.address}, ${h.level}, ${h.priorityZone},
-          ${h.isPriority}, ${Date.now()}
-        )
-        ON CONFLICT (external_id) WHERE external_id IS NOT NULL DO NOTHING
-      `;
+      await getDb()
+        .insert(hospitals)
+        .values({
+          id: crypto.randomUUID(),
+          externalId: h.externalId,
+          name: h.name,
+          facilityType: h.facilityType,
+          state: h.state,
+          municipality: h.municipality,
+          address: h.address,
+          level: h.level,
+          priorityZone: h.priorityZone,
+          isPriority: h.isPriority,
+          createdAt: Date.now(),
+        })
+        // ON CONFLICT (external_id) WHERE external_id IS NOT NULL DO NOTHING
+        // (target del índice único parcial).
+        .onConflictDoNothing({
+          target: hospitals.externalId,
+          where: sql`${hospitals.externalId} IS NOT NULL`,
+        });
     } catch {
       // un fallo puntual no detiene el resto
     }
   }
 }
 
-interface HospitalRow {
-  id: string;
-  external_id: string | null;
-  name: string;
-  facility_type: string;
-  state: string;
-  municipality: string;
-  address: string;
-  level: string | null;
-  priority_zone: string;
-  is_priority: boolean;
-  active_patients: number | string | null;
-  total_patients: number | string | null;
-  created_at: number | string;
-}
+// Fila agregada que devuelven las consultas de hospitales (con conteo de
+// pacientes calculado por el LEFT JOIN).
+type HospitalRow = typeof hospitals.$inferSelect & {
+  activePatients: number | string | null;
+  totalPatients: number | string | null;
+};
 
 function rowToHospital(row: HospitalRow): Hospital {
   return {
     id: row.id,
-    externalId: row.external_id,
+    externalId: row.externalId,
     name: row.name,
-    facilityType: normalizeFacilityType(row.facility_type),
+    facilityType: normalizeFacilityType(row.facilityType),
     state: row.state,
     municipality: row.municipality,
     address: row.address,
     level: normalizeLevel(row.level),
-    priorityZone: normalizePriority(row.priority_zone),
-    isPriority: Boolean(row.is_priority),
-    activePatients: Number(row.active_patients ?? 0),
-    totalPatients: Number(row.total_patients ?? 0),
-    createdAt: Number(row.created_at),
+    priorityZone: normalizePriority(row.priorityZone),
+    isPriority: Boolean(row.isPriority),
+    activePatients: Number(row.activePatients ?? 0),
+    totalPatients: Number(row.totalPatients ?? 0),
+    createdAt: Number(row.createdAt),
   };
 }
 
@@ -216,48 +163,39 @@ export async function listHospitals(
       : null;
 
   if (hasDbEnv()) {
-    await ensureSchema();
     await seedHospitalsIfNeeded();
-    const sql = getSql();
-    const conditions: string[] = ["1=1"];
-    const params: unknown[] = [];
-    if (state) {
-      params.push(state);
-      conditions.push(`h.state = $${params.length}`);
-    }
-    if (zone) {
-      params.push(zone);
-      conditions.push(`h.priority_zone = $${params.length}`);
-    }
+    // Agregación con LEFT JOIN + GROUP BY y orden por CASE de prioridad:
+    // se mantiene con el escape `sql` por fidelidad de semántica.
+    const conditions = [sql`1=1`];
+    if (state) conditions.push(sql`h.state = ${state}`);
+    if (zone) conditions.push(sql`h.priority_zone = ${zone}`);
     if (search) {
-      params.push(`%${search.toLowerCase()}%`);
-      const idx = params.length;
+      const like = `%${search.toLowerCase()}%`;
       conditions.push(
-        `(LOWER(h.name) LIKE $${idx} OR LOWER(h.municipality) LIKE $${idx} OR LOWER(h.state) LIKE $${idx})`,
+        sql`(LOWER(h.name) LIKE ${like} OR LOWER(h.municipality) LIKE ${like} OR LOWER(h.state) LIKE ${like})`,
       );
     }
-    params.push(limit);
-    const limitIdx = params.length;
+    const whereSql = sql.join(conditions, sql` AND `);
 
-    const rows = (await sql.query(
-      `
+    const result = await getDb().execute(sql`
       SELECT
-        h.id, h.external_id, h.name, h.facility_type, h.state, h.municipality,
-        h.address, h.level, h.priority_zone, h.is_priority, h.created_at,
-        COALESCE(SUM(CASE WHEN p.status = 'hospitalized' THEN 1 ELSE 0 END), 0) AS active_patients,
-        COUNT(p.id) AS total_patients
+        h.id, h.external_id AS "externalId", h.name,
+        h.facility_type AS "facilityType", h.state, h.municipality,
+        h.address, h.level, h.priority_zone AS "priorityZone",
+        h.is_priority AS "isPriority", h.created_at AS "createdAt",
+        COALESCE(SUM(CASE WHEN p.status = 'hospitalized' THEN 1 ELSE 0 END), 0) AS "activePatients",
+        COUNT(p.id) AS "totalPatients"
       FROM hospitals h
       LEFT JOIN hospital_patients p ON p.hospital_id = h.id
-      WHERE ${conditions.join(" AND ")}
+      WHERE ${whereSql}
       GROUP BY h.id
       ORDER BY
-        active_patients DESC,
+        "activePatients" DESC,
         CASE h.priority_zone WHEN 'P0' THEN 0 WHEN 'P1' THEN 1 WHEN 'P2' THEN 2 ELSE 3 END,
         h.state, h.name
-      LIMIT $${limitIdx}
-      `,
-      params,
-    )) as HospitalRow[];
+      LIMIT ${limit}
+    `);
+    const rows = (Array.isArray(result) ? result : result.rows) as HospitalRow[];
     return rows.map(rowToHospital);
   }
 
@@ -302,11 +240,12 @@ export async function listHospitals(
 
 export async function listStates(): Promise<string[]> {
   if (hasDbEnv()) {
-    await ensureSchema();
     await seedHospitalsIfNeeded();
-    const rows = (await getSql()`
-      SELECT DISTINCT state FROM hospitals WHERE state <> '' ORDER BY state
-    `) as { state: string }[];
+    const rows = await getDb()
+      .selectDistinct({ state: hospitals.state })
+      .from(hospitals)
+      .where(sql`${hospitals.state} <> ''`)
+      .orderBy(hospitals.state);
     return rows.map((r) => r.state);
   }
   ensureMemorySeed();
@@ -319,23 +258,25 @@ export async function listStates(): Promise<string[]> {
 
 export async function getHospital(id: string): Promise<Hospital | null> {
   if (hasDbEnv()) {
-    await ensureSchema();
     await seedHospitalsIfNeeded();
-    const rows = (await getSql()`
+    const result = await getDb().execute(sql`
       SELECT
-        h.id, h.external_id, h.name, h.facility_type, h.state, h.municipality,
-        h.address, h.level, h.priority_zone, h.is_priority, h.created_at,
-        COALESCE(SUM(CASE WHEN p.status = 'hospitalized' THEN 1 ELSE 0 END), 0) AS active_patients,
-        COUNT(p.id) AS total_patients
+        h.id, h.external_id AS "externalId", h.name,
+        h.facility_type AS "facilityType", h.state, h.municipality,
+        h.address, h.level, h.priority_zone AS "priorityZone",
+        h.is_priority AS "isPriority", h.created_at AS "createdAt",
+        COALESCE(SUM(CASE WHEN p.status = 'hospitalized' THEN 1 ELSE 0 END), 0) AS "activePatients",
+        COUNT(p.id) AS "totalPatients"
       FROM hospitals h
       LEFT JOIN hospital_patients p ON p.hospital_id = h.id
       WHERE h.id = ${id}
       GROUP BY h.id
-    `) as HospitalRow[];
+    `);
+    const rows = (Array.isArray(result) ? result : result.rows) as HospitalRow[];
     if (rows[0]) return rowToHospital(rows[0]);
 
-    const hospitals = await listHospitals({ limit: 1000 });
-    return hospitals.find((h) => matchesHospitalSlug(h, id)) ?? null;
+    const hospitalsList = await listHospitals({ limit: 1000 });
+    return hospitalsList.find((h) => matchesHospitalSlug(h, id)) ?? null;
   }
   ensureMemorySeed();
   const h = memoryHospitals.get(id);
@@ -375,18 +316,19 @@ export async function addHospital(input: NewHospital): Promise<Hospital> {
   };
 
   if (hasDbEnv()) {
-    await ensureSchema();
-    await getSql()`
-      INSERT INTO hospitals (
-        id, external_id, name, facility_type, state, municipality,
-        address, level, priority_zone, is_priority, created_at
-      ) VALUES (
-        ${hospital.id}, NULL, ${hospital.name},
-        ${hospital.facilityType}, ${hospital.state}, ${hospital.municipality},
-        ${hospital.address}, ${hospital.level}, ${hospital.priorityZone},
-        ${hospital.isPriority}, ${hospital.createdAt}
-      )
-    `;
+    await getDb().insert(hospitals).values({
+      id: hospital.id,
+      externalId: null,
+      name: hospital.name,
+      facilityType: hospital.facilityType,
+      state: hospital.state,
+      municipality: hospital.municipality,
+      address: hospital.address,
+      level: hospital.level,
+      priorityZone: hospital.priorityZone,
+      isPriority: hospital.isPriority,
+      createdAt: hospital.createdAt,
+    });
     return hospital;
   }
 
@@ -406,6 +348,27 @@ export interface PatientSearchResult {
   };
 }
 
+// Fila de paciente con columnas del hospital adjuntas (búsqueda global).
+type PatientWithHospitalRow = typeof hospitalPatients.$inferSelect & {
+  hospitalName: string;
+  hospitalState: string;
+  hospitalMunicipality: string;
+  hospitalAddress: string;
+};
+
+function rowToSearchResult(r: PatientWithHospitalRow): PatientSearchResult {
+  return {
+    patient: rowToPatient(r),
+    hospital: {
+      id: r.hospitalId,
+      name: r.hospitalName,
+      state: r.hospitalState,
+      municipality: r.hospitalMunicipality,
+      address: r.hospitalAddress,
+    },
+  };
+}
+
 /**
  * Búsqueda global de pacientes por nombre, cédula (en notas) o contacto.
  * Devuelve cada resultado con su hospital para el enlace cruzado.
@@ -418,47 +381,34 @@ export async function searchPatients(
   const cleanLimit = Math.min(Math.max(limit, 1), 200);
 
   if (hasDbEnv()) {
-    await ensureSchema();
     await seedHospitalsIfNeeded();
-    const baseSelect = `
+    // REGEXP_REPLACE y los CASE de orden no se expresan con el query builder
+    // sin perder fidelidad: se preserva el SQL exacto vía escape `sql`.
+    const baseSelect = sql`
       SELECT
-        p.id, p.hospital_id, p.name, p.age, p.condition, p.status,
-        p.notes, p.contact, p.admitted_at, p.updated_at,
-        h.name AS hospital_name,
-        h.state AS hospital_state,
-        h.municipality AS hospital_municipality,
-        h.address AS hospital_address
+        p.id, p.hospital_id AS "hospitalId", p.name, p.age, p.condition,
+        p.status, p.notes, p.contact, p.admitted_at AS "admittedAt",
+        p.updated_at AS "updatedAt",
+        h.name AS "hospitalName",
+        h.state AS "hospitalState",
+        h.municipality AS "hospitalMunicipality",
+        h.address AS "hospitalAddress"
       FROM hospital_patients p
       INNER JOIN hospitals h ON h.id = p.hospital_id
     `;
 
     if (!q) {
-      const rows = (await getSql().query(
-        `
+      const result = await getDb().execute(sql`
         ${baseSelect}
         ORDER BY
           CASE p.status WHEN 'hospitalized' THEN 0 ELSE 1 END,
           p.admitted_at DESC
-        LIMIT $1
-        `,
-        [cleanLimit],
-      )) as (PatientRow & {
-        hospital_name: string;
-        hospital_state: string;
-        hospital_municipality: string;
-        hospital_address: string;
-      })[];
-
-      return rows.map((r) => ({
-        patient: rowToPatient(r),
-        hospital: {
-          id: r.hospital_id,
-          name: r.hospital_name,
-          state: r.hospital_state,
-          municipality: r.hospital_municipality,
-          address: r.hospital_address,
-        },
-      }));
+        LIMIT ${cleanLimit}
+      `);
+      const rows = (Array.isArray(result)
+        ? result
+        : result.rows) as PatientWithHospitalRow[];
+      return rows.map(rowToSearchResult);
     }
 
     if (q.length < 2) return [];
@@ -469,38 +419,23 @@ export async function searchPatients(
     const digits = q.replace(/[^0-9]/g, "");
     const digitsLike = digits.length >= 4 ? `%${digits}%` : null;
 
-    const rows = (await getSql().query(
-      `
+    const result = await getDb().execute(sql`
       ${baseSelect}
       WHERE
-        LOWER(p.name) LIKE $1
-        OR LOWER(p.notes) LIKE $1
-        OR LOWER(p.contact) LIKE $1
-        OR ($2::text IS NOT NULL
-            AND REGEXP_REPLACE(p.notes, '[^0-9]', '', 'g') LIKE $2)
+        LOWER(p.name) LIKE ${like}
+        OR LOWER(p.notes) LIKE ${like}
+        OR LOWER(p.contact) LIKE ${like}
+        OR (${digitsLike}::text IS NOT NULL
+            AND REGEXP_REPLACE(p.notes, '[^0-9]', '', 'g') LIKE ${digitsLike})
       ORDER BY
-        CASE WHEN LOWER(p.name) LIKE $1 THEN 0 ELSE 1 END,
+        CASE WHEN LOWER(p.name) LIKE ${like} THEN 0 ELSE 1 END,
         p.admitted_at DESC
-      LIMIT $3
-      `,
-      [like, digitsLike, cleanLimit],
-    )) as (PatientRow & {
-      hospital_name: string;
-      hospital_state: string;
-      hospital_municipality: string;
-      hospital_address: string;
-    })[];
-
-    return rows.map((r) => ({
-      patient: rowToPatient(r),
-      hospital: {
-        id: r.hospital_id,
-        name: r.hospital_name,
-        state: r.hospital_state,
-        municipality: r.hospital_municipality,
-        address: r.hospital_address,
-      },
-    }));
+      LIMIT ${cleanLimit}
+    `);
+    const rows = (Array.isArray(result)
+      ? result
+      : result.rows) as PatientWithHospitalRow[];
+    return rows.map(rowToSearchResult);
   }
 
   ensureMemorySeed();
@@ -556,17 +491,15 @@ export async function searchPatients(
 
 export async function listPatients(hospitalId: string): Promise<HospitalPatient[]> {
   if (hasDbEnv()) {
-    await ensureSchema();
-    const rows = (await getSql()`
-      SELECT id, hospital_id, name, age, condition, status, notes, contact,
-             admitted_at, updated_at
-      FROM hospital_patients
-      WHERE hospital_id = ${hospitalId}
-      ORDER BY
-        CASE status WHEN 'hospitalized' THEN 0 ELSE 1 END,
-        admitted_at DESC
-      LIMIT 500
-    `) as PatientRow[];
+    const rows = await getDb()
+      .select()
+      .from(hospitalPatients)
+      .where(eq(hospitalPatients.hospitalId, hospitalId))
+      .orderBy(
+        sql`CASE ${hospitalPatients.status} WHEN 'hospitalized' THEN 0 ELSE 1 END`,
+        sql`${hospitalPatients.admittedAt} DESC`,
+      )
+      .limit(500);
     return rows.map(rowToPatient);
   }
   return [...memoryPatients.values()]
@@ -578,23 +511,12 @@ export async function listPatients(hospitalId: string): Promise<HospitalPatient[
     });
 }
 
-interface PatientRow {
-  id: string;
-  hospital_id: string;
-  name: string;
-  age: number | null;
-  condition: string;
-  status: string;
-  notes: string;
-  contact: string;
-  admitted_at: number | string;
-  updated_at: number | string;
-}
+type PatientRow = typeof hospitalPatients.$inferSelect;
 
 function rowToPatient(row: PatientRow): HospitalPatient {
   return {
     id: row.id,
-    hospitalId: row.hospital_id,
+    hospitalId: row.hospitalId,
     name: row.name,
     age: row.age === null ? null : Number(row.age),
     condition: PATIENT_CONDITIONS.has(row.condition as PatientCondition)
@@ -605,8 +527,8 @@ function rowToPatient(row: PatientRow): HospitalPatient {
       : "hospitalized",
     notes: row.notes,
     contact: row.contact,
-    admittedAt: Number(row.admitted_at),
-    updatedAt: Number(row.updated_at),
+    admittedAt: Number(row.admittedAt),
+    updatedAt: Number(row.updatedAt),
   };
 }
 
@@ -639,17 +561,18 @@ export async function addPatient(
   };
 
   if (hasDbEnv()) {
-    await ensureSchema();
-    await getSql()`
-      INSERT INTO hospital_patients (
-        id, hospital_id, name, age, condition, status, notes, contact,
-        admitted_at, updated_at
-      ) VALUES (
-        ${patient.id}, ${hospitalId}, ${patient.name}, ${patient.age},
-        ${patient.condition}, ${patient.status}, ${patient.notes},
-        ${patient.contact}, ${patient.admittedAt}, ${patient.updatedAt}
-      )
-    `;
+    await getDb().insert(hospitalPatients).values({
+      id: patient.id,
+      hospitalId,
+      name: patient.name,
+      age: patient.age,
+      condition: patient.condition,
+      status: patient.status,
+      notes: patient.notes,
+      contact: patient.contact,
+      admittedAt: patient.admittedAt,
+      updatedAt: patient.updatedAt,
+    });
     return patient;
   }
 
@@ -663,12 +586,16 @@ export async function deletePatient(
   patientId: string,
 ): Promise<boolean> {
   if (hasDbEnv()) {
-    await ensureSchema();
-    const rows = (await getSql()`
-      DELETE FROM hospital_patients
-      WHERE id = ${patientId} AND hospital_id = ${hospitalId}
-      RETURNING id
-    `) as { id: string }[];
+    // El builder de delete().returning() no resuelve sobre el tipo unión de
+    // drivers (neon-http | node-postgres); usamos el escape `sql` preservando
+    // la semántica exacta del DELETE ... RETURNING id.
+    const result = await getDb().execute(
+      sql`DELETE FROM ${hospitalPatients}
+          WHERE ${hospitalPatients.id} = ${patientId}
+            AND ${hospitalPatients.hospitalId} = ${hospitalId}
+          RETURNING ${hospitalPatients.id}`,
+    );
+    const rows = (Array.isArray(result) ? result : result.rows) as unknown[];
     return rows.length > 0;
   }
   const existing = memoryPatients.get(patientId);

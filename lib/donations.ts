@@ -1,9 +1,12 @@
-import { getSql, hasDbEnv } from "./db";
+import { sql, desc } from "drizzle-orm";
+import { getDb, hasDbEnv, schema } from "./drizzle";
 import {
   MONTHLY_DONATION_GOAL_CENTS,
   type Donation,
   type DonationStats,
 } from "./donation-shared";
+
+const { donations } = schema;
 
 export {
   PAYPAL_DONATION_URL,
@@ -19,54 +22,32 @@ export type {
   DonationMonthlyStats,
 } from "./donation-shared";
 
-interface DonationRow {
-  id: string;
-  name: string;
-  amount_usd: number;
-  created_at: number;
-}
-
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 const memoryDonations: Donation[] = [];
 
-let _schemaReady: Promise<void> | null = null;
-
-function ensureSchema(): Promise<void> {
-  if (!_schemaReady) {
-    const sql = getSql();
-    _schemaReady = (async () => {
-      await sql`
-        CREATE TABLE IF NOT EXISTS donations (
-          id TEXT PRIMARY KEY,
-          name TEXT NOT NULL,
-          amount_usd INTEGER NOT NULL,
-          ip_hash TEXT,
-          user_agent TEXT,
-          created_at BIGINT NOT NULL
-        )
-      `;
-      await sql`
-        CREATE INDEX IF NOT EXISTS donations_created_at_idx
-        ON donations (created_at DESC)
-      `;
-      await sql`
-        ALTER TABLE donations
-        ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'intent'
-      `;
-    })();
-  }
-  return _schemaReady;
-}
+// Tipo de fila que devuelve Drizzle para las columnas que seleccionamos.
+type DonationRow = Pick<
+  typeof donations.$inferSelect,
+  "id" | "name" | "amountUsd" | "createdAt"
+>;
 
 function rowToDonation(row: DonationRow): Donation {
   return {
     id: row.id,
     name: row.name,
-    amountCents: Number(row.amount_usd),
-    createdAt: Number(row.created_at),
+    amountCents: Number(row.amountUsd),
+    createdAt: Number(row.createdAt),
   };
 }
+
+// Columnas comunes a las listas (sin exponer ip_hash/user_agent).
+const listColumns = {
+  id: donations.id,
+  name: donations.name,
+  amountUsd: donations.amountUsd,
+  createdAt: donations.createdAt,
+} as const;
 
 function computeStats(donations: Donation[]): DonationStats {
   const now = Date.now();
@@ -105,19 +86,15 @@ export async function recordDonation(input: {
   };
 
   if (hasDbEnv()) {
-    await ensureSchema();
-    await getSql()`
-      INSERT INTO donations (id, name, amount_usd, ip_hash, user_agent, created_at, status)
-      VALUES (
-        ${donation.id},
-        ${donation.name},
-        ${donation.amountCents},
-        ${input.ipHash ?? null},
-        ${input.userAgent ?? null},
-        ${donation.createdAt},
-        ${donation.status}
-      )
-    `;
+    await getDb().insert(donations).values({
+      id: donation.id,
+      name: donation.name,
+      amountUsd: donation.amountCents,
+      ipHash: input.ipHash ?? null,
+      userAgent: input.userAgent ?? null,
+      createdAt: donation.createdAt,
+      status: donation.status,
+    });
     return donation;
   }
 
@@ -127,13 +104,11 @@ export async function recordDonation(input: {
 
 export async function listRecentDonations(limit = 30): Promise<Donation[]> {
   if (hasDbEnv()) {
-    await ensureSchema();
-    const rows = (await getSql()`
-      SELECT id, name, amount_usd, created_at
-      FROM donations
-      ORDER BY created_at DESC
-      LIMIT ${limit}
-    `) as DonationRow[];
+    const rows = await getDb()
+      .select(listColumns)
+      .from(donations)
+      .orderBy(desc(donations.createdAt))
+      .limit(limit);
     return rows.map(rowToDonation);
   }
 
@@ -142,12 +117,10 @@ export async function listRecentDonations(limit = 30): Promise<Donation[]> {
 
 export async function listAllDonations(): Promise<Donation[]> {
   if (hasDbEnv()) {
-    await ensureSchema();
-    const rows = (await getSql()`
-      SELECT id, name, amount_usd, created_at
-      FROM donations
-      ORDER BY created_at DESC
-    `) as DonationRow[];
+    const rows = await getDb()
+      .select(listColumns)
+      .from(donations)
+      .orderBy(desc(donations.createdAt));
     return rows.map(rowToDonation);
   }
 
@@ -169,16 +142,17 @@ export async function getMonthlyDonationStats(): Promise<{
   const monthStart = startOfCurrentMonthMs();
 
   if (hasDbEnv()) {
-    await ensureSchema();
-    const rows = (await getSql()`
-      SELECT COALESCE(SUM(amount_usd), 0)::int AS raised_cents
-      FROM donations
-      WHERE created_at >= ${monthStart}
-        AND status = 'completed'
-    `) as { raised_cents: number }[];
+    const rows = await getDb()
+      .select({
+        raisedCents: sql<number>`COALESCE(SUM(${donations.amountUsd}), 0)::int`,
+      })
+      .from(donations)
+      .where(
+        sql`${donations.createdAt} >= ${monthStart} AND ${donations.status} = 'completed'`,
+      );
 
     return {
-      raisedCents: Number(rows[0]?.raised_cents ?? 0),
+      raisedCents: Number(rows[0]?.raisedCents ?? 0),
       goalCents,
     };
   }
@@ -195,29 +169,22 @@ export async function getMonthlyDonationStats(): Promise<{
 
 export async function getDonationStats(): Promise<DonationStats> {
   if (hasDbEnv()) {
-    await ensureSchema();
-    const now = Date.now();
-    const cutoff = now - DAY_MS;
-    const rows = (await getSql()`
-      SELECT
-        COUNT(*)::int AS count,
-        COALESCE(SUM(amount_usd), 0)::int AS total_cents,
-        COUNT(*) FILTER (WHERE created_at >= ${cutoff})::int AS last24h_count,
-        COALESCE(SUM(amount_usd) FILTER (WHERE created_at >= ${cutoff}), 0)::int AS last24h_cents
-      FROM donations
-    `) as {
-      count: number;
-      total_cents: number;
-      last24h_count: number;
-      last24h_cents: number;
-    }[];
+    const cutoff = Date.now() - DAY_MS;
+    const rows = await getDb()
+      .select({
+        count: sql<number>`COUNT(*)::int`,
+        totalCents: sql<number>`COALESCE(SUM(${donations.amountUsd}), 0)::int`,
+        last24hCount: sql<number>`COUNT(*) FILTER (WHERE ${donations.createdAt} >= ${cutoff})::int`,
+        last24hCents: sql<number>`COALESCE(SUM(${donations.amountUsd}) FILTER (WHERE ${donations.createdAt} >= ${cutoff}), 0)::int`,
+      })
+      .from(donations);
 
     const row = rows[0];
     return {
       count: Number(row?.count ?? 0),
-      totalCents: Number(row?.total_cents ?? 0),
-      last24hCount: Number(row?.last24h_count ?? 0),
-      last24hCents: Number(row?.last24h_cents ?? 0),
+      totalCents: Number(row?.totalCents ?? 0),
+      last24hCount: Number(row?.last24hCount ?? 0),
+      last24hCents: Number(row?.last24hCents ?? 0),
     };
   }
 

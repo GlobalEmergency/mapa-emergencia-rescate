@@ -417,6 +417,31 @@ jobs:
             echo "migrate-env not present — skipping worker Deployment."
           fi
 
+      # --- Schema migrations (gated). Apply pending Drizzle migrations BEFORE the
+      #     app roll so new pods never start against an out-of-date schema. Uses
+      #     the WORKER image (carries node_modules + tsx + the .sql files; the app
+      #     image is standalone and lacks them). Idempotent (drizzle tracks applied
+      #     migrations) and expand-contract, so it's safe while old pods serve.
+      - name: Apply DB migrations (gated)
+        if: ${{ inputs.what == 'deploy' || inputs.what == 'provision' || inputs.what == 'recreate-master' }}
+        run: |
+          set -euo pipefail
+          [ -f "$HOME/.kube/config" ] || { echo "No kubeconfig — skipping migrate."; exit 0; }
+          JOB="migrate-${{ github.sha }}"
+          kubectl -n mapa delete job "$JOB" --ignore-not-found
+          # Immutable per-deploy name + the worker image at this sha.
+          sed -e "s#^  name: migrate\$#  name: ${JOB}#" \
+              -e "s#ghcr.io/OWNER/REPO-worker:latest#${{ env.IMAGE }}-worker:${{ github.sha }}#" \
+            infra/k8s/migrate-job.yaml | kubectl apply -f -
+          # Block the deploy on the migration completing. If it fails, the app
+          # does NOT roll.
+          if ! kubectl -n mapa wait --for=condition=complete "job/${JOB}" --timeout=180s; then
+            echo "::error::Migration Job did not complete. Logs:"
+            kubectl -n mapa logs "job/${JOB}" --tail=-1 || true
+            exit 1
+          fi
+          kubectl -n mapa logs "job/${JOB}" --tail=-1 || true
+
       - name: Roll to the new image (zero-downtime)
         if: ${{ inputs.what == 'deploy' || inputs.what == 'provision' || inputs.what == 'recreate-master' }}
         run: |
