@@ -18,6 +18,9 @@ write_files:
       token: "${k3s_token}"
       node-ip: "${master_private_ip}"
       advertise-address: "${master_private_ip}"
+      # The public IP is appended at boot (runcmd) — it's not known at template
+      # time. It must be a SAN so the CI runner, which connects via the public
+      # IP, passes API cert verification.
       tls-san:
         - "${master_private_ip}"
       flannel-iface: "${flannel_iface}"
@@ -69,5 +72,8 @@ write_files:
                   key: network
 
 runcmd:
+  # Append this server's own public IP as a TLS SAN before k3s installs, so the
+  # API cert (generated once at install) is valid for public-IP connections.
+  - PUBIP=$(curl -sf http://169.254.169.254/hetzner/v1/metadata/public-ipv4) && printf '  - "%s"\n' "$PUBIP" >> /etc/rancher/k3s/config.yaml
   - curl -sfL https://get.k3s.io | INSTALL_K3S_CHANNEL=stable sh -s - server
   - until kubectl get nodes >/dev/null 2>&1; do sleep 3; done
