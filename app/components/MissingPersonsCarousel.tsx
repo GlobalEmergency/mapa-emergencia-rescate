@@ -48,7 +48,31 @@ type DirectoryTab = "personas" | "hospitales";
 const POLL_INTERVAL_MS = 8000;
 const LOW_BANDWIDTH_POLL_INTERVAL_MS = 45_000;
 const GRID_PAGE_SIZE = 16;
+const HOSPITAL_PREVIEW_ROWS = 4;
 const MIN_SEARCH_LEN = 3;
+
+function useHospitalGridColumns() {
+  const [cols, setCols] = useState(3);
+
+  useEffect(() => {
+    const mqSm = window.matchMedia("(min-width: 640px)");
+    const mqLg = window.matchMedia("(min-width: 960px)");
+    const update = () => {
+      if (mqLg.matches) setCols(3);
+      else if (mqSm.matches) setCols(2);
+      else setCols(1);
+    };
+    update();
+    mqSm.addEventListener("change", update);
+    mqLg.addEventListener("change", update);
+    return () => {
+      mqSm.removeEventListener("change", update);
+      mqLg.removeEventListener("change", update);
+    };
+  }, []);
+
+  return cols;
+}
 
 function pageWindow(page: number, totalPages: number): number[] {
   const span = 2;
@@ -666,9 +690,11 @@ function HospitalesPreview() {
   const [zoneFilter, setZoneFilter] = useState<HospitalPriorityZone | "all">(
     "all",
   );
+  const [page, setPage] = useState(1);
   const [selectedHospital, setSelectedHospital] = useState<Hospital | null>(
     null,
   );
+  const gridCols = useHospitalGridColumns();
 
   useEffect(() => {
     let cancelled = false;
@@ -698,6 +724,25 @@ function HospitalesPreview() {
     () => filterHospitals(hospitals, search, zoneFilter),
     [hospitals, search, zoneFilter],
   );
+
+  const pageSize = gridCols * HOSPITAL_PREVIEW_ROWS;
+  const totalPages = Math.max(1, Math.ceil(visible.length / pageSize));
+  const pages = useMemo(
+    () => pageWindow(page, totalPages),
+    [page, totalPages],
+  );
+  const paginatedHospitals = useMemo(
+    () => visible.slice((page - 1) * pageSize, page * pageSize),
+    [visible, page, pageSize],
+  );
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, zoneFilter]);
+
+  useEffect(() => {
+    setPage((p) => Math.min(p, totalPages));
+  }, [totalPages]);
 
   return (
     <>
@@ -762,7 +807,7 @@ function HospitalesPreview() {
             </p>
           </div>
         ) : (
-          visible.map((hospital) => (
+          paginatedHospitals.map((hospital) => (
             <HospitalCard
               key={hospital.id}
               hospital={hospital}
@@ -778,6 +823,80 @@ function HospitalesPreview() {
           ))
         )}
       </div>
+
+      {totalPages > 1 && (
+        <nav
+          className="mt-5 flex flex-wrap items-center justify-center gap-1.5"
+          aria-label="Paginación del directorio de hospitales"
+        >
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page <= 1}
+            className="e-btn e-btn-secondary min-h-0 px-3 py-1.5 text-sm disabled:opacity-40"
+          >
+            ← Anterior
+          </button>
+          {pages[0] > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={() => setPage(1)}
+                className="e-btn e-btn-secondary min-h-0 px-3 py-1.5 text-sm"
+              >
+                1
+              </button>
+              {pages[0] > 2 && (
+                <span className="px-1 text-[var(--etext3)]">…</span>
+              )}
+            </>
+          )}
+          {pages.map((p) => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => setPage(p)}
+              aria-current={p === page ? "page" : undefined}
+              className={
+                p === page
+                  ? "e-btn e-btn-primary min-h-0 px-3 py-1.5 text-sm"
+                  : "e-btn e-btn-secondary min-h-0 px-3 py-1.5 text-sm"
+              }
+            >
+              {p}
+            </button>
+          ))}
+          {pages[pages.length - 1] < totalPages && (
+            <>
+              {pages[pages.length - 1] < totalPages - 1 && (
+                <span className="px-1 text-[var(--etext3)]">…</span>
+              )}
+              <button
+                type="button"
+                onClick={() => setPage(totalPages)}
+                className="e-btn e-btn-secondary min-h-0 px-3 py-1.5 text-sm"
+              >
+                {totalPages.toLocaleString("es-VE")}
+              </button>
+            </>
+          )}
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page >= totalPages}
+            className="e-btn e-btn-secondary min-h-0 px-3 py-1.5 text-sm disabled:opacity-40"
+          >
+            Siguiente →
+          </button>
+        </nav>
+      )}
+      {totalPages > 1 && (
+        <p className="mt-2 text-center text-[11px] text-[var(--etext3)]">
+          Página {page.toLocaleString("es-VE")} de{" "}
+          {totalPages.toLocaleString("es-VE")} ·{" "}
+          {visible.length.toLocaleString("es-VE")} hospitales
+        </p>
+      )}
 
       {selectedHospital && (
         <HospitalDetailOverlay
