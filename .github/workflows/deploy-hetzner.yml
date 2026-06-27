@@ -259,18 +259,32 @@ jobs:
           fi
 
       - name: Configure kubectl
-        # Only when we have a kubeconfig to use. On the FIRST bootstrap run the
-        # secret won't exist yet — that's fine; set it, then run a normal deploy.
-        if: ${{ inputs.action == 'deploy' && secrets.KUBECONFIG != '' }}
+        # `secrets` can't be used in an `if:` expression, so gate on action only
+        # and check KUBECONFIG presence in shell (mapped to an env var). On the
+        # FIRST bootstrap run the secret won't exist yet — the step no-ops and
+        # tells you to set it, then a normal deploy run uses it.
+        if: ${{ inputs.action == 'deploy' }}
+        env:
+          KUBECONFIG_B64: ${{ secrets.KUBECONFIG }}
         run: |
+          set -euo pipefail
+          if [ -z "$KUBECONFIG_B64" ]; then
+            echo "::warning::KUBECONFIG secret not set yet — skipping kubectl config."
+            echo "Set it (base64 -w0 infra/kubeconfig) then re-run action=deploy."
+            exit 0
+          fi
           mkdir -p "$HOME/.kube"
-          echo "${{ secrets.KUBECONFIG }}" | base64 -d > "$HOME/.kube/config"
+          echo "$KUBECONFIG_B64" | base64 -d > "$HOME/.kube/config"
           chmod 600 "$HOME/.kube/config"
           kubectl get nodes
 
       - name: Apply manifests
         if: ${{ inputs.action == 'deploy' }}
         run: |
+          set -euo pipefail
+          # Skip cleanly if kubectl isn't configured (KUBECONFIG not set yet on a
+          # first bootstrap run) — the previous step already warned.
+          [ -f "$HOME/.kube/config" ] || { echo "No kubeconfig — skipping apply."; exit 0; }
           # Namespace + Service (LB). Deployment is applied then image-pinned.
           kubectl apply -f infra/k8s/service.yaml
           kubectl apply -f infra/k8s/deployment.yaml
@@ -279,6 +293,7 @@ jobs:
         if: ${{ inputs.action == 'deploy' }}
         run: |
           set -euo pipefail
+          [ -f "$HOME/.kube/config" ] || { echo "No kubeconfig — skipping roll."; exit 0; }
           kubectl -n mapa set image deployment/app \
             app=${{ env.IMAGE }}:${{ github.sha }}
           # Blocks until new pods are Ready (passed /api/readyz) and old pods
