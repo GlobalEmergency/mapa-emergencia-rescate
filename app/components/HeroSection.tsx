@@ -33,19 +33,18 @@ function HeroAccessCard({
     <button
       type="button"
       onClick={onClick}
-      className="e-card-hover flex w-full flex-col items-center justify-center rounded-[20px] bg-white px-4 py-6 text-center shadow-lg transition-transform hover:-translate-y-1 sm:px-6 sm:py-8"
-      style={{ padding: "clamp(20px, 3vw, 32px) clamp(16px, 2vw, 24px)" }}
+      className="e-card-hover flex w-full flex-col items-center justify-center rounded-[16px] bg-white p-3 text-center shadow-md transition-transform hover:-translate-y-1 sm:p-4"
     >
       <div
-        className="mb-3 sm:mb-4"
-        style={{ fontSize: "clamp(48px, 6vw, 72px)", lineHeight: 1 }}
+        className="mb-2 sm:mb-3"
+        style={{ fontSize: "clamp(32px, 4vw, 44px)", lineHeight: 1 }}
         role="img"
         aria-hidden
       >
         {emoji}
       </div>
-      <div className="mb-2 text-[17px] font-bold text-slate-900 sm:text-[19px]">{title}</div>
-      <div className="text-[13px] leading-snug text-slate-600 sm:text-[14px]">{description}</div>
+      <div className="mb-1 text-[15px] font-bold text-slate-900 sm:text-base">{title}</div>
+      <div className="text-xs leading-snug text-slate-600 sm:text-[13px]">{description}</div>
     </button>
   );
 }
@@ -78,7 +77,7 @@ export default function HeroSection() {
           aria-hidden
         />
 
-        <div className="relative z-10 mx-auto max-w-[1120px] px-4 py-10 text-center sm:px-6 sm:py-14">
+        <div className="relative z-10 mx-auto max-w-[1120px] px-4 py-8 text-center sm:px-6 sm:py-10">
           <h1
             className="mb-2.5 font-[family-name:var(--qi-font-display)] !text-white"
             style={{
