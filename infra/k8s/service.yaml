@@ -1,16 +1,24 @@
-# Namespace + Service.
+# Namespace + Service (LoadBalancer) — TEMPLATE.
 #
-# The Service of type LoadBalancer is what makes the Hetzner cloud-controller
-# -manager (installed by hetzner-k3s) auto-provision a real Hetzner Load
-# Balancer pointing at the app pods over the private network. The annotations
-# configure TLS termination (managed Let's Encrypt) and the health check at
-# the LB, mirroring the Hermes target-group health check.
+# The Service of type LoadBalancer makes the Hetzner cloud-controller-manager
+# auto-provision a real Hetzner Load Balancer pointing at the app pods over the
+# private network.
 #
-# Domain: vzla-terremoto.dreamit.software
-# The LB terminates TLS with a managed Let's Encrypt cert for that hostname and
-# redirects http->https. After the first deploy, point a DNS A/AAAA record for
-# vzla-terremoto.dreamit.software at the LB's public IP (printed by the deploy);
-# the managed cert only issues once DNS resolves to the LB.
+# This file is a TEMPLATE: two placeholders (the TLS annotations and the LB
+# ports, near the bottom) are filled by the deploy workflow via envsubst per
+# environment, so ONE manifest serves both. (Placeholder names are NOT written
+# here in $-form on purpose — envsubst would substitute them inside this comment.)
+#
+#   target=staging  -> TLS at Cloudflare (proxied). LB speaks plain HTTP :80.
+#                      Cloudflare A-record proxied (orange), SSL mode "Full".
+#   target=prod     -> TLS at the LB. Hetzner managed Let's Encrypt cert on :443.
+#                      Vercel DNS: A-record at the LB + delegate the
+#                      _acme-challenge.<host> NS records to Hetzner DNS so the
+#                      managed cert can DNS-01-validate (the canonical external-
+#                      domain approach; auto-renews after the one-time delegation).
+#
+# The env-specific values live in the workflow's "Render Service for target"
+# step. See .github/workflows/deploy-hetzner.yml.
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -33,25 +41,13 @@ metadata:
     load-balancer.hetzner.cloud/health-check-http-path: "/api/readyz"
     load-balancer.hetzner.cloud/health-check-interval: "15s"
     load-balancer.hetzner.cloud/health-check-retries: "2"
-    # --- Managed TLS (Let's Encrypt) for the domain ---
-    load-balancer.hetzner.cloud/hostname: "vzla-terremoto.dreamit.software"
-    load-balancer.hetzner.cloud/protocol: "https"
-    load-balancer.hetzner.cloud/certificate-type: "managed"
-    # The :443 listener carries the cert; redirect plain http:80 -> https.
-    load-balancer.hetzner.cloud/http-redirect-https: "true"
     load-balancer.hetzner.cloud/uses-proxyprotocol: "false"
+    # --- TLS profile (injected per target by the workflow; lines carry their
+    #     own 4-space indentation, so the placeholder sits at column 0) ---
+${TLS_ANNOTATIONS}
 spec:
   type: LoadBalancer
   selector:
     app: mapa
   ports:
-    # https (TLS terminated at the LB) -> app on 3000
-    - name: https
-      protocol: TCP
-      port: 443
-      targetPort: 3000
-    # http kept so the LB can 301-redirect it to https
-    - name: http
-      protocol: TCP
-      port: 80
-      targetPort: 3000
+${LB_PORTS}

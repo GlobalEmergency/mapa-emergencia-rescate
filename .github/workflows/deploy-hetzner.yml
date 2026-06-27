@@ -25,6 +25,13 @@ on:
           - plan-infra      # tofu plan only — REVIEW infra changes, apply nothing
           - provision       # tofu apply (DB+Valkey+net) + create k3s cluster + roll app
           - recreate-master # REPLACE the k3s master (re-runs cloud-init) + provision flow
+      target:
+        description: "Environment (LB TLS profile)"
+        type: choice
+        default: staging
+        options:
+          - staging   # TLS at Cloudflare (proxied); LB serves plain HTTP :80
+          - prod      # TLS at the LB (Hetzner managed cert) on :443; Vercel DNS
 
 permissions:
   contents: read
@@ -276,11 +283,38 @@ jobs:
 
       - name: Apply manifests
         if: ${{ inputs.what == 'deploy' || inputs.what == 'provision' || inputs.what == 'recreate-master' }}
+        env:
+          # Prod hostname for the LB managed cert (only used when target=prod).
+          PROD_HOST: ${{ secrets.PROD_HOST }}
         run: |
           set -euo pipefail
           [ -f "$HOME/.kube/config" ] || { echo "No kubeconfig — skipping apply."; exit 0; }
-          # Namespace + Service (LB). Deployment is applied then image-pinned.
-          kubectl apply -f infra/k8s/service.yaml
+
+          # --- Render the Service template for the selected target -------------
+          # ONE service.yaml serves both envs; envsubst fills the TLS profile.
+          # Values carry their own 4-space indentation (printf \n, no heredocs so
+          # the YAML block scalar stays valid).
+          HTTP_PORT=$(printf '    - name: http\n      protocol: TCP\n      port: 80\n      targetPort: 3000')
+          if [ "${{ inputs.target }}" = "prod" ]; then
+            : "${PROD_HOST:?prod target needs the PROD_HOST secret (the public hostname)}"
+            # LB terminates TLS with a Hetzner managed Let's Encrypt cert. Needs
+            # _acme-challenge.$PROD_HOST NS-delegated to Hetzner DNS (one-time).
+            export TLS_ANNOTATIONS=$(printf '    load-balancer.hetzner.cloud/protocol: "https"\n    load-balancer.hetzner.cloud/certificate-type: "managed"\n    load-balancer.hetzner.cloud/http-managed-certificate-domains: "%s"\n    load-balancer.hetzner.cloud/http-redirect-https: "true"' "$PROD_HOST")
+            export LB_PORTS=$(printf '    - name: https\n      protocol: TCP\n      port: 443\n      targetPort: 3000\n%s' "$HTTP_PORT")
+          else
+            # staging: LB terminates TLS on :443 with the Cloudflare ORIGIN cert
+            # (uploaded to Hetzner as "cf-origin-dreamit"). Cloudflare stays on
+            # "Full" (CF->origin over HTTPS, cert not validated — and this cert is
+            # CF-trusted anyway). Record must be PROXIED (orange) since an Origin
+            # cert is only trusted by Cloudflare. http-redirect-https sends :80->:443.
+            export TLS_ANNOTATIONS=$(printf '    load-balancer.hetzner.cloud/protocol: "https"\n    load-balancer.hetzner.cloud/http-certificates: "cf-origin-dreamit"\n    load-balancer.hetzner.cloud/http-redirect-https: "true"')
+            export LB_PORTS=$(printf '    - name: https\n      protocol: TCP\n      port: 443\n      targetPort: 3000\n%s' "$HTTP_PORT")
+          fi
+          envsubst '${TLS_ANNOTATIONS} ${LB_PORTS}' < infra/k8s/service.yaml > /tmp/service.rendered.yaml
+          echo "--- rendered Service (target=${{ inputs.target }}) ---"
+          cat /tmp/service.rendered.yaml
+
+          kubectl apply -f /tmp/service.rendered.yaml
           kubectl apply -f infra/k8s/deployment.yaml
 
       - name: Roll to the new image (zero-downtime)
