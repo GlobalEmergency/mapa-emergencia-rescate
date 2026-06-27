@@ -1070,6 +1070,12 @@ a:focus-visible,
 		box-shadow var(--qi-dur-fast) var(--qi-ease);
 }
 
+/* El borde izquierdo refleja el estado: ámbar = desaparecida (default),
+   azul = encontrada. */
+.e-person-card--found {
+	border-left-color: #3b82f6;
+}
+
 .e-person-card:hover {
 	transform: translateY(-2px);
 	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
@@ -1105,9 +1111,9 @@ a:focus-visible,
 }
 
 .e-person-card__badge--found {
-	background: #dcfce7;
-	color: #15803d;
-	box-shadow: 0 2px 6px rgba(22, 101, 52, 0.15);
+	background: #dbeafe;
+	color: #1e40af;
+	box-shadow: 0 2px 6px rgba(30, 64, 175, 0.15);
 }
 
 .e-person-card__photo {
@@ -1414,23 +1420,23 @@ a:focus-visible,
 
 .e-person-modal__found {
 	margin-top: 1rem;
-	border: 1.5px solid #bbf7d0;
+	border: 1.5px solid #bfdbfe;
 	border-radius: 16px;
-	background: #ecfdf5;
+	background: #eff6ff;
 	padding: 1rem;
 }
 
 .e-person-modal__found p:first-child {
 	font-size: 14px;
 	font-weight: 700;
-	color: #065f46;
+	color: #1e3a8a;
 }
 
 .e-person-modal__found p:nth-child(2) {
 	margin-top: 0.25rem;
 	font-size: 13px;
 	line-height: 1.4;
-	color: #047857;
+	color: #1d4ed8;
 }
 
 .e-person-modal__found-btn {
@@ -1440,7 +1446,7 @@ a:focus-visible,
 	margin-top: 0.75rem;
 	border: none;
 	border-radius: 12px;
-	background: #059669;
+	background: #2563eb;
 	padding: 0.625rem 1rem;
 	font-size: 14px;
 	font-weight: 700;
@@ -1450,7 +1456,7 @@ a:focus-visible,
 }
 
 .e-person-modal__found-btn:hover {
-	background: #047857;
+	background: #1d4ed8;
 }
 
 /* ==========================================================================

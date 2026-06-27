@@ -9,7 +9,6 @@ import {
   type Hospital,
   type HospitalPatient,
 } from "@/lib/hospitals-meta";
-import HospitalPatientForm, { type PatientPayload } from "./HospitalPatientForm";
 import { timeAgo } from "@/lib/format";
 
 const ADMIN_STORAGE_KEY = "emergency:adminToken";
@@ -27,7 +26,6 @@ export default function HospitalDetailView({
   const [hospital, setHospital] = useState<Hospital>(initialHospital);
   const [patients, setPatients] = useState<HospitalPatient[]>(initialPatients);
   const [search, setSearch] = useState("");
-  const [showForm, setShowForm] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [adminToken, setAdminToken] = useState<string | null>(null);
@@ -77,20 +75,6 @@ export default function HospitalDetailView({
     return () => clearInterval(interval);
   }, [load]);
 
-  async function handleSubmit(payload: PatientPayload) {
-    const res = await fetch(`/api/hospitals/${hospital.id}/patients`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      throw new Error(data.error ?? "No se pudo guardar el paciente.");
-    }
-    setShowForm(false);
-    await load(true);
-  }
-
   async function handleDelete(id: string) {
     if (!adminToken) return;
     if (!confirm("¿Eliminar este paciente?")) return;
@@ -135,13 +119,6 @@ export default function HospitalDetailView({
           >
             {refreshing ? "Actualizando…" : "🔄 Actualizar"}
           </button>
-          <button
-            type="button"
-            onClick={() => setShowForm(true)}
-            className="rounded-md bg-red-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700"
-          >
-            + Paciente
-          </button>
         </div>
       </div>
 
@@ -170,15 +147,6 @@ export default function HospitalDetailView({
                 ? "Todavía no hay pacientes registrados en este hospital."
                 : "Sin resultados para la búsqueda."}
             </p>
-            {patients.length === 0 && (
-              <button
-                type="button"
-                onClick={() => setShowForm(true)}
-                className="mt-3 inline-flex items-center gap-1 rounded-md bg-red-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700"
-              >
-                + Registrar paciente
-              </button>
-            )}
           </div>
         ) : (
           <ul className="space-y-2">
@@ -245,14 +213,6 @@ export default function HospitalDetailView({
           </ul>
         )}
       </div>
-
-      {showForm && (
-        <HospitalPatientForm
-          hospitalName={hospital.name}
-          onCancel={() => setShowForm(false)}
-          onSubmit={handleSubmit}
-        />
-      )}
 
       {selectedPatient && (
         <PatientDetailOverlay

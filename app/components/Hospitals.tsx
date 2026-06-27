@@ -12,7 +12,6 @@ import {
   type HospitalPatient,
   type HospitalPriorityZone,
 } from "@/lib/hospitals-meta";
-import HospitalForm, { type HospitalPayload } from "./HospitalForm";
 import HospitalDetailView from "./HospitalDetailView";
 import {
   trackHospitalDetailViewed,
@@ -53,7 +52,6 @@ export default function Hospitals() {
   const [zoneFilter, setZoneFilter] = useState<HospitalPriorityZone | "all">("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showAddForm, setShowAddForm] = useState(false);
   const [tab, setTab] = useState<Tab>("hospitals");
   const [patientQuery, setPatientQuery] = useState("");
   const [debouncedPatientQuery, setDebouncedPatientQuery] = useState("");
@@ -150,20 +148,6 @@ export default function Hospitals() {
 
   const stats = useMemo(() => computeHospitalStats(hospitals), [hospitals]);
 
-  async function handleAdd(payload: HospitalPayload) {
-    const res = await fetch("/api/hospitals", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      throw new Error(data.error ?? "No se pudo guardar el hospital.");
-    }
-    setShowAddForm(false);
-    await load();
-  }
-
   return (
     <section
       id="hospitales"
@@ -179,17 +163,9 @@ export default function Hospitals() {
           </h1>
           <p className="mt-1 max-w-2xl text-sm text-slate-600">
             Lista priorizada de la red hospitalaria de Venezuela según la zona
-            de afectación. Toca un hospital para ver los pacientes registrados o
-            añadir uno nuevo.
+            de afectación. Toca un hospital para ver los pacientes registrados.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setShowAddForm(true)}
-          className="self-start rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700"
-        >
-          + Añadir hospital
-        </button>
       </header>
 
       <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-6">
@@ -253,13 +229,6 @@ export default function Hospitals() {
           loading={loading}
           error={error}
           visible={visible}
-        />
-      )}
-
-      {showAddForm && (
-        <HospitalForm
-          onCancel={() => setShowAddForm(false)}
-          onSubmit={handleAdd}
         />
       )}
     </section>

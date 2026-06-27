@@ -59,7 +59,7 @@ export default function StickyHelpButton() {
     <div
       ref={rootRef}
       data-sticky-help-root
-      className="fixed bottom-[calc(3.75rem+env(safe-area-inset-bottom))] right-3 z-[1840] flex flex-col items-end gap-3 md:bottom-[max(1rem,env(safe-area-inset-bottom))] md:right-4 md:z-[1900]"
+      className="pointer-events-none fixed bottom-[calc(3.75rem+env(safe-area-inset-bottom))] right-3 z-[1840] flex flex-col items-end gap-3 md:bottom-[max(1rem,env(safe-area-inset-bottom))] md:right-4 md:z-[1900]"
     >
       <div
         id="__donate-tooltip"
@@ -90,7 +90,7 @@ export default function StickyHelpButton() {
           trackEvent("donation_fab_toggled", { open: !donateOpen });
         }}
         data-track="donation_fab_toggled"
-        className={`e-donate-fab-btn flex min-h-12 max-w-[calc(100vw-1.5rem)] items-center gap-2 rounded-full px-4 py-3 text-xs font-bold text-white shadow-lg transition hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-400 sm:max-w-none sm:text-sm ${
+        className={`e-donate-fab-btn pointer-events-auto flex min-h-12 max-w-[calc(100vw-1.5rem)] items-center gap-2 rounded-full px-4 py-3 text-xs font-bold text-white shadow-lg transition hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-400 sm:max-w-none sm:text-sm ${
           donateOpen ? "" : "animate-pulse-soft"
         }`}
       >

@@ -108,7 +108,7 @@ export default function HeroSection() {
               emoji="🔎"
               title="Buscar personas"
               description="No encuentro a alguien que conozco."
-              onClick={goMap}
+              onClick={goMissing}
             />
             <HeroAccessCard
               emoji="📢"
