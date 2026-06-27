@@ -50,6 +50,10 @@ function ensureSchema(): Promise<void> {
         CREATE INDEX IF NOT EXISTS donations_created_at_idx
         ON donations (created_at DESC)
       `;
+      await sql`
+        ALTER TABLE donations
+        ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'intent'
+      `;
     })();
   }
   return _schemaReady;
@@ -97,19 +101,21 @@ export async function recordDonation(input: {
     name: input.name.trim(),
     amountCents: input.amountCents,
     createdAt: Date.now(),
+    status: "intent",
   };
 
   if (hasDbEnv()) {
     await ensureSchema();
     await getSql()`
-      INSERT INTO donations (id, name, amount_usd, ip_hash, user_agent, created_at)
+      INSERT INTO donations (id, name, amount_usd, ip_hash, user_agent, created_at, status)
       VALUES (
         ${donation.id},
         ${donation.name},
         ${donation.amountCents},
         ${input.ipHash ?? null},
         ${input.userAgent ?? null},
-        ${donation.createdAt}
+        ${donation.createdAt},
+        ${donation.status}
       )
     `;
     return donation;
@@ -168,6 +174,7 @@ export async function getMonthlyDonationStats(): Promise<{
       SELECT COALESCE(SUM(amount_usd), 0)::int AS raised_cents
       FROM donations
       WHERE created_at >= ${monthStart}
+        AND status = 'completed'
     `) as { raised_cents: number }[];
 
     return {
@@ -177,7 +184,10 @@ export async function getMonthlyDonationStats(): Promise<{
   }
 
   const raisedCents = memoryDonations
-    .filter((donation) => donation.createdAt >= monthStart)
+    .filter(
+      (donation) =>
+        donation.status === "completed" && donation.createdAt >= monthStart,
+    )
     .reduce((sum, donation) => sum + donation.amountCents, 0);
 
   return { raisedCents, goalCents };

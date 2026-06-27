@@ -1,15 +1,26 @@
 export const PAYPAL_DONATION_URL =
   "https://www.paypal.com/ncp/payment/ZSSSATY2E654Y";
 
+export const STRIPE_DONATION_URL =
+  process.env.NEXT_PUBLIC_STRIPE_DONATION_URL ?? "";
+
 export const MIN_DONATION_CENTS = 100;
 export const MAX_DONATION_CENTS = 1_000_000;
 export const MONTHLY_DONATION_GOAL_CENTS = 80_000;
+
+export const PLATFORM_MONTHLY_EXPENSES = [
+  { label: "Servidores (AWS)", amountCents: 32_000 },
+  { label: "Dominio + CDN", amountCents: 4_500 },
+  { label: "SMS de alerta", amountCents: 21_000 },
+  { label: "Soporte voluntario", amountCents: 22_500 },
+] as const;
 
 export interface Donation {
   id: string;
   name: string;
   amountCents: number;
   createdAt: number;
+  status?: "intent" | "completed";
 }
 
 export interface DonationStats {

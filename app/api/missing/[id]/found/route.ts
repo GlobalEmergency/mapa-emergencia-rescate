@@ -45,19 +45,23 @@ export async function POST(
   }
 
   const photo = typeof body.photo === "string" ? body.photo : null;
-  if (photo) {
-    if (!isValidPhotoDataUrl(photo)) {
-      return NextResponse.json(
-        { error: "La prueba debe ser una imagen JPG, PNG o WebP válida." },
-        { status: 400 },
-      );
-    }
-    if (photo.length > MAX_PHOTO_CHARS) {
-      return NextResponse.json(
-        { error: "La imagen es demasiado grande. Usa una más liviana." },
-        { status: 413 },
-      );
-    }
+  if (!photo) {
+    return NextResponse.json(
+      { error: "Adjunta una captura o foto como prueba del contacto." },
+      { status: 400 },
+    );
+  }
+  if (!isValidPhotoDataUrl(photo)) {
+    return NextResponse.json(
+      { error: "La prueba debe ser una imagen JPG, PNG o WebP válida." },
+      { status: 400 },
+    );
+  }
+  if (photo.length > MAX_PHOTO_CHARS) {
+    return NextResponse.json(
+      { error: "La imagen es demasiado grande. Usa una más liviana." },
+      { status: 413 },
+    );
   }
 
   try {

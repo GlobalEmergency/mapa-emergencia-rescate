@@ -688,6 +688,8 @@ function MissingPersonCard({
   person: MissingPerson;
   onOpen: () => void;
 }) {
+  const isFound = person.status === "found";
+
   return (
     <button
       type="button"
@@ -696,7 +698,11 @@ function MissingPersonCard({
       role="listitem"
     >
       <div className="e-person-card__media">
-        <span className="e-person-card__badge">DESAPARECIDO</span>
+        <span
+          className={`e-person-card__badge${isFound ? " e-person-card__badge--found" : ""}`}
+        >
+          {isFound ? "ENCONTRADO" : "DESAPARECIDO"}
+        </span>
         {person.photoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img

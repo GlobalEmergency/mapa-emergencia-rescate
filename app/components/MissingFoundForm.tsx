@@ -80,11 +80,15 @@ export default function MissingFoundForm({
         );
         return;
       }
+      if (!photo) {
+        setError("Adjunta una captura o foto como prueba del contacto.");
+        return;
+      }
       setSubmitting(true);
       try {
         await onSubmit({ note: note.trim(), photo });
         trackEvent("missing_person_marked_found", {
-          hasPhoto: Boolean(photo),
+          hasPhoto: true,
         });
       } catch (err) {
         setError(err instanceof Error ? err.message : "No se pudo guardar.");
@@ -148,15 +152,18 @@ export default function MissingFoundForm({
           </div>
 
           <div>
-            <p className="text-sm font-medium text-slate-700">
-              Prueba (opcional): captura de pantalla o foto
-            </p>
+            <label htmlFor="found-photo" className="block text-sm font-medium text-slate-700">
+              Prueba: captura de pantalla o foto{" "}
+              <span className="text-red-600">*</span>
+            </label>
             <input
+              id="found-photo"
               ref={fileRef}
               type="file"
               accept="image/*"
               onChange={handleFile}
               className="hidden"
+              required
             />
             <div className="mt-1 flex items-center gap-3">
               {photo ? (
@@ -187,7 +194,10 @@ export default function MissingFoundForm({
                 {photo && (
                   <button
                     type="button"
-                    onClick={() => setPhoto(null)}
+                    onClick={() => {
+                      setPhoto(null);
+                      if (fileRef.current) fileRef.current.value = "";
+                    }}
                     className="text-xs text-slate-500 hover:text-red-600"
                   >
                     Quitar
@@ -216,7 +226,7 @@ export default function MissingFoundForm({
             </button>
             <button
               type="submit"
-              disabled={submitting || processing}
+              disabled={submitting || processing || !photo}
               className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
             >
               {submitting ? "Enviando…" : "Confirmar"}
