@@ -92,6 +92,14 @@ acción.
 
 - [Despliegue (Hetzner + k3s + OpenTofu)](architecture/despliegue-kubernetes.md)
 
+### Despliegue y operación
+
+- [Índice de despliegue/operación](deploy/README.md)
+- [Proceso de deploy (workflow, solo desde main)](deploy/proceso-de-deploy.md)
+- [Dominio, DNS y TLS](deploy/dominio-y-dns.md)
+- [Migraciones de base de datos (Drizzle)](deploy/migraciones-de-base-de-datos.md)
+- [Estructura de la infraestructura](deploy/estructura-infra.md)
+
 ### Guías
 
 - [Desplegar la sincronización con Vercel Cron](guides/sincronizacion-cron-vercel.md)

@@ -1,54 +1,78 @@
-# Deploy to Hetzner (k3s).
+# Deploy to Hetzner (k3s) — DEPLOY ONLY.
 #
-# Manually triggered (workflow_dispatch). One dropdown — "what":
-#   plan      -> build the image, push to GHCR, touch nothing else.
-#   deploy    -> build + push, then roll the app (zero-downtime). Everyday.
-#   provision -> one-time/infra: tofu apply (network, firewall, Postgres VPS +
-#                volume + DBs, Valkey VPS) + create the k3s cluster, then PRINT
-#                the DATABASE_URL/VALKEY_URL outputs to paste back as secrets.
+# Trigger:
+#   - push a `main`         -> auto-deploy a STAGING (CD).
+#   - workflow_dispatch     -> deploy manual; eliges target (staging | prod).
+#                              (prod SIEMPRE es un botón deliberado, nunca auto.)
 #
-# Zero-downtime is enforced by the manifests (maxUnavailable:0 + readinessProbe
-# /api/readyz) and confirmed here by `kubectl rollout status`, which blocks
-# until the new pods are Ready and the old ones drained — or fails the deploy.
+# Hace: gate de verificación (tsc + eslint + openapi) -> build app+worker ->
+# push a GHCR -> sube estáticos a R2 -> aplica manifests -> migración de esquema
+# gateada -> roll zero-downtime.
+#
+# Las tareas de infraestructura (provision, recreate-master, plan, migrate
+# enqueue) NO viven aquí a propósito — córrelas a mano (tofu/kubectl).
+#
+# RESTRICCIÓN: solo corre desde `main`. El filtro `branches:` de workflow_dispatch
+# NO se respeta; el guard real es `if: github.ref == 'refs/heads/main'` a nivel de
+# job. `push` ya está acotado a `branches: [main]`. Refuerza con branch protection.
+#
+# Pre-requisitos (una vez, con provision fuera de este workflow): cluster k3s,
+# secret KUBECONFIG (base64), y los secrets app-env + migrate-env creados.
+#
+# Zero-downtime: lo imponen los manifests (maxUnavailable:0 + readinessProbe
+# /api/readyz) y lo confirma `kubectl rollout status`.
 name: Deploy to Hetzner (k3s)
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
-      what:
-        description: "What to do"
-        type: choice
-        default: deploy
-        options:
-          - plan            # build + push the image only; touch nothing else
-          - deploy          # build + push, then roll the app (everyday release)
-          - plan-infra      # tofu plan only — REVIEW infra changes, apply nothing
-          - provision       # tofu apply (DB+Valkey+net) + create k3s cluster + roll app
-          - recreate-master # REPLACE the k3s master (re-runs cloud-init) + provision flow
-          - migrate         # enqueue the Neon->Hetzner data + images->R2 migration Job
       target:
         description: "Environment (LB TLS profile)"
         type: choice
         default: staging
         options:
-          - staging   # TLS at Cloudflare (proxied); LB serves plain HTTP :80
-          - prod      # TLS at the LB (Hetzner managed cert) on :443; Vercel DNS
+          - staging   # TLS at Cloudflare (proxied); LB serves the CF origin cert
+          - prod      # TLS at the LB (Hetzner managed cert) on :443
 
 permissions:
   contents: read
   packages: write       # push images to GHCR
-  deployments: write    # GitHub Deployments / ledger (later)
+  deployments: write
 
 # IMAGE is computed at runtime (lowercased) — GHCR/Docker require all-lowercase
-# repository names and ${{ github.repository }} can contain uppercase (the owner
-# "ArturoRiosMock" does). See the "Compute image name" step.
+# repository names and ${{ github.repository }} can contain uppercase.
 
 jobs:
-  deploy:
-    name: ${{ inputs.what }}
+  # Gate: nada se despliega si el código no compila/lint/genera la spec.
+  verify:
+    name: verify
     runs-on: ubuntu-latest
-    # Repo-level secrets (no GitHub Environment configured). Add
-    # `environment: production` here later if you want reviewer gates.
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Typecheck (app)
+        run: npx tsc --noEmit -p tsconfig.json
+      - name: Typecheck (worker)
+        run: npx tsc --noEmit -p worker/tsconfig.json
+      - name: Lint
+        run: npm run lint
+      - name: Generate OpenAPI spec (must succeed)
+        run: npm run openapi
+
+  deploy:
+    name: deploy
+    runs-on: ubuntu-latest
+    needs: verify
+    # SOLO desde main. workflow_dispatch deja elegir rama en la UI, pero este
+    # guard rechaza cualquier ejecución que no venga de main.
+    if: github.ref == 'refs/heads/main'
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -57,39 +81,42 @@ jobs:
         run: |
           echo "IMAGE=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_ENV"
 
+      # Resuelve el target: push->staging; dispatch->lo elegido (default staging).
+      # prod NUNCA sale de un push automático.
+      - name: Resolve target
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "TARGET=${{ inputs.target }}" >> "$GITHUB_ENV"
+          else
+            echo "TARGET=staging" >> "$GITHUB_ENV"
+          fi
+
       - name: Show inputs
         run: |
-          echo "what  = ${{ inputs.what }}"
-          echo "image = ${{ env.IMAGE }}:${{ github.sha }}"
-          echo "actor = ${{ github.actor }}"
+          echo "event  = ${{ github.event_name }}"
+          echo "target = $TARGET"
+          echo "image  = ${{ env.IMAGE }}:${{ github.sha }}"
+          echo "actor  = ${{ github.actor }}"
+          echo "ref    = ${{ github.ref }}"
 
       # ---------------------------------------------------------------
-      # 1. Build the immutable app image and push to GHCR, tagged :<sha>.
-      #    Runs for all three: plan (prove build), deploy (roll it), provision
-      #    (provision rolls the app too, end-to-end).
+      # 1. Build the immutable app + worker images, push to GHCR (:<sha> + :latest)
       # ---------------------------------------------------------------
-      # Build steps are skipped for `migrate` (no new image — it reuses the last
-      # deploy's worker image via :latest) and for `plan-infra` (infra only).
       - name: Log in to GHCR
-        if: ${{ inputs.what != 'migrate' && inputs.what != 'plan-infra' }}
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          # actor can be uppercase; GHCR login is case-insensitive but lowercase
-          # is safest.
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Buildx
-        if: ${{ inputs.what != 'migrate' && inputs.what != 'plan-infra' }}
         uses: docker/setup-buildx-action@v3
 
-      - name: Build and push
-        if: ${{ inputs.what != 'migrate' && inputs.what != 'plan-infra' }}
+      - name: Build and push (app)
         uses: docker/build-push-action@v6
         with:
           context: .
-          target: runtime # explicit: `worker` is the LAST stage, so without this
+          target: runtime # explicit: `worker` is the LAST stage; without this
           # docker would build the worker image and push it as the app tag.
           push: true
           tags: |
@@ -101,10 +128,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # Worker image (BullMQ migration workers) — the `worker` Dockerfile target.
-      # Separate repo tag (<image>-worker) so the app image stays slim. Same SHA.
-      - name: Build and push worker image
-        if: ${{ inputs.what != 'migrate' && inputs.what != 'plan-infra' }}
+      - name: Build and push (worker)
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -116,200 +140,32 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Plan stops here
-        if: ${{ inputs.what == 'plan' }}
-        run: |
-          echo "PLAN complete — image built & pushed, cluster untouched."
-          echo "Run again with what=deploy to roll it out."
-
       # ---------------------------------------------------------------
-      # 2. (deploy only) Ensure cluster, then roll.
+      # 2. Configure kubectl from the KUBECONFIG secret (set once at provision).
       # ---------------------------------------------------------------
-      - name: Install kubectl + tofu
-        if: ${{ inputs.what == 'deploy' || inputs.what == 'provision' || inputs.what == 'plan-infra' || inputs.what == 'recreate-master' || inputs.what == 'migrate' }}
+      - name: Install kubectl
         run: |
-          # kubectl
           curl -sLO "https://dl.k8s.io/release/$(curl -sL https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
           sudo install -m0755 kubectl /usr/local/bin/kubectl
-          # OpenTofu
-          curl -sL https://get.opentofu.org/install-opentofu.sh -o install-opentofu.sh
-          chmod +x install-opentofu.sh && sudo ./install-opentofu.sh --install-method standalone
-          kubectl version --client && tofu version
+          kubectl version --client
 
-      # ---------------------------------------------------------------
-      # Provision the stateful tier (PETS) with OpenTofu. Runs when what ==
-      # "provision". State lives in Hetzner Object
-      # Storage (infra/tofu/backend.tf); prevent_destroy guards the DB. After a
-      # successful apply, paste the printed DATABASE_URL/VALKEY_URL secrets.
-      # This is idempotent — safe to re-run; it only changes drift.
-      # ---------------------------------------------------------------
-      # plan-infra: REVIEW only. Runs `tofu plan` and shows what WOULD change —
-      # applies nothing. The industry best practice (split plan/apply, review
-      # before apply) for safe infra changes once the DB holds real data.
-      - name: Plan infra (tofu plan — review only)
-        if: ${{ inputs.what == 'plan-infra' }}
-        working-directory: infra/tofu
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.HETZNER_S3_ACCESS_KEY }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.HETZNER_S3_SECRET_KEY }}
-          TF_VAR_hcloud_token: ${{ secrets.HCLOUD_TOKEN }}
-          TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
-          TF_VAR_postgres_user: ${{ secrets.POSTGRES_USER }}
-          TF_VAR_postgres_password: ${{ secrets.POSTGRES_PASSWORD }}
-          TF_VAR_postgres_app_db: ${{ secrets.POSTGRES_APP_DB }}
-          TF_VAR_postgres_imported_db: ${{ secrets.POSTGRES_IMPORTED_DB }}
-          TF_VAR_valkey_password: ${{ secrets.VALKEY_PASSWORD }}
-          TF_VAR_k3s_token: ${{ secrets.K3S_TOKEN }}
-        run: |
-          set -euo pipefail
-          tofu init -input=false -lockfile=readonly
-          tofu plan -input=false
-          echo "::notice::Plan only — nothing applied. Run 'provision' to apply."
-
-      - name: Provision stateful tier (tofu apply)
-        if: ${{ inputs.what == 'provision' || inputs.what == 'recreate-master' }}
-        working-directory: infra/tofu
-        env:
-          # S3 backend creds (Hetzner Object Storage) — the S3 backend reads the
-          # AWS_* names even though it's Hetzner.
-          AWS_ACCESS_KEY_ID: ${{ secrets.HETZNER_S3_ACCESS_KEY }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.HETZNER_S3_SECRET_KEY }}
-          # Tofu variables.
-          TF_VAR_hcloud_token: ${{ secrets.HCLOUD_TOKEN }}
-          TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
-          TF_VAR_postgres_user: ${{ secrets.POSTGRES_USER }}
-          TF_VAR_postgres_password: ${{ secrets.POSTGRES_PASSWORD }}
-          TF_VAR_postgres_app_db: ${{ secrets.POSTGRES_APP_DB }}
-          TF_VAR_postgres_imported_db: ${{ secrets.POSTGRES_IMPORTED_DB }}
-          TF_VAR_valkey_password: ${{ secrets.VALKEY_PASSWORD }}
-          TF_VAR_k3s_token: ${{ secrets.K3S_TOKEN }}
-        run: |
-          set -euo pipefail
-          # -lockfile=readonly: CI must use the committed .terraform.lock.hcl as-is
-          # and FAIL if it doesn't match — never silently update it. The lock is
-          # generated/updated locally and reviewed in PRs (best practice).
-          tofu init -input=false -lockfile=readonly
-          # recreate-master: force-replace the WHOLE cluster (master + workers) so
-          # it re-runs the (fixed) cloud-init. ignore_changes=[user_data] means a
-          # plain apply won't touch them, so we pass -replace explicitly. We must
-          # replace the workers too: a fresh master generates a new cluster CA, so
-          # the old workers (enrolled against the old CA) would fail to reconnect
-          # (k3s-io/k3s#2852). DB + Valkey are NOT touched (separate resources).
-          REPLACE=""
-          if [ "${{ inputs.what }}" = "recreate-master" ]; then
-            REPLACE="-replace=hcloud_server.k3s_master"
-            # Workers are a counted resource — replace each index.
-            for i in 0 1; do
-              REPLACE="$REPLACE -replace=hcloud_server.k3s_worker[$i]"
-            done
-          fi
-          # Plan first (visible in logs), then apply. -auto-approve is acceptable
-          # for greenfield; for risky changes, run 'plan-infra' first to review.
-          tofu plan -input=false $REPLACE
-          tofu apply -input=false -auto-approve $REPLACE
-          echo "::notice::Provision done. Set these repo secrets from the outputs below:"
-          echo "  DATABASE_URL          = $(tofu output -raw database_url)"
-          echo "  IMPORTED_DATABASE_URL = $(tofu output -raw imported_database_url)"
-          echo "  VALKEY_URL            = $(tofu output -raw valkey_url)"
-          echo "Postgres private IP: $(tofu output -raw postgres_private_ip)"
-          echo "Valkey   private IP: $(tofu output -raw valkey_private_ip)"
-
-      # --- provision: the cluster servers (master+workers) were just created by
-      #     `tofu apply` above. Wait for the master's k3s to be ready, then scp
-      #     its kubeconfig and rewrite the API address to the master's public IP.
-      - name: Fetch kubeconfig from k3s master
-        if: ${{ inputs.what == 'provision' || inputs.what == 'recreate-master' }}
-        working-directory: infra/tofu
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.HETZNER_S3_ACCESS_KEY }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.HETZNER_S3_SECRET_KEY }}
-          TF_VAR_hcloud_token: ${{ secrets.HCLOUD_TOKEN }}
-          TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
-          TF_VAR_postgres_user: ${{ secrets.POSTGRES_USER }}
-          TF_VAR_postgres_password: ${{ secrets.POSTGRES_PASSWORD }}
-          TF_VAR_postgres_app_db: ${{ secrets.POSTGRES_APP_DB }}
-          TF_VAR_postgres_imported_db: ${{ secrets.POSTGRES_IMPORTED_DB }}
-          TF_VAR_valkey_password: ${{ secrets.VALKEY_PASSWORD }}
-          TF_VAR_k3s_token: ${{ secrets.K3S_TOKEN }}
-        run: |
-          set -euo pipefail
-          mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh"
-          printf '%s\n' "$SSH_PRIVATE_KEY" > "$HOME/.ssh/mapa_k3s"
-          chmod 600 "$HOME/.ssh/mapa_k3s"
-
-          tofu init -input=false -lockfile=readonly >/dev/null
-          MASTER_IP=$(tofu output -raw k3s_master_public_ip)
-          MASTER_PRIV=$(tofu output -raw k3s_master_private_ip)
-          SSH="ssh -i $HOME/.ssh/mapa_k3s -o StrictHostKeyChecking=no -o ConnectTimeout=10 root@$MASTER_IP"
-
-          echo "Waiting for k3s on master ($MASTER_IP)..."
-          for i in $(seq 1 40); do
-            if $SSH 'test -f /etc/rancher/k3s/k3s.yaml' 2>/dev/null; then
-              echo "k3s.yaml present."; break
-            fi
-            echo "  attempt $i/40 — not ready yet"; sleep 15
-          done
-
-          mkdir -p "$HOME/.kube"
-          $SSH 'cat /etc/rancher/k3s/k3s.yaml' > "$HOME/.kube/config"
-          # k3s writes server: https://127.0.0.1:6443 — point it at the master.
-          sed -i "s#https://127.0.0.1:6443#https://$MASTER_IP:6443#" "$HOME/.kube/config"
-          chmod 600 "$HOME/.kube/config"
-          echo "::notice::Cluster ready. Save KUBECONFIG secret for future deploys: base64 -w0 the kubeconfig (see job artifacts/notes)."
-          kubectl get nodes -o wide
-
-      # --- deploy/migrate: use the KUBECONFIG secret (set once after provision).
-      - name: Configure kubectl (deploy)
-        if: ${{ inputs.what == 'deploy' || inputs.what == 'migrate' }}
+      - name: Configure kubectl
         env:
           KUBECONFIG_B64: ${{ secrets.KUBECONFIG }}
         run: |
           set -euo pipefail
           if [ -z "$KUBECONFIG_B64" ]; then
-            echo "::warning::KUBECONFIG secret not set — run 'provision' first, then save it. Skipping."
-            exit 0
+            echo "::error::KUBECONFIG secret not set — provision the cluster first."
+            exit 1
           fi
           mkdir -p "$HOME/.kube"
           echo "$KUBECONFIG_B64" | base64 -d > "$HOME/.kube/config"
           chmod 600 "$HOME/.kube/config"
           kubectl get nodes
 
-      # --- App runtime Secret. On provision, build it from the tofu outputs so
-      #     the app gets DATABASE_URL/VALKEY_URL with zero manual pasting.
-      - name: Create app-env secret (from tofu outputs)
-        if: ${{ inputs.what == 'provision' || inputs.what == 'recreate-master' }}
-        working-directory: infra/tofu
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.HETZNER_S3_ACCESS_KEY }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.HETZNER_S3_SECRET_KEY }}
-          TF_VAR_hcloud_token: ${{ secrets.HCLOUD_TOKEN }}
-          TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
-          TF_VAR_postgres_user: ${{ secrets.POSTGRES_USER }}
-          TF_VAR_postgres_password: ${{ secrets.POSTGRES_PASSWORD }}
-          TF_VAR_postgres_app_db: ${{ secrets.POSTGRES_APP_DB }}
-          TF_VAR_postgres_imported_db: ${{ secrets.POSTGRES_IMPORTED_DB }}
-          TF_VAR_valkey_password: ${{ secrets.VALKEY_PASSWORD }}
-          TF_VAR_k3s_token: ${{ secrets.K3S_TOKEN }}
-        run: |
-          set -euo pipefail
-          [ -f "$HOME/.kube/config" ] || { echo "No kubeconfig — skipping secret."; exit 0; }
-          tofu init -input=false -lockfile=readonly >/dev/null
-          DB_URL=$(tofu output -raw database_url)
-          VK_URL=$(tofu output -raw valkey_url)
-          kubectl create namespace mapa --dry-run=client -o yaml | kubectl apply -f -
-          kubectl -n mapa create secret generic app-env \
-            --from-literal=DATABASE_URL="$DB_URL" \
-            --from-literal=VALKEY_URL="$VK_URL" \
-            --from-literal=DB_DRIVER=tcp \
-            --from-literal=TRUSTED_IP_HEADER=x-forwarded-for \
-            --dry-run=client -o yaml | kubectl apply -f -
-
-      # migrate-env: extra secret the migration worker/enqueue Job need on top of
-      # app-env (which already has DATABASE_URL + VALKEY_URL). Sourced from GitHub
-      # secrets (not tofu). No-op if R2/Neon secrets aren't set yet.
-      - name: Create migrate-env secret
-        if: ${{ inputs.what == 'deploy' || inputs.what == 'provision' || inputs.what == 'recreate-master' }}
+      # migrate-env: secret the migration worker + the gated migrate Job need
+      # (NEON + R2). Re-applied each deploy so it stays in sync. No-op if unset.
+      - name: Ensure migrate-env secret
         env:
           NEON_DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
           R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
@@ -319,9 +175,8 @@ jobs:
           R2_PUBLIC_BASE: ${{ secrets.R2_PUBLIC_BASE }}
         run: |
           set -euo pipefail
-          [ -f "$HOME/.kube/config" ] || { echo "No kubeconfig — skipping migrate-env."; exit 0; }
           if [ -z "${NEON_DATABASE_URL:-}" ] || [ -z "${R2_ENDPOINT:-}" ]; then
-            echo "Neon/R2 secrets unset — skipping migrate-env (migration not wired yet)."
+            echo "Neon/R2 secrets unset — skipping migrate-env."
             exit 0
           fi
           kubectl create namespace mapa --dry-run=client -o yaml | kubectl apply -f -
@@ -334,17 +189,10 @@ jobs:
             --from-literal=R2_PUBLIC_BASE="$R2_PUBLIC_BASE" \
             --dry-run=client -o yaml | kubectl apply -f -
 
-      # Upload the freshly-built /_next/static to the R2 CDN bucket BEFORE rolling
-      # the app (push-then-roll), and NEVER --delete (old builds must stay so
-      # in-flight sessions on the previous build keep resolving). No-op when the
-      # R2 secrets aren't set, so it's safe before the CDN is wired. Extracts the
-      # assets from the image we just pushed — byte-for-byte what will run.
-      # The three hard rules (footguns that re-create the version-skew bug):
-      #   1. push-then-roll (this step runs before Apply/Roll below)
-      #   2. additive sync, NEVER --delete (old chunks must survive)
-      #   3. no CDN invalidation — assets are content-hashed + immutable
+      # Upload the freshly-built /_next/static to R2 BEFORE rolling (push-then-roll),
+      # additive (NEVER --delete: old chunks must survive for in-flight sessions),
+      # content-hashed + immutable so no invalidation needed. Fixes version-skew.
       - name: Upload static assets to R2 CDN
-        if: ${{ inputs.what == 'deploy' || inputs.what == 'provision' || inputs.what == 'recreate-master' }}
         env:
           R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
           R2_STATIC_BUCKET: ${{ secrets.R2_STATIC_BUCKET }}
@@ -352,20 +200,16 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
         run: |
           set -euo pipefail
-          # Gate inside the script — `secrets` isn't valid in a step `if:`.
           if [ -z "${R2_ENDPOINT:-}" ] || [ -z "${R2_STATIC_BUCKET:-}" ]; then
-            echo "R2 secrets unset — CDN not wired yet, skipping static upload."
+            echo "R2 secrets unset — skipping static upload."
             exit 0
           fi
-          # Copy /_next/static out of the image we just pushed.
           IMAGE="${{ env.IMAGE }}:${{ github.sha }}"
           docker pull "$IMAGE"
           CID=$(docker create "$IMAGE")
           rm -rf /tmp/next-static && mkdir -p /tmp/next-static
           docker cp "$CID":/app/.next/static/. /tmp/next-static/
           docker rm "$CID"
-          # Sync under the SAME /_next/static/ key the browser requests, with the
-          # immutable cache header. Additive — NO --delete. R2 is S3-compatible.
           aws s3 sync /tmp/next-static "s3://$R2_STATIC_BUCKET/_next/static" \
             --endpoint-url "$R2_ENDPOINT" \
             --cache-control "public, max-age=31536000, immutable" \
@@ -373,43 +217,31 @@ jobs:
             --no-progress
           echo "Synced $(find /tmp/next-static -type f | wc -l) files to r2://$R2_STATIC_BUCKET/_next/static"
 
+      # ---------------------------------------------------------------
+      # 3. Apply manifests (Service rendered per target), gated migrate, roll.
+      # ---------------------------------------------------------------
       - name: Apply manifests
-        if: ${{ inputs.what == 'deploy' || inputs.what == 'provision' || inputs.what == 'recreate-master' }}
         env:
-          # Prod hostname for the LB managed cert (only used when target=prod).
           PROD_HOST: ${{ secrets.PROD_HOST }}
         run: |
           set -euo pipefail
-          [ -f "$HOME/.kube/config" ] || { echo "No kubeconfig — skipping apply."; exit 0; }
-
-          # --- Render the Service template for the selected target -------------
           # ONE service.yaml serves both envs; envsubst fills the TLS profile.
-          # Values carry their own 4-space indentation (printf \n, no heredocs so
-          # the YAML block scalar stays valid).
           HTTP_PORT=$(printf '    - name: http\n      protocol: TCP\n      port: 80\n      targetPort: 3000')
-          if [ "${{ inputs.target }}" = "prod" ]; then
+          if [ "$TARGET" = "prod" ]; then
             : "${PROD_HOST:?prod target needs the PROD_HOST secret (the public hostname)}"
-            # LB terminates TLS with a Hetzner managed Let's Encrypt cert. Needs
-            # _acme-challenge.$PROD_HOST NS-delegated to Hetzner DNS (one-time).
             export TLS_ANNOTATIONS=$(printf '    load-balancer.hetzner.cloud/protocol: "https"\n    load-balancer.hetzner.cloud/certificate-type: "managed"\n    load-balancer.hetzner.cloud/http-managed-certificate-domains: "%s"\n    load-balancer.hetzner.cloud/http-redirect-https: "true"' "$PROD_HOST")
             export LB_PORTS=$(printf '    - name: https\n      protocol: TCP\n      port: 443\n      targetPort: 3000\n%s' "$HTTP_PORT")
           else
-            # staging: LB terminates TLS on :443 with the Cloudflare ORIGIN cert
-            # (uploaded to Hetzner as "cf-origin-dreamit"). Cloudflare stays on
-            # "Full" (CF->origin over HTTPS, cert not validated — and this cert is
-            # CF-trusted anyway). Record must be PROXIED (orange) since an Origin
-            # cert is only trusted by Cloudflare. http-redirect-https sends :80->:443.
             export TLS_ANNOTATIONS=$(printf '    load-balancer.hetzner.cloud/protocol: "https"\n    load-balancer.hetzner.cloud/http-certificates: "cf-origin-dreamit"\n    load-balancer.hetzner.cloud/http-redirect-https: "true"')
             export LB_PORTS=$(printf '    - name: https\n      protocol: TCP\n      port: 443\n      targetPort: 3000\n%s' "$HTTP_PORT")
           fi
           envsubst '${TLS_ANNOTATIONS} ${LB_PORTS}' < infra/k8s/service.yaml > /tmp/service.rendered.yaml
-          echo "--- rendered Service (target=${{ inputs.target }}) ---"
+          echo "--- rendered Service (target=$TARGET) ---"
           cat /tmp/service.rendered.yaml
 
           kubectl apply -f /tmp/service.rendered.yaml
           kubectl apply -f infra/k8s/deployment.yaml
-          # Migration worker Deployment (only if migrate-env exists — i.e. R2/Neon
-          # wired). Patch the placeholder image to the worker image we just built.
+          # Migration worker Deployment (only if migrate-env exists).
           if kubectl -n mapa get secret migrate-env >/dev/null 2>&1; then
             sed "s#ghcr.io/OWNER/REPO-worker:latest#${{ env.IMAGE }}-worker:${{ github.sha }}#" \
               infra/k8s/worker-deployment.yaml | kubectl apply -f -
@@ -417,24 +249,17 @@ jobs:
             echo "migrate-env not present — skipping worker Deployment."
           fi
 
-      # --- Schema migrations (gated). Apply pending Drizzle migrations BEFORE the
-      #     app roll so new pods never start against an out-of-date schema. Uses
-      #     the WORKER image (carries node_modules + tsx + the .sql files; the app
-      #     image is standalone and lacks them). Idempotent (drizzle tracks applied
-      #     migrations) and expand-contract, so it's safe while old pods serve.
+      # Gated Drizzle migrations BEFORE the roll: new pods never start against an
+      # out-of-date schema. Uses the WORKER image (has node_modules + tsx + .sql);
+      # idempotent + expand-contract. If it fails, the app does NOT roll.
       - name: Apply DB migrations (gated)
-        if: ${{ inputs.what == 'deploy' || inputs.what == 'provision' || inputs.what == 'recreate-master' }}
         run: |
           set -euo pipefail
-          [ -f "$HOME/.kube/config" ] || { echo "No kubeconfig — skipping migrate."; exit 0; }
           JOB="migrate-${{ github.sha }}"
           kubectl -n mapa delete job "$JOB" --ignore-not-found
-          # Immutable per-deploy name + the worker image at this sha.
           sed -e "s#^  name: migrate\$#  name: ${JOB}#" \
               -e "s#ghcr.io/OWNER/REPO-worker:latest#${{ env.IMAGE }}-worker:${{ github.sha }}#" \
             infra/k8s/migrate-job.yaml | kubectl apply -f -
-          # Block the deploy on the migration completing. If it fails, the app
-          # does NOT roll.
           if ! kubectl -n mapa wait --for=condition=complete "job/${JOB}" --timeout=180s; then
             echo "::error::Migration Job did not complete. Logs:"
             kubectl -n mapa logs "job/${JOB}" --tail=-1 || true
@@ -443,17 +268,11 @@ jobs:
           kubectl -n mapa logs "job/${JOB}" --tail=-1 || true
 
       - name: Roll to the new image (zero-downtime)
-        if: ${{ inputs.what == 'deploy' || inputs.what == 'provision' || inputs.what == 'recreate-master' }}
         run: |
           set -euo pipefail
-          [ -f "$HOME/.kube/config" ] || { echo "No kubeconfig — skipping roll."; exit 0; }
           kubectl -n mapa set image deployment/app \
             app=${{ env.IMAGE }}:${{ github.sha }}
-          # Blocks until new pods are Ready (passed /api/readyz) and old pods
-          # drained. Fails the job (and the deploy) if the roll stalls.
           kubectl -n mapa rollout status deployment/app --timeout=300s
-          # Roll the migration worker too (if deployed). Not traffic-serving, so a
-          # short timeout is fine; don't fail the whole deploy if it lags.
           if kubectl -n mapa get deploy migrate-worker >/dev/null 2>&1; then
             kubectl -n mapa set image deployment/migrate-worker \
               worker=${{ env.IMAGE }}-worker:${{ github.sha }}
@@ -461,33 +280,10 @@ jobs:
               echo "::warning::migrate-worker roll lagging — check kubectl -n mapa get pods"
           fi
 
-      # --- migrate: enqueue the Neon->Hetzner data + images->R2 migration. The
-      #     migrate-worker Deployment (already running from a prior deploy) drains
-      #     the queue. Re-runnable: deterministic jobIds + photo_migrated_at make
-      #     it idempotent, so fire this again to pull new syncs / pending photos.
-      - name: Enqueue migration
-        if: ${{ inputs.what == 'migrate' }}
-        run: |
-          set -euo pipefail
-          [ -f "$HOME/.kube/config" ] || { echo "::error::No kubeconfig (KUBECONFIG secret). Run provision first."; exit 1; }
-          if ! kubectl -n mapa get deploy migrate-worker >/dev/null 2>&1; then
-            echo "::error::migrate-worker not deployed — run 'deploy' first (it applies the worker)."; exit 1
-          fi
-          # Fresh run: clear any prior Job, then apply with the real worker image.
-          kubectl -n mapa delete job migrate-enqueue --ignore-not-found
-          # Reuse the worker image from the last deploy (:latest) — migrate builds
-          # nothing, so the per-sha tag may not exist at this commit.
-          sed "s#ghcr.io/OWNER/REPO-worker:latest#${{ env.IMAGE }}-worker:latest#" \
-            infra/k8s/migrate-enqueue-job.yaml | kubectl apply -f -
-          echo "Enqueue Job submitted. Tailing producer logs (Ctrl-C-safe; the Job runs on)..."
-          kubectl -n mapa wait --for=condition=ready pod -l app=migrate-enqueue --timeout=120s || true
-          kubectl -n mapa logs -f job/migrate-enqueue --tail=-1 || true
-          echo "::notice::Producer finished enqueuing. Watch workers drain: kubectl -n mapa logs -f deploy/migrate-worker"
-
       - name: Rollback hint on failure
-        if: ${{ failure() && inputs.what == 'deploy' }}
+        if: ${{ failure() }}
         run: |
-          echo "::warning::Roll failed. To revert: kubectl -n mapa rollout undo deployment/app"
+          echo "::warning::Deploy failed. To revert: kubectl -n mapa rollout undo deployment/app"
 
       - name: Done
-        run: echo "✅ ${{ inputs.what }} finished."
+        run: echo "✅ deploy ($TARGET) finished."
