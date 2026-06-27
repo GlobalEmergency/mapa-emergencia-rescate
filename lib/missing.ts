@@ -8,6 +8,7 @@ export interface MissingPerson {
   id: string;
   name: string;
   age: number | null;
+  nationality: string;
   description: string;
   lastSeen: string;
   contact: string;
@@ -27,6 +28,7 @@ export interface MissingMapMarker {
   id: string;
   name: string;
   age: number | null;
+  nationality: string;
   lastSeen: string;
   photoUrl: string | null;
   lat: number;
@@ -46,6 +48,7 @@ export type MissingReportType = "missing" | "found";
 export interface NewMissingPerson {
   name: string;
   age?: number | string | null;
+  nationality?: string | null;
   description?: string;
   lastSeen?: string;
   contact?: string;
@@ -56,6 +59,7 @@ export interface NewMissingPerson {
 }
 
 export const MAX_NAME = 120;
+export const MAX_NATIONALITY = 80;
 export const MAX_DESCRIPTION = 600;
 export const MAX_LAST_SEEN = 200;
 export const MAX_CONTACT = 120;
@@ -105,6 +109,7 @@ function ensureSchema(): Promise<void> {
       `;
       // Columnas nuevas: ALTER ... IF NOT EXISTS para no romper datos previos.
       await sql`ALTER TABLE missing_persons ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'active'`;
+      await sql`ALTER TABLE missing_persons ADD COLUMN IF NOT EXISTS nationality TEXT NOT NULL DEFAULT ''`;
       await sql`ALTER TABLE missing_persons ADD COLUMN IF NOT EXISTS resolution_note TEXT`;
       await sql`ALTER TABLE missing_persons ADD COLUMN IF NOT EXISTS resolution_photo TEXT`;
       await sql`ALTER TABLE missing_persons ADD COLUMN IF NOT EXISTS resolved_at BIGINT`;
@@ -193,6 +198,7 @@ type Row = {
   id: string;
   name: string;
   age: number | null;
+  nationality: string | null;
   description: string;
   last_seen: string;
   contact: string;
@@ -217,6 +223,7 @@ function rowToPerson(row: Row): MissingPerson {
     id: row.id,
     name: row.name,
     age: row.age === null ? null : Number(row.age),
+    nationality: row.nationality ?? "",
     description: row.description,
     lastSeen: row.last_seen,
     contact: row.contact,
@@ -244,7 +251,7 @@ export function isValidPhotoDataUrl(photo: string): boolean {
 }
 
 /** Columnas que alimentan `rowToPerson` (sin exponer las fotos embebidas). */
-const SELECT_COLS = `id, name, age, description, last_seen, contact,
+const SELECT_COLS = `id, name, age, nationality, description, last_seen, contact,
   (photo IS NOT NULL) AS has_photo,
   photo_external_url,
   status,
@@ -437,6 +444,9 @@ export async function addMissing(
   const id = crypto.randomUUID();
   const name = (input.name ?? "").trim().slice(0, MAX_NAME);
   const age = normalizeAge(input.age);
+  const nationality = (input.nationality ?? "")
+    .trim()
+    .slice(0, MAX_NATIONALITY);
   const description = (input.description ?? "").trim().slice(0, MAX_DESCRIPTION);
   const lastSeen = (input.lastSeen ?? "").trim().slice(0, MAX_LAST_SEEN);
   const contact = (input.contact ?? "").trim().slice(0, MAX_CONTACT);
@@ -452,10 +462,10 @@ export async function addMissing(
     await ensureSchema();
     await getSql()`
       INSERT INTO missing_persons
-        (id, name, age, description, last_seen, contact, photo, created_at,
+        (id, name, age, nationality, description, last_seen, contact, photo, created_at,
          status, resolution_note, resolved_at)
       VALUES (
-        ${id}, ${name}, ${age}, ${description}, ${lastSeen},
+        ${id}, ${name}, ${age}, ${nationality}, ${description}, ${lastSeen},
         ${contact}, ${photo}, ${createdAt},
         ${status}, ${resolutionNote}, ${resolvedAt}
       )
@@ -465,6 +475,7 @@ export async function addMissing(
       id,
       name,
       age,
+      nationality,
       description,
       lastSeen,
       contact,
@@ -483,6 +494,7 @@ export async function addMissing(
     id,
     name,
     age,
+    nationality,
     description,
     lastSeen,
     contact,
@@ -524,8 +536,9 @@ export async function markMissingFound(
           resolution_photo = ${photo},
           resolved_at = ${resolvedAt}
       WHERE id = ${id} AND COALESCE(status, 'active') = 'active'
-      RETURNING id, name, age, description, last_seen, contact,
+      RETURNING id, name, age, nationality, description, last_seen, contact,
                 (photo IS NOT NULL) AS has_photo,
+                photo_external_url,
                 COALESCE(status, 'active') AS status,
                 resolution_note,
                 (resolution_photo IS NOT NULL) AS has_resolution_photo,
@@ -686,6 +699,7 @@ type MapRow = {
   id: string;
   name: string;
   age: number | null;
+  nationality: string | null;
   last_seen: string;
   has_photo: boolean;
   photo_external_url: string | null;
@@ -730,7 +744,7 @@ export async function listMissingMapMarkers(
   }
 
   const rows = (await sql.query(
-    `SELECT id, name, age, last_seen,
+    `SELECT id, name, age, nationality, last_seen,
             (photo IS NOT NULL) AS has_photo,
             photo_external_url,
             lat, lng, created_at
@@ -745,6 +759,7 @@ export async function listMissingMapMarkers(
     id: row.id,
     name: row.name,
     age: row.age === null ? null : Number(row.age),
+    nationality: row.nationality ?? "",
     lastSeen: row.last_seen,
     photoUrl: row.has_photo
       ? `/api/missing/${row.id}/photo`

@@ -246,6 +246,7 @@ async function ensureSchema() {
     )
   `;
   await sql`ALTER TABLE missing_persons ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'active'`;
+  await sql`ALTER TABLE missing_persons ADD COLUMN IF NOT EXISTS nationality TEXT NOT NULL DEFAULT ''`;
   await sql`ALTER TABLE missing_persons ADD COLUMN IF NOT EXISTS resolution_note TEXT`;
   await sql`ALTER TABLE missing_persons ADD COLUMN IF NOT EXISTS resolution_photo TEXT`;
   await sql`ALTER TABLE missing_persons ADD COLUMN IF NOT EXISTS resolved_at BIGINT`;

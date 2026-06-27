@@ -48,8 +48,8 @@ export default function PrivacidadPage() {
           </li>
           <li>
             <strong>Personas desaparecidas</strong>: nombre, edad aproximada,
-            descripción, último lugar visto, contacto y foto. Datos públicos
-            por su naturaleza (ayudar a ubicarla).
+            nacionalidad opcional, descripción, último lugar visto, contacto y
+            foto. Datos públicos por su naturaleza (ayudar a ubicarla).
           </li>
           <li>
             <strong>Chat de voluntarios</strong>: alias (no verificado) y

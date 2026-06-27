@@ -10,6 +10,7 @@ interface MissingPerson {
   id: string;
   name: string;
   age: number | null;
+  nationality?: string;
   description: string;
   lastSeen: string;
   contact: string;
@@ -58,6 +59,7 @@ function shareText(person: MissingPerson): string {
   const parts = [
     `🚨 Buscamos a ${person.name}`,
     person.age !== null ? `${person.age} años.` : null,
+    person.nationality ? `Nacionalidad: ${person.nationality}.` : null,
     person.lastSeen ? `Visto por última vez en ${person.lastSeen}.` : null,
     "Si tienes información, ayuda a difundir 🙏",
   ].filter(Boolean);
@@ -131,6 +133,12 @@ export default function MissingPersonDetail({
   const isFound = person.status === "found";
   const url = shareUrl(person);
   const text = shareText(person);
+  const personMeta = [
+    person.age !== null ? `${person.age} años` : null,
+    person.nationality || null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   const copyShare = useCallback(async () => {
     setShareError(null);
@@ -227,8 +235,8 @@ export default function MissingPersonDetail({
           <h3 id="missing-detail-title" className="e-person-modal__title">
             {person.name}
           </h3>
-          {person.age !== null && (
-            <p className="e-person-modal__age">{person.age} años</p>
+          {personMeta && (
+            <p className="e-person-modal__age">{personMeta}</p>
           )}
         </div>
 

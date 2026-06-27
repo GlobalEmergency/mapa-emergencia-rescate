@@ -33,6 +33,7 @@ interface MissingPerson {
   id: string;
   name: string;
   age: number | null;
+  nationality?: string;
   description: string;
   lastSeen: string;
   contact: string;
@@ -689,6 +690,12 @@ function MissingPersonCard({
   onOpen: () => void;
 }) {
   const isFound = person.status === "found";
+  const personMeta = [
+    person.age !== null ? `${person.age} años` : null,
+    person.nationality || null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <button
@@ -726,8 +733,8 @@ function MissingPersonCard({
           <span className="e-person-card__name" title={person.name}>
             {person.name}
           </span>
-          {person.age !== null && (
-            <span className="e-person-card__age">· {person.age} años</span>
+          {personMeta && (
+            <span className="e-person-card__age">· {personMeta}</span>
           )}
         </div>
 

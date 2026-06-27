@@ -103,6 +103,7 @@ type MissingProps = {
 	id: string;
 	name: string;
 	age: number | null;
+	nationality: string;
 	lastSeen: string;
 	photoUrl: string | null;
 };
@@ -131,6 +132,7 @@ function MissingClusterLayer({
 					id: m.id,
 					name: m.name,
 					age: m.age,
+					nationality: m.nationality,
 					lastSeen: m.lastSeen,
 					photoUrl: m.photoUrl,
 				},
@@ -182,6 +184,12 @@ function MissingClusterLayer({
 				const p = props as MissingProps;
 				const [jLat, jLng] = jitterPosition(p.id, lat, lng);
 				const markerId = `missing:${p.id}`;
+				const personMeta = [
+					p.age !== null ? `${p.age} años` : null,
+					p.nationality || null,
+				]
+					.filter(Boolean)
+					.join(" · ");
 				return (
 					<Marker
 						key={markerId}
@@ -207,8 +215,8 @@ function MissingClusterLayer({
 									/>
 								)}
 								<p className="font-medium">{p.name}</p>
-								{p.age !== null && (
-									<p className="text-xs text-slate-600">{p.age} años</p>
+								{personMeta && (
+									<p className="text-xs text-slate-600">{personMeta}</p>
 								)}
 								{p.lastSeen && (
 									<p className="text-slate-600">📍 {p.lastSeen}</p>

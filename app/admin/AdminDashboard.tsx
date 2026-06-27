@@ -108,6 +108,7 @@ interface Person {
   id: string;
   name: string;
   age: number | null;
+  nationality?: string;
   description: string;
   lastSeen: string;
   contact: string;
@@ -1066,6 +1067,12 @@ export default function AdminDashboard() {
               ) : (
                 filteredPeople.map((p) => {
                   const phone = extractPhone(p.contact);
+                  const personMeta = [
+                    p.age !== null ? `${p.age} años` : null,
+                    p.nationality || null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ");
                   return (
                     <li key={p.id} className="flex items-start gap-3 p-3">
                       {p.photoUrl ? (
@@ -1084,10 +1091,10 @@ export default function AdminDashboard() {
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-semibold text-slate-900">
                           {p.name}
-                          {p.age !== null && (
+                          {personMeta && (
                             <span className="font-normal text-slate-500">
                               {" "}
-                              · {p.age} años
+                              · {personMeta}
                             </span>
                           )}
                         </p>

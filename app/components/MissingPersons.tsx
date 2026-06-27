@@ -19,6 +19,7 @@ interface MissingPerson {
   id: string;
   name: string;
   age: number | null;
+  nationality?: string;
   description: string;
   lastSeen: string;
   contact: string;
@@ -369,6 +370,12 @@ export default function MissingPersons() {
             <ul className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {people.map((person) => {
                 const phone = extractPhone(person.contact);
+                const personMeta = [
+                  person.age !== null ? `${person.age} años` : null,
+                  person.nationality || null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ");
                 return (
                   <li
                     key={person.id}
@@ -403,10 +410,10 @@ export default function MissingPersons() {
                       <div className="min-w-0 flex-1">
                         <p className="pr-6 font-semibold text-slate-900">
                           {person.name}
-                          {person.age !== null && (
+                          {personMeta && (
                             <span className="font-normal text-slate-500">
                               {" "}
-                              · {person.age} años
+                              · {personMeta}
                             </span>
                           )}
                         </p>

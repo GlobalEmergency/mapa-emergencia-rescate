@@ -8,6 +8,7 @@ interface MissingPerson {
   id: string;
   name: string;
   age: number | null;
+  nationality?: string;
   description: string;
   lastSeen: string;
   contact: string;
@@ -154,7 +155,14 @@ export default function FoundPersons() {
         </div>
 
         <ul className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {people.map((person) => (
+          {people.map((person) => {
+            const personMeta = [
+              person.age !== null ? `${person.age} años` : null,
+              person.nationality || null,
+            ]
+              .filter(Boolean)
+              .join(" · ");
+            return (
             <li
               key={person.id}
               className="relative overflow-hidden rounded-xl border border-emerald-200 transition hover:border-emerald-300 hover:shadow-sm"
@@ -184,10 +192,10 @@ export default function FoundPersons() {
                   </span>
                   <p className="mt-1 font-semibold text-slate-900">
                     {person.name}
-                    {person.age !== null && (
+                    {personMeta && (
                       <span className="font-normal text-slate-500">
                         {" "}
-                        · {person.age} años
+                        · {personMeta}
                       </span>
                     )}
                   </p>
@@ -208,7 +216,8 @@ export default function FoundPersons() {
                 </div>
               </button>
             </li>
-          ))}
+            );
+          })}
         </ul>
 
         {totalPages > 1 && (

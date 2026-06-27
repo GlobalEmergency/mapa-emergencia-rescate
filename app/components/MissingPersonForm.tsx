@@ -11,6 +11,7 @@ type PersonStatus = "safe" | "deceased";
 export interface MissingPersonPayload {
   name: string;
   age: string;
+  nationality: string;
   lastSeen: string;
   description: string;
   contact: string;
@@ -27,6 +28,18 @@ interface Props {
 
 const MAX_DIM = 800;
 const JPEG_QUALITY = 0.62;
+const NATIONALITY_OPTIONS = [
+  "Venezolana",
+  "Colombiana",
+  "Peruana",
+  "Ecuatoriana",
+  "Chilena",
+  "Argentina",
+  "Brasileña",
+  "Cubana",
+  "Española",
+  "Otra",
+];
 
 async function fileToResizedDataUrl(file: File): Promise<string> {
   const bitmap = await createImageBitmap(file);
@@ -188,6 +201,7 @@ export default function MissingPersonForm({
   const [personStatus, setPersonStatus] = useState<PersonStatus | null>(null);
   const [name, setName] = useState("");
   const [age, setAge] = useState("");
+  const [nationality, setNationality] = useState("");
   const [location, setLocation] = useState("");
   const [lastContactAt, setLastContactAt] = useState("");
   const [description, setDescription] = useState("");
@@ -276,6 +290,7 @@ export default function MissingPersonForm({
         await onSubmit({
           name: name.trim(),
           age: age.trim(),
+          nationality: nationality.trim(),
           lastSeen: formatLastSeen(
             location,
             lastContactAt,
@@ -296,6 +311,7 @@ export default function MissingPersonForm({
           foundPlace: foundPlace ?? undefined,
           personStatus: personStatus ?? undefined,
           hasAge: Boolean(age.trim()),
+          hasNationality: Boolean(nationality.trim()),
           hasLastSeen: Boolean(location.trim()),
           hasLastContactAt: Boolean(lastContactAt.trim()),
           hasDescription: Boolean(description.trim()),
@@ -310,6 +326,7 @@ export default function MissingPersonForm({
     [
       name,
       age,
+      nationality,
       location,
       lastContactAt,
       description,
@@ -488,6 +505,26 @@ export default function MissingPersonForm({
                 placeholder="Años"
                 className="e-input"
               />
+            </div>
+            <div className="e-report-modal__field--wide">
+              <label htmlFor="report-nationality" className="e-report-modal__label mb-1.5 block text-[13px] font-bold text-[var(--etext)]">
+                Nacionalidad
+              </label>
+              <input
+                id="report-nationality"
+                type="text"
+                list="report-nationality-options"
+                value={nationality}
+                onChange={(e) => setNationality(e.target.value)}
+                maxLength={80}
+                placeholder="Ej. Venezolana"
+                className="e-input"
+              />
+              <datalist id="report-nationality-options">
+                {NATIONALITY_OPTIONS.map((option) => (
+                  <option key={option} value={option} />
+                ))}
+              </datalist>
             </div>
           </div>
 

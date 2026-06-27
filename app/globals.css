@@ -1679,6 +1679,10 @@ a:focus-visible,
 	gap: 0.875rem 0.75rem;
 }
 
+.e-report-modal__field--wide {
+	grid-column: 1 / -1;
+}
+
 @media (max-width: 480px) {
 	.e-report-modal__grid {
 		grid-template-columns: 1fr;
