@@ -1,7 +1,8 @@
 # Deploy to Hetzner (k3s) — DEPLOY ONLY.
 #
 # Trigger:
-#   - push a `main`         -> auto-deploy a STAGING (CD).
+#   - PR MERGEADO a `main`  -> auto-deploy a STAGING (CD). Un push crudo / bypass
+#                              de admin a main NO dispara deploy.
 #   - workflow_dispatch     -> deploy manual; eliges target (staging | prod).
 #                              (prod SIEMPRE es un botón deliberado, nunca auto.)
 #
@@ -12,9 +13,9 @@
 # Las tareas de infraestructura (provision, recreate-master, plan, migrate
 # enqueue) NO viven aquí a propósito — córrelas a mano (tofu/kubectl).
 #
-# RESTRICCIÓN: solo corre desde `main`. El filtro `branches:` de workflow_dispatch
-# NO se respeta; el guard real es `if: github.ref == 'refs/heads/main'` a nivel de
-# job. `push` ya está acotado a `branches: [main]`. Refuerza con branch protection.
+# RESTRICCIÓN: el gate real es el `if` a nivel de job
+# (github.event.pull_request.merged == true && base.ref == 'main', o dispatch).
+# El ruleset "proteger main" exige PR + review de code-owner + check Build & Test.
 #
 # Pre-requisitos (una vez, con provision fuera de este workflow): cluster k3s,
 # secret KUBECONFIG (base64), y los secrets app-env + migrate-env creados.
@@ -24,7 +25,10 @@
 name: Deploy to Hetzner (k3s)
 
 on:
-  push:
+  # Solo despliega cuando un PR se MERGEA a main (no en push crudo / bypass de
+  # admin). El gate real es el `if` a nivel de job: merged==true && base==main.
+  pull_request:
+    types: [closed]
     branches: [main]
   workflow_dispatch:
     inputs:
@@ -49,7 +53,11 @@ jobs:
   verify:
     name: verify
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    # Corre solo si: (a) un PR se MERGEÓ a main, o (b) dispatch manual.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.merged == true &&
+       github.event.pull_request.base.ref == 'main')
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v4
@@ -77,19 +85,29 @@ jobs:
     name: deploy
     runs-on: ubuntu-latest
     needs: verify
-    # SOLO desde main. workflow_dispatch deja elegir rama en la UI, pero este
-    # guard rechaza cualquier ejecución que no venga de main.
-    if: github.ref == 'refs/heads/main'
+    # Mismo gate que verify: PR mergeado a main, o dispatch manual. Un push crudo
+    # a main (p.ej. bypass de admin) NO dispara este workflow.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.merged == true &&
+       github.event.pull_request.base.ref == 'main')
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          # En pull_request:closed el checkout por defecto es la merge-ref del PR.
+          # El PR YA está mergeado, así que construimos sobre `main` real.
+          ref: main
 
-      - name: Compute image name (lowercase)
+      - name: Compute image name (lowercase) + SHA
         run: |
           echo "IMAGE=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_ENV"
+          # github.sha en pull_request apunta a la merge-ref de prueba; usamos el
+          # HEAD real de main (lo que acabamos de hacer checkout) para taggear.
+          echo "SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
 
-      # Resuelve el target: push->staging; dispatch->lo elegido (default staging).
-      # prod NUNCA sale de un push automático.
+      # Resuelve el target: merge a main -> staging; dispatch -> lo elegido
+      # (default staging). prod NUNCA sale de un merge automático.
       - name: Resolve target
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
@@ -102,7 +120,7 @@ jobs:
         run: |
           echo "event  = ${{ github.event_name }}"
           echo "target = $TARGET"
-          echo "image  = ${{ env.IMAGE }}:${{ github.sha }}"
+          echo "image  = ${{ env.IMAGE }}:${{ env.SHA }}"
           echo "actor  = ${{ github.actor }}"
           echo "ref    = ${{ github.ref }}"
 
@@ -127,10 +145,10 @@ jobs:
           # docker would build the worker image and push it as the app tag.
           push: true
           tags: |
-            ${{ env.IMAGE }}:${{ github.sha }}
+            ${{ env.IMAGE }}:${{ env.SHA }}
             ${{ env.IMAGE }}:latest
           build-args: |
-            APP_BUILD_SHA=${{ github.sha }}
+            APP_BUILD_SHA=${{ env.SHA }}
             NEXT_PUBLIC_ASSET_PREFIX=${{ secrets.NEXT_PUBLIC_ASSET_PREFIX }}
             NEXT_PUBLIC_OPENPANEL_CLIENT_ID=${{ secrets.NEXT_PUBLIC_OPENPANEL_CLIENT_ID }}
             NEXT_PUBLIC_OPENPANEL_PRODUCTION_HOST=${{ vars.NEXT_PUBLIC_OPENPANEL_PRODUCTION_HOST || 'terremotovenezuela.app' }}
@@ -144,7 +162,7 @@ jobs:
           target: worker
           push: true
           tags: |
-            ${{ env.IMAGE }}-worker:${{ github.sha }}
+            ${{ env.IMAGE }}-worker:${{ env.SHA }}
             ${{ env.IMAGE }}-worker:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -171,6 +189,20 @@ jobs:
           echo "$KUBECONFIG_B64" | base64 -d > "$HOME/.kube/config"
           chmod 600 "$HOME/.kube/config"
           kubectl get nodes
+
+      # GHCR es privado -> el clúster necesita un secret de pull. Lo creamos/
+      # refrescamos en cada deploy con el GITHUB_TOKEN del run (tiene read:packages
+      # sobre este repo). Los manifests referencian `imagePullSecrets: ghcr-pull`.
+      - name: Ensure ghcr-pull secret
+        run: |
+          set -euo pipefail
+          kubectl create namespace mapa --dry-run=client -o yaml | kubectl apply -f -
+          kubectl -n mapa create secret docker-registry ghcr-pull \
+            --docker-server=ghcr.io \
+            --docker-username='${{ github.actor }}' \
+            --docker-password='${{ secrets.GITHUB_TOKEN }}' \
+            --docker-email='ci@users.noreply.github.com' \
+            --dry-run=client -o yaml | kubectl apply -f -
 
       # migrate-env: secret the migration worker + the gated migrate Job need
       # (NEON + R2). Re-applied each deploy so it stays in sync. No-op if unset.
@@ -233,7 +265,7 @@ jobs:
             echo "R2 secrets unset — skipping static upload."
             exit 0
           fi
-          IMAGE="${{ env.IMAGE }}:${{ github.sha }}"
+          IMAGE="${{ env.IMAGE }}:${{ env.SHA }}"
           docker pull "$IMAGE"
           CID=$(docker create "$IMAGE")
           rm -rf /tmp/next-static && mkdir -p /tmp/next-static
@@ -272,7 +304,7 @@ jobs:
           kubectl apply -f infra/k8s/deployment.yaml
           # Migration worker Deployment (only if migrate-env exists).
           if kubectl -n mapa get secret migrate-env >/dev/null 2>&1; then
-            sed "s#ghcr.io/OWNER/REPO-worker:latest#${{ env.IMAGE }}-worker:${{ github.sha }}#" \
+            sed "s#ghcr.io/OWNER/REPO-worker:latest#${{ env.IMAGE }}-worker:${{ env.SHA }}#" \
               infra/k8s/worker-deployment.yaml | kubectl apply -f -
           else
             echo "migrate-env not present — skipping worker Deployment."
@@ -284,10 +316,10 @@ jobs:
       - name: Apply DB migrations (gated)
         run: |
           set -euo pipefail
-          JOB="migrate-${{ github.sha }}"
+          JOB="migrate-${{ env.SHA }}"
           kubectl -n mapa delete job "$JOB" --ignore-not-found
           sed -e "s#^  name: migrate\$#  name: ${JOB}#" \
-              -e "s#ghcr.io/OWNER/REPO-worker:latest#${{ env.IMAGE }}-worker:${{ github.sha }}#" \
+              -e "s#ghcr.io/OWNER/REPO-worker:latest#${{ env.IMAGE }}-worker:${{ env.SHA }}#" \
             infra/k8s/migrate-job.yaml | kubectl apply -f -
           if ! kubectl -n mapa wait --for=condition=complete "job/${JOB}" --timeout=180s; then
             echo "::error::Migration Job did not complete. Logs:"
@@ -300,11 +332,11 @@ jobs:
         run: |
           set -euo pipefail
           kubectl -n mapa set image deployment/app \
-            app=${{ env.IMAGE }}:${{ github.sha }}
+            app=${{ env.IMAGE }}:${{ env.SHA }}
           kubectl -n mapa rollout status deployment/app --timeout=300s
           if kubectl -n mapa get deploy migrate-worker >/dev/null 2>&1; then
             kubectl -n mapa set image deployment/migrate-worker \
-              worker=${{ env.IMAGE }}-worker:${{ github.sha }}
+              worker=${{ env.IMAGE }}-worker:${{ env.SHA }}
             kubectl -n mapa rollout status deployment/migrate-worker --timeout=180s || \
               echo "::warning::migrate-worker roll lagging — check kubectl -n mapa get pods"
           fi

@@ -30,6 +30,8 @@ spec:
       labels:
         app: migrate-worker
     spec:
+      imagePullSecrets:
+        - name: ghcr-pull
       # Workers drain in-flight jobs on SIGTERM (worker/index.ts). Give them room.
       terminationGracePeriodSeconds: 120
       containers:

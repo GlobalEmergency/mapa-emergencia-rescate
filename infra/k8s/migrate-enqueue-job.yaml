@@ -21,6 +21,8 @@ spec:
       labels:
         app: migrate-enqueue
     spec:
+      imagePullSecrets:
+        - name: ghcr-pull
       restartPolicy: Never
       containers:
         - name: enqueue

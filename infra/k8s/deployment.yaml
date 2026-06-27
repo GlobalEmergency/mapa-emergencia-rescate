@@ -33,6 +33,9 @@ spec:
       labels:
         app: mapa
     spec:
+      # GHCR es privado: secret de pull creado/refrescado por el workflow.
+      imagePullSecrets:
+        - name: ghcr-pull
       terminationGracePeriodSeconds: 40
       containers:
         - name: app
