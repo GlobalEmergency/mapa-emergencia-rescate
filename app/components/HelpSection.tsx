@@ -3,7 +3,7 @@ import { Users, Heart, Globe } from "lucide-react";
 
 export default function HelpSection() {
   return (
-    <section id="equipo" className="bg-slate-50 px-4 py-16 sm:px-6 lg:py-24">
+    <section id="equipo" className="bg-slate-50 px-4 pt-10 pb-16 sm:px-6 lg:pt-12 lg:pb-24">
       <div className="mx-auto max-w-[1120px]">
         <div className="mb-12 text-center">
           <h2 className="mb-3 text-[clamp(28px,4vw,40px)] font-[family-name:var(--qi-font-display)] font-bold tracking-tight text-slate-900">

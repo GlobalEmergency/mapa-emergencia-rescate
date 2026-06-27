@@ -110,7 +110,7 @@ export default function TutorialSteps() {
           </form>
         </div>
 
-        <div className="e-ayuda-3cards mt-6 mx-auto mb-20 max-w-[1120px]">
+        <div className="e-ayuda-3cards mt-6 mx-auto mb-2 max-w-[1120px]">
           <Link href="/guia" className="e-ayuda-card">
             <div className="e-ayuda-card__icon e-ayuda-card__icon--guides">
               <BookOpen size={18} color="#92400E" strokeWidth={2} />
@@ -121,7 +121,7 @@ export default function TutorialSteps() {
             </div>
             <ChevronRight size={14} className="e-ayuda-card__chevron" strokeWidth={2.5} />
           </Link>
-          <Link href="/apoyo-global" className="e-ayuda-card">
+          <Link href="/apoyo-disponible" className="e-ayuda-card">
             <div className="e-ayuda-card__icon e-ayuda-card__icon--support">
               <Heart size={18} color="#1649CC" strokeWidth={2} />
             </div>
