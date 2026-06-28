@@ -155,7 +155,7 @@ jobs:
           password: ${{ secrets.TOKEN_GITHUB_PACKAGES }}
 
       - name: Set up Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       # --- frontend (Next standalone, pure UI) ---------------------------------
       # context = frontend/. El browser llama al backend por URL ABSOLUTA, así que
