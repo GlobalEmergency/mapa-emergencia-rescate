@@ -149,6 +149,17 @@ spec:
             # Pool de workers EFÍMEROS: min:max:tipo:región:nombre.
             # min=2 -> piso siempre vivo. max=5 -> techo de ráfaga (cx23 = 2vCPU/4GB).
             - --nodes=2:5:cx23:hel1:mapa-pool
+            # IMPRESCINDIBLE para el modelo SIN workers fijos. El default del CA es
+            # REACTIVO: solo crea nodos cuando hay pods Pending; un `min` en --nodes
+            # NO se materializa solo (verificado en flags.go: el flag default=false,
+            # y en orchestrator.go ScaleUpToNodeGroupMinSize hace MinSize-targetSize
+            # incluso desde 0). Sin esto, el pool se queda en 0 con min=2 (se vio en
+            # el log: "Set node group mapa-pool size from 0 to 0") → si no hay tráfico
+            # y no hay workers fijos, el clúster queda con CERO workers. Con esto el
+            # CA sube el pool a 2 PROACTIVAMENTE (sin pods Pending), así el piso es
+            # auto-reparable y la migración a efímero no necesita drenar primero para
+            # forzar el arranque del piso.
+            - --enforce-node-group-min-size=true
             # --- guardrails de scale-down ---
             # Espera 10 min de baja utilización antes de retirar un nodo (evita
             # flapping y dar tiempo a drenar).
