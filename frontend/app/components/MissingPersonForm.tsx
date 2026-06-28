@@ -709,6 +709,11 @@ export default function MissingPersonForm({
             <p className="e-report-modal__warning-title mb-3 flex items-center gap-1.5 font-extrabold text-amber-700">
               <span aria-hidden>⚠</span> Antes de publicar
             </p>
+            <p className="mb-2">
+              Esta información será <strong>visible públicamente</strong> y
+              puede ser indexada por buscadores y replicada por plataformas
+              aliadas con fines humanitarios.
+            </p>
             <label className="e-report-modal__consent flex cursor-pointer items-start gap-2">
               <input
                 type="checkbox"
@@ -718,7 +723,25 @@ export default function MissingPersonForm({
               />
               <span>
                 Confirmo que un familiar o allegado autoriza publicar estos
-                datos para ayudar a localizar a la persona.
+                datos para ayudar a localizar a la persona, y acepto los{" "}
+                <a
+                  href="/terminos"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold text-amber-900 underline hover:text-amber-950"
+                >
+                  Términos
+                </a>{" "}
+                y la{" "}
+                <a
+                  href="/privacidad"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold text-amber-900 underline hover:text-amber-950"
+                >
+                  Política de Privacidad
+                </a>
+                .
               </span>
             </label>
           </div>

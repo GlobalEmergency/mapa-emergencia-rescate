@@ -76,7 +76,7 @@ export default function PsychologyHelpButton() {
         role="menu"
         aria-hidden={!open}
         inert={!open ? true : undefined}
-        className={`absolute right-0 top-full z-[1850] mt-2 w-[min(calc(100vw-2rem),18rem)] origin-top-right rounded-2xl border border-violet-200 bg-white p-4 shadow-2xl transition-all duration-200 ${
+        className={`fixed left-1/2 top-[70px] z-[1850] w-[min(calc(100vw-2rem),20rem)] origin-top -translate-x-1/2 rounded-2xl border border-violet-200 bg-white p-4 shadow-2xl transition-all duration-200 sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[min(calc(100vw-2rem),18rem)] sm:origin-top-right sm:translate-x-0 ${
           open
             ? "pointer-events-auto translate-y-0 scale-100 opacity-100"
             : "pointer-events-none -translate-y-1 scale-95 opacity-0"

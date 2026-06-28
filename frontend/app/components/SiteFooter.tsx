@@ -1,13 +1,6 @@
 import Link from "next/link";
 import { CONTACT_EMAIL } from "@/lib/site";
 
-const TWITTER_TEAM: { name: string; handle: string }[] = [
-  { name: "Allan Odreman", handle: "allanodremans" },
-  { name: "Cristian Mock", handle: "cristianmock" },
-  { name: "Vicky Torres", handle: "vickytorrss" },
-  { name: "Andrés G.", handle: "andresg747" },
-];
-
 export default function SiteFooter() {
   return (
     <footer
@@ -31,30 +24,6 @@ export default function SiteFooter() {
               <span aria-hidden>✉️</span>
               Escríbenos · {CONTACT_EMAIL}
             </Link>
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              {TWITTER_TEAM.map((person) => (
-                <a
-                  key={person.handle}
-                  href={`https://x.com/${person.handle}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="e-btn e-btn-secondary justify-start px-2.5 py-1.5 text-sm"
-                >
-                  <span
-                    aria-hidden
-                    className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[var(--etext)] text-xs text-white"
-                  >
-                    𝕏
-                  </span>
-                  <span className="flex min-w-0 flex-col leading-tight text-left">
-                    <span className="truncate font-semibold">{person.name}</span>
-                    <span className="truncate text-xs text-[var(--etext2)]">
-                      @{person.handle}
-                    </span>
-                  </span>
-                </a>
-              ))}
-            </div>
           </div>
 
           <div className="e-card flex flex-col border-indigo-200 bg-indigo-50 p-4">
@@ -161,9 +130,40 @@ export default function SiteFooter() {
           </div>
         </div>
 
-        <div className="mt-8 flex flex-col items-center justify-between gap-2 border-t border-[var(--eborder)] pt-6 text-center text-xs text-[var(--etext2)] sm:flex-row sm:text-left">
+        <nav
+          aria-label="Documentos legales"
+          className="mt-8 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 border-t border-[var(--eborder)] pt-6 text-sm sm:justify-start"
+        >
+          <Link
+            href="/privacidad"
+            className="font-semibold text-[var(--etext)] hover:underline"
+          >
+            Política de privacidad
+          </Link>
+          <span aria-hidden className="text-[var(--etext3)]">
+            ·
+          </span>
+          <Link
+            href="/terminos"
+            className="font-semibold text-[var(--etext)] hover:underline"
+          >
+            Términos y condiciones
+          </Link>
+          <span aria-hidden className="text-[var(--etext3)]">
+            ·
+          </span>
+          <Link
+            href="/contacto"
+            className="font-semibold text-[var(--etext)] hover:underline"
+          >
+            Contacto
+          </Link>
+        </nav>
+
+        <div className="mt-4 flex flex-col items-center justify-between gap-2 text-center text-xs text-[var(--etext2)] sm:flex-row sm:text-left">
           <p>
-            Plataforma de reporte ciudadano. Datos de mapas ©{" "}
+            Plataforma de reporte ciudadano sin fines de lucro. Datos de
+            mapas ©{" "}
             <a
               href="https://www.openstreetmap.org/copyright"
               target="_blank"

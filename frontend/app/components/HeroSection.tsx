@@ -134,6 +134,24 @@ export default function HeroSection() {
               onClick={goVolunteer}
             />
           </div>
+
+          <p
+            className="mt-6 text-center !text-white sm:mt-8"
+            style={{
+              fontSize: "clamp(12px, 1.3vw, 14px)",
+              color: "#FFFFFF",
+              opacity: 0.9,
+              textShadow: "0 1px 4px rgba(0,0,0,.3)",
+            }}
+          >
+            ¿Necesitas escribirnos?{" "}
+            <a
+              href="mailto:info@terremotovenezuela.app"
+              className="font-semibold underline decoration-white/40 underline-offset-4 transition hover:decoration-white"
+            >
+              info@terremotovenezuela.app
+            </a>
+          </p>
         </div>
       </div>
     </header>
