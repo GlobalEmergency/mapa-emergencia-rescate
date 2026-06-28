@@ -225,8 +225,16 @@ export default function MissingPersons() {
   );
 
   const handleMarkFound = useCallback(
-    async (id: string, payload: { note: string; photo: string | null }) => {
-      await markFound.mutateAsync({ id, note: payload.note, photo: payload.photo });
+    async (
+      id: string,
+      payload: { note: string; photo: string | null; turnstileToken?: string },
+    ) => {
+      await markFound.mutateAsync({
+        id,
+        note: payload.note,
+        photo: payload.photo,
+        turnstileToken: payload.turnstileToken,
+      });
       // Sale de la lista pública (activas).
       patchLocal((prev) => prev.filter((p) => p.id !== id));
       setTotalLocal((t) => Math.max(0, t - 1));

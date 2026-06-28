@@ -122,8 +122,16 @@ export const PersonsTab = forwardRef<PersonsTabHandle>(function PersonsTab(
 
   const markFound = useMarkFound();
   const handleMarkFound = useCallback(
-    async (id: string, payload: { note: string; photo: string | null }) => {
-      await markFound.mutateAsync({ id, note: payload.note, photo: payload.photo });
+    async (
+      id: string,
+      payload: { note: string; photo: string | null; turnstileToken?: string },
+    ) => {
+      await markFound.mutateAsync({
+        id,
+        note: payload.note,
+        photo: payload.photo,
+        turnstileToken: payload.turnstileToken,
+      });
       setSelected(null);
     },
     [markFound],

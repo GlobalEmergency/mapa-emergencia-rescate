@@ -2,10 +2,12 @@
 
 import { useCallback, useRef, useState } from "react";
 import { trackEvent } from "./openpanel";
+import { useTurnstile } from "./useTurnstile";
 
 export interface MissingFoundPayload {
   note: string;
   photo: string | null;
+  turnstileToken?: string; // prueba de humanidad (Cloudflare Turnstile)
 }
 
 interface Props {
@@ -48,6 +50,7 @@ export default function MissingFoundForm({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const { mountRef: turnstileMount, getToken: turnstileGetToken } = useTurnstile();
 
   const handleFile = useCallback(
     async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -86,7 +89,9 @@ export default function MissingFoundForm({
       }
       setSubmitting(true);
       try {
-        await onSubmit({ note: note.trim(), photo });
+        // Token FRESCO de Turnstile para este envío (se resetea tras leerlo).
+        const turnstileToken = await turnstileGetToken();
+        await onSubmit({ note: note.trim(), photo, turnstileToken });
         trackEvent("missing_person_marked_found", {
           hasPhoto: true,
         });
@@ -95,7 +100,7 @@ export default function MissingFoundForm({
         setSubmitting(false);
       }
     },
-    [note, photo, onSubmit],
+    [note, photo, onSubmit, turnstileGetToken],
   );
 
   return (
@@ -215,6 +220,9 @@ export default function MissingFoundForm({
               {error}
             </p>
           )}
+
+          {/* Turnstile (managed/invisible). Solo aparece si CF pide interacción. */}
+          <div ref={turnstileMount} className="flex justify-center empty:hidden" />
 
           <div className="flex justify-end gap-2 pt-1">
             <button
