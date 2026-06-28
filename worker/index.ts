@@ -4,11 +4,20 @@
  * Graceful SIGTERM (boahaus pattern): drain in-flight jobs before exit so a
  * rolling restart never drops work.
  */
-import { createWorkers } from "./queues";
+import { createWorkers, registerHubSchedulers } from "./queues";
 import { closePools } from "./db";
 
 const workers = createWorkers();
 console.log(`[worker] started ${workers.length} workers`);
+
+// Schedulers repetibles del hub (Celery-Beat-equivalente): incremental cada
+// 5 min + reconcile cada 6 h. Idempotente (upsert). Se puede apagar con
+// HUB_SCHEDULERS=0 (p. ej. para correr solo la migración sin federación).
+if (process.env.HUB_SCHEDULERS !== "0") {
+  registerHubSchedulers().catch((err) =>
+    console.error("[hub] no se pudieron registrar schedulers:", err?.message || err),
+  );
+}
 
 let shuttingDown = false;
 async function shutdown(signal: string) {

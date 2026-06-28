@@ -158,6 +158,27 @@ interface AdminContactData {
   messages: ContactRow[];
 }
 
+// Conteos de la federación del hub (otros sitios). /api/hub/stats. RFC 0002.
+interface HubTypeStat {
+  type: string;
+  count: number;
+  photos?: number;
+  broken?: number;
+  lastIngestedAt: number | null;
+}
+interface HubStats {
+  total: number;
+  byType: HubTypeStat[];
+}
+
+const HUB_TYPE_LABEL: Record<string, string> = {
+  missing_person: "Desaparecidas",
+  checkin: "Check-ins",
+  help_request: "Solicitudes de ayuda",
+  help_offer: "Ofertas de ayuda",
+  damaged_building: "Edificios dañados",
+};
+
 type Tab =
   | "analytics"
   | "reports"
@@ -228,6 +249,7 @@ export default function AdminDashboard() {
     null,
   );
   const [contactData, setContactData] = useState<AdminContactData | null>(null);
+  const [hubStats, setHubStats] = useState<HubStats | null>(null);
   const [tab, setTab] = useState<Tab>("analytics");
   const [query, setQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -314,6 +336,24 @@ export default function AdminDashboard() {
       // se reintenta en el siguiente ciclo
     }
   }, [logout]);
+
+  // Conteos de la federación (público, sin PII): no necesita token.
+  const fetchHubStats = useCallback(async () => {
+    try {
+      const res = await fetch("/api/hub/stats", { cache: "no-store" });
+      if (!res.ok) return;
+      setHubStats(await res.json());
+    } catch {
+      // se reintenta en el siguiente ciclo
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!token) return;
+    fetchHubStats();
+    const id = setInterval(fetchHubStats, POLL_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [token, fetchHubStats]);
 
   useEffect(() => {
     if (!token) return;
@@ -689,6 +729,46 @@ export default function AdminDashboard() {
               </span>
             ))}
           </div>
+        )}
+
+        {/* Federación: datos sincronizados desde OTROS sitios (hub central). RFC 0002. */}
+        {hubStats && (
+          <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="text-sm font-semibold text-slate-900">
+                Federación · datos de otros sitios
+              </h2>
+              <span className="text-sm text-slate-500">
+                {hubStats.total.toLocaleString("es")} registros sincronizados
+              </span>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {hubStats.byType.map((s) => (
+                <span
+                  key={s.type}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1 text-sm text-slate-700 shadow-sm"
+                  title={
+                    s.lastIngestedAt
+                      ? `Último: ${new Date(s.lastIngestedAt).toLocaleString("es")}`
+                      : "Sin sincronizar aún"
+                  }
+                >
+                  <span className="text-slate-500">
+                    {HUB_TYPE_LABEL[s.type] ?? s.type}:
+                  </span>
+                  <span className="font-semibold text-slate-900">
+                    {s.count.toLocaleString("es")}
+                  </span>
+                  {s.photos !== undefined && (
+                    <span className="text-xs text-slate-400">
+                      ({s.photos} con foto
+                      {s.broken ? `, ${s.broken} rotas` : ""})
+                    </span>
+                  )}
+                </span>
+              ))}
+            </div>
+          </section>
         )}
 
         <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">

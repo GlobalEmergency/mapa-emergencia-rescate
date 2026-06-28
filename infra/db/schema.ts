@@ -334,3 +334,136 @@ export const unidentifiedPersons = pgTable("unidentified_persons", {
   photo: text("photo"),
   createdAt: epochMs("created_at").notNull(),
 });
+
+/* =====================================================================
+ * Federación con el hub central "Venezuela Ayuda" (terremoto.hazlohoy.org).
+ * Espejo READ-ONLY de los datos de OTROS sitios socios. Ver
+ * docs/rfcs/0002-federacion-hub-venezuela-ayuda.md.
+ *
+ * Una tabla por tipo del hub (catálogo cerrado de 5), espejando sus DTOs
+ * `*Public`. NUNCA se mezclan con las tablas nativas (evita duplicación: ya
+ * somos fuente del hub). Columnas comunes de federación:
+ *   hub_id   uuid del hub (identidad estable, UNIQUE -> idempotencia del upsert)
+ *   source   sitio socio que lo publicó (excluimos los nuestros al ingerir)
+ *   external_id  id del socio dentro de su sistema (puede venir null)
+ *   ingested_at  cuándo lo trajimos; updated_at  high-water de cambios vistos
+ * Columnas de imagen (mismo patrón que las nativas; la foto se copia a R2):
+ *   photo_external_url  la URL del socio (efímera, puede dar 404)
+ *   photo_url           la URL de R2 tras copiar
+ *   photo_migrated_at   sellado cuando ya está en R2 (NULL = pendiente)
+ *   photo_broken        true si la fuente devolvió 404/permanente
+ * ===================================================================== */
+
+// Columnas compartidas por todas las tablas hub_*. Se hace spread en cada una.
+const hubCommon = {
+  id: text("id").primaryKey(), // crypto.randomUUID() local
+  hubId: text("hub_id").notNull(), // uuid del hub (único)
+  source: text("source").notNull().default(""),
+  externalId: text("external_id"),
+  city: text("city"),
+  lat: doublePrecision("lat"),
+  lng: doublePrecision("lng"),
+  hubCreatedAt: text("hub_created_at"), // created_at del hub (ISO, tal cual)
+  ingestedAt: epochMs("ingested_at").notNull(),
+  updatedAt: epochMs("updated_at").notNull(),
+};
+
+// Columnas de imagen compartidas (solo en los tipos con foto).
+const hubPhoto = {
+  photoExternalUrl: text("photo_external_url"),
+  photoUrl: text("photo_url"),
+  photoMigratedAt: epochMs("photo_migrated_at"),
+  photoBroken: boolean("photo_broken").notNull().default(false),
+};
+
+export const hubMissingPersons = pgTable(
+  "hub_missing_persons",
+  {
+    ...hubCommon,
+    ...hubPhoto,
+    name: text("name").notNull().default(""),
+    status: text("status"), // LOOKING_FOR_SOMEONE, etc.
+    message: text("message"),
+    placeName: text("place_name"),
+  },
+  (t) => [
+    uniqueIndex("idx_hub_missing_hubid").on(t.hubId),
+    index("idx_hub_missing_source").on(t.source),
+    index("idx_hub_missing_photo_pending")
+      .on(t.id)
+      .where(sql`photo_migrated_at IS NULL AND photo_external_url IS NOT NULL`),
+  ],
+);
+
+export const hubCheckins = pgTable(
+  "hub_checkins",
+  {
+    ...hubCommon,
+    ...hubPhoto,
+    name: text("name").notNull().default(""),
+    status: text("status"), // SAFE, NEEDS_HELP, LOOKING_FOR_SOMEONE
+    message: text("message"),
+    placeName: text("place_name"),
+  },
+  (t) => [
+    uniqueIndex("idx_hub_checkins_hubid").on(t.hubId),
+    index("idx_hub_checkins_source").on(t.source),
+  ],
+);
+
+export const hubHelpRequests = pgTable(
+  "hub_help_requests",
+  {
+    ...hubCommon,
+    category: text("category"), // medical, food, water, ...
+    description: text("description"),
+    urgency: text("urgency"), // LOW..CRITICAL
+    status: text("status"), // OPEN, IN_PROGRESS, RESOLVED
+    placeName: text("place_name"),
+  },
+  (t) => [
+    uniqueIndex("idx_hub_helpreq_hubid").on(t.hubId),
+    index("idx_hub_helpreq_source").on(t.source),
+  ],
+);
+
+export const hubHelpOffers = pgTable(
+  "hub_help_offers",
+  {
+    ...hubCommon,
+    category: text("category"), // transportation, food, ...
+    description: text("description"),
+    availability: text("availability"),
+    available: boolean("available"),
+  },
+  (t) => [
+    uniqueIndex("idx_hub_helpoffer_hubid").on(t.hubId),
+    index("idx_hub_helpoffer_source").on(t.source),
+  ],
+);
+
+export const hubDamagedBuildings = pgTable(
+  "hub_damaged_buildings",
+  {
+    ...hubCommon,
+    ...hubPhoto,
+    placeName: text("place_name"),
+    name: text("name"),
+    description: text("description"),
+    severity: text("severity"), // CRACKS, PARTIAL, COLLAPSE_RISK, COLLAPSED
+  },
+  (t) => [
+    uniqueIndex("idx_hub_damaged_hubid").on(t.hubId),
+    index("idx_hub_damaged_source").on(t.source),
+  ],
+);
+
+/* ------------------------------------------------------- hub_sync_state */
+// Cursor de paginación por tipo del hub (created_at|id). Igual que sync_state
+// pero para la federación: el backfill/incremental reanudan desde aquí.
+export const hubSyncState = pgTable("hub_sync_state", {
+  type: text("type").primaryKey(), // missing_person, checkin, ...
+  cursor: text("cursor"), // último next_cursor visto (null = desde el inicio)
+  lastRunAt: epochMs("last_run_at"),
+  cycleCompletedAt: epochMs("cycle_completed_at"),
+});

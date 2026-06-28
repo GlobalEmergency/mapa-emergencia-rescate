@@ -22,6 +22,13 @@
       "when": 1782590847100,
       "tag": "0002_cloudy_marvel_boy",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1782604395749,
+      "tag": "0003_public_quasar",
+      "breakpoints": true
     }
   ]
 }

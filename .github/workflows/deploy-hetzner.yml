@@ -144,6 +144,12 @@ jobs:
           target: runtime # explicit: `worker` is the LAST stage; without this
           # docker would build the worker image and push it as the app tag.
           push: true
+          # build-push-action@v6 adjunta attestations (provenance/SBOM) por
+          # defecto, que se PUSHEAN como manifests extra. Con GITHUB_TOKEN en una
+          # org eso dispara "installation not allowed to Write organization
+          # package" aunque la imagen principal sí se permita. Las desactivamos.
+          provenance: false
+          sbom: false
           tags: |
             ${{ env.IMAGE }}:${{ env.SHA }}
             ${{ env.IMAGE }}:latest
@@ -162,6 +168,8 @@ jobs:
           context: .
           target: worker
           push: true
+          provenance: false
+          sbom: false
           tags: |
             ${{ env.IMAGE }}-worker:${{ env.SHA }}
             ${{ env.IMAGE }}-worker:latest

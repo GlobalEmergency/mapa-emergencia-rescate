@@ -1,0 +1,41 @@
+# One-off producer Job: carga INICIAL de la federación del hub. Encola un job de
+# backfill por tipo en la cola hub-ingest; el migrate-worker Deployment los
+# procesa. Re-ejecutable (cursor + upsert idempotente + lock de Valkey).
+# Ver docs/rfcs/0002-federacion-hub-venezuela-ayuda.md.
+#
+#   kubectl -n mapa delete job hub-backfill --ignore-not-found
+#   kubectl -n mapa apply -f infra/k8s/hub-backfill-job.yaml
+#   kubectl -n mapa logs -f job/hub-backfill
+#
+# Tras esto, el scheduler incremental (cada 5 min, en el worker) mantiene al día.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: hub-backfill
+  namespace: mapa
+spec:
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app: hub-backfill
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull
+      restartPolicy: Never
+      containers:
+        - name: hub-backfill
+          image: ghcr.io/OWNER/REPO-worker:latest
+          command: ["node", "--import", "tsx", "worker/hub-backfill.ts"]
+          envFrom:
+            - secretRef:
+                name: app-env
+            - secretRef:
+                name: migrate-env
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              memory: "512Mi"

@@ -32,6 +32,7 @@ export function buildOpenApiSpec(): Record<string, unknown> {
         { name: "donations", description: "Donaciones" },
         { name: "chat", description: "Chat ciudadano" },
         { name: "sync", description: "Sincronización de fuentes externas" },
+        { name: "hub", description: "Federación con el hub central (otros sitios, READ-ONLY)" },
         { name: "system", description: "Salud y utilidades" },
       ],
       components: { schemas: SCHEMAS },
