@@ -162,7 +162,7 @@ jobs:
       # NEXT_PUBLIC_API_URL se inlinea en BUILD y apunta al dominio del backend de
       # prod (api.terremotovenezuela.app). El backend habilita CORS para el front.
       - name: Build and push (frontend)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./frontend
           target: runtime
@@ -192,7 +192,7 @@ jobs:
       # (práctica estándar: un artefacto, web/worker/migrate se distinguen por el
       # `command`). context = raíz (el backend importa infra/db/schema). ---------
       - name: Build and push (backend)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: backend/Dockerfile
