@@ -68,7 +68,18 @@ rules:
     resources: ["daemonsets", "replicasets", "statefulsets"]
     verbs: ["watch", "list", "get"]
   - apiGroups: ["storage.k8s.io"]
-    resources: ["storageclasses", "csinodes", "csidrivers", "csistoragecapacities"]
+    resources: ["storageclasses", "csinodes", "csidrivers", "csistoragecapacities", "volumeattachments"]
+    verbs: ["watch", "list", "get"]
+  # Dynamic Resource Allocation (API group resource.k8s.io, GA en k8s 1.34+). El
+  # CA 1.3x sincroniza informers de ESTOS al arrancar y BLOQUEA en "blocking until
+  # caches are synced" (main.go:288) hasta que listen. Sin este grant el watch da
+  # "forbidden", la caché nunca sincroniza y el loop de autoscaling NUNCA arranca:
+  # el pod queda 1/1 Running, 0 restarts (parece sano) pero no registra el node
+  # group ni crea VPS. Es la causa raíz de "no hay nodos efímeros". DEBE estar
+  # mientras el CA corra contra un clúster >=1.34. Al bumpear el CA, re-verifica
+  # contra el cluster-autoscaler-clusterrole.yaml upstream del minor objetivo.
+  - apiGroups: ["resource.k8s.io"]
+    resources: ["resourceslices", "resourceclaims", "deviceclasses"]
     verbs: ["watch", "list", "get"]
   - apiGroups: [""]
     resources: ["configmaps"]

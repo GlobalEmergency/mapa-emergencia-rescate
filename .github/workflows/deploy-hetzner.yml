@@ -401,6 +401,29 @@ jobs:
           # Cluster Autoscaler (nodos efímeros) — solo si su secret existe.
           if kubectl -n kube-system get secret cluster-autoscaler-hcloud >/dev/null 2>&1; then
             kubectl apply -f infra/k8s/cluster-autoscaler.yaml
+            kubectl -n kube-system rollout restart deploy/cluster-autoscaler
+            kubectl -n kube-system rollout status deploy/cluster-autoscaler --timeout=120s
+            # GUARDA ANTI-WEDGE: un CA al que le falta un RBAC (p.ej. resource.k8s.io
+            # / volumeattachments tras un bump de minor) queda 1/1 Running, 0
+            # restarts pero BLOQUEADO en "blocking until caches are synced" — nunca
+            # entra al loop, nunca crea VPS, y el deploy pasaba sin enterarse. Aquí
+            # exigimos PRUEBA de que el loop arrancó: o registró su node group, o ya
+            # corrió un RunOnce. Si en 90s no hay señal, fallamos el deploy y
+            # volcamos los "forbidden" del log (el síntoma exacto del RBAC faltante).
+            ok=""
+            for i in $(seq 1 18); do
+              if kubectl -n kube-system logs deploy/cluster-autoscaler --tail=-1 2>/dev/null \
+                   | grep -qiE 'Registering [0-9]+ node group|RunOnce|Starting main loop|static_autoscaler'; then
+                ok=1; break
+              fi
+              sleep 5
+            done
+            if [ -z "$ok" ]; then
+              echo "::error::cluster-autoscaler NUNCA entró a su loop (probable RBAC faltante; sigue en 'blocking until caches are synced'). 'forbidden' del log:"
+              kubectl -n kube-system logs deploy/cluster-autoscaler --tail=-1 2>/dev/null | grep -i forbidden | tail -20 || true
+              exit 1
+            fi
+            echo "cluster-autoscaler en su loop ✅"
           else
             echo "cluster-autoscaler-hcloud secret missing — skipping CA."
           fi
