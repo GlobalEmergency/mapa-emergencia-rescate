@@ -32,6 +32,11 @@ metadata:
     load-balancer.hetzner.cloud/location: "hel1"
     load-balancer.hetzner.cloud/use-private-ip: "true"
     load-balancer.hetzner.cloud/name: "mapa-lb"
+    # `hostname`: k8s usa ESTE hostname como ingress address en vez de la IP cruda
+    # del LB. Así, si el LB se recrea (y Hetzner le asigna una IP NUEVA), el
+    # endpoint NO se rompe: el DNS apunta al hostname, no a una IP frágil.
+    # (Hetzner CCM docs — workaround estándar para la rotación de IP del LB.)
+    load-balancer.hetzner.cloud/hostname: "lb.terremotovenezuela.app"
     # NO fijar health-check-port (ver nota histórica: el CCM usa el NodePort).
     load-balancer.hetzner.cloud/health-check-protocol: "http"
     load-balancer.hetzner.cloud/health-check-http-path: "/api/readyz"
@@ -63,6 +68,9 @@ metadata:
     load-balancer.hetzner.cloud/location: "hel1"
     load-balancer.hetzner.cloud/use-private-ip: "true"
     load-balancer.hetzner.cloud/name: "mapa-api-lb"
+    # hostname: ver nota en el Service `web`. Estabiliza el endpoint ante una
+    # recreación del LB (IP nueva) — el DNS de api.* apunta a este hostname.
+    load-balancer.hetzner.cloud/hostname: "lb-api.terremotovenezuela.app"
     load-balancer.hetzner.cloud/health-check-protocol: "http"
     load-balancer.hetzner.cloud/health-check-http-path: "/api/readyz"
     load-balancer.hetzner.cloud/health-check-interval: "15s"
