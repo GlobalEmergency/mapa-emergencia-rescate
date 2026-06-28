@@ -1,0 +1,42 @@
+# Actualizaciones automáticas de dependencias.
+#
+# Dependabot abre PRs cuando hay versiones nuevas (y, sobre todo, parches de
+# seguridad) en npm y en las GitHub Actions del repo. Es el mecanismo correcto
+# para los avisos actuales que NO tienen un bump seguro hoy:
+#   - turbo-stream: el HIGH (GHSA-rxv8-25v2-qmq8) no tiene parche en la línea 2.x
+#     y la 3.x rompe el decoder del sync (ver `ignore` abajo).
+#   - cadena esbuild/@esbuild-kit (vía drizzle-kit): moderate y solo dev; sin fix
+#     estable. Dependabot avisará en cuanto drizzle-kit publique un estable que la
+#     elimine.
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+    groups:
+      # Agrupa parches/minors no-mayores en un solo PR para reducir ruido.
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+    ignore:
+      # turbo-stream DEBE permanecer en v2: la fuente de sync (Venezuela Te Busca,
+      # React Router) codifica el loader del endpoint `/_root.data` en formato
+      # turbo-stream v2, que NO es compatible con el decoder v3. Subir a 3.x
+      # rompería la extracción de personas desaparecidas.
+      # Ver lib/sync/sources/venezuela-te-busca.ts.
+      - dependency-name: "turbo-stream"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "ci"
