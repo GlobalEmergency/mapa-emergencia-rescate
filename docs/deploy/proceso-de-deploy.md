@@ -1,6 +1,7 @@
 # Proceso de deploy
 
-El despliegue es **deploy-only** y **solo desde `main`**.
+El despliegue es **deploy-only** y solo se dispara cuando un **PR se mergea a
+`main`** (o por dispatch manual).
 
 Workflow: `.github/workflows/deploy-hetzner.yml` — **Deploy to Hetzner (k3s)**.
 
@@ -8,12 +9,16 @@ Workflow: `.github/workflows/deploy-hetzner.yml` — **Deploy to Hetzner (k3s)**
 
 | Evento | Resultado |
 | --- | --- |
-| **push / merge a `main`** | auto-deploy a **staging** (CD) |
+| **PR mergeado a `main`** (`pull_request: closed` + `merged==true`) | auto-deploy a **staging** (CD) |
 | **workflow_dispatch (manual)** | deploy al `target` elegido (`staging` o `prod`) |
-| push a otra rama | nada (el guard de job lo salta) |
+| PR cerrado sin merge / push crudo / bypass de admin | nada (el guard de job lo salta) |
 
 > **prod nunca es automático.** Solo sale de un `workflow_dispatch` manual con
 > `target=prod`. Un merge a main jamás despliega prod.
+>
+> **El trigger NO es `push`.** Es `pull_request: types:[closed]` acotado a
+> `branches:[main]`. Un push crudo a `main` (incluido un bypass de admin) NO
+> dispara el workflow.
 
 ## Cómo desplegar a prod (manual)
 
@@ -27,11 +32,19 @@ Antes de construir/desplegar corre el job **`verify`** (tsc app + worker, eslint
 generación de la spec OpenAPI). El job `deploy` tiene `needs: verify`, así que un
 build roto NUNCA llega al clúster.
 
-> **Solo corre desde `main`.** Ambos jobs tienen
-> `if: github.ref == 'refs/heads/main'` y el `push` está acotado a
-> `branches: [main]`. El filtro `branches:` de `workflow_dispatch` NO se respeta
-> en GitHub Actions, por eso el guard real es a nivel de job. Refuérzalo con
-> branch protection en `main`.
+> **El guard real es a nivel de job.** Ambos jobs (`verify` y `deploy`) tienen:
+>
+> ```yaml
+> if: >-
+>   github.event_name == 'workflow_dispatch' ||
+>   (github.event.pull_request.merged == true &&
+>    github.event.pull_request.base.ref == 'main')
+> ```
+>
+> No depende de `github.ref`: lo que importa es que el PR se haya **mergeado**
+> con base `main`, o que sea un dispatch manual. Refuérzalo con branch
+> protection / ruleset en `main` (PR + review de code-owner + check Build &
+> Test).
 
 ## Qué hace, paso a paso
 
@@ -43,21 +56,30 @@ build roto NUNCA llega al clúster.
 4. **Sube `/_next/static` a R2** (push-then-roll, aditivo, nunca `--delete`):
    arregla el version-skew multi-pod sirviendo los assets content-hashed desde
    el CDN.
-5. **Aplica manifests**: renderiza el `Service` según `target` (perfil TLS) con
-   `envsubst`, aplica `deployment.yaml` y el `worker-deployment` (si hay
-   migrate-env).
+5. **Aplica manifests**: renderiza con `envsubst` los **dos `Service`** (web y
+   api) inyectando el perfil TLS por target (`WEB_TLS_ANNOTATIONS` /
+   `API_TLS_ANNOTATIONS`; api replica el perfil de web). Luego aplica:
+   - `deployment.yaml` (Deployments `web` + `api`, mismo image),
+   - `hpa.yaml` (HPA por tier),
+   - `cluster-autoscaler.yaml` (si existe su secret),
+   - `worker-deployment` (si hay `migrate-env`).
 6. **Migración de esquema gateada** (Job `migrate-<sha>`): aplica las
    migraciones Drizzle pendientes ANTES del roll. Si falla, **la app NO rota**.
    Ver [migraciones-de-base-de-datos.md](migraciones-de-base-de-datos.md).
-7. **Roll zero-downtime**: `kubectl set image` + `rollout status` (bloquea hasta
-   que los pods nuevos pasen `/api/readyz` y los viejos drenen).
+7. **Roll zero-downtime**: `kubectl set image` + `rollout status` sobre
+   `deployment/web` y `deployment/api` (bloquea hasta que los pods nuevos pasen
+   `/api/readyz` y los viejos drenen). El `migrate-worker` se rola aparte.
 
 ## `target`: staging vs prod (perfil TLS del LB)
+
+Hay **dos LoadBalancer**: `mapa-lb` (web, dominio público) y `mapa-api-lb`
+(api, terceros). El perfil TLS se inyecta por target con `envsubst` y la api
+**replica el perfil de web**.
 
 | target | TLS | DNS |
 | --- | --- | --- |
 | `staging` | El LB sirve el **cert Origin de Cloudflare** (`cf-origin-dreamit`); Cloudflare en "Full" | `vzla-terremoto.dreamit.software` (Cloudflare proxied) |
-| `prod` | El LB emite un **cert gestionado Let's Encrypt** para `PROD_HOST` | `terremotovenezuela.app` (ver [dominio-y-dns.md](dominio-y-dns.md)) |
+| `prod` | El LB emite un **cert gestionado de Hetzner** para `PROD_HOST` | `terremotovenezuela.app` (ver [dominio-y-dns.md](dominio-y-dns.md)) |
 
 Ver detalles de DNS/TLS en [dominio-y-dns.md](dominio-y-dns.md).
 
@@ -75,21 +97,39 @@ necesites, córrelas **manualmente**:
 
 ## Secrets que usa (GitHub Actions)
 
-`KUBECONFIG`, `PROD_HOST`, `NEXT_PUBLIC_ASSET_PREFIX`,
-`NEXT_PUBLIC_OPENPANEL_CLIENT_ID`, `OPENPANEL_CLIENT_SECRET`,
-`NEON_DATABASE_URL`, `R2_ENDPOINT`, `R2_STATIC_BUCKET`, `R2_ACCESS_KEY_ID`,
-`R2_SECRET_ACCESS_KEY`, `R2_PUBLIC_BASE`, `GITHUB_TOKEN` (automático).
+`KUBECONFIG`, `PROD_HOST`, `GHCR_PULL_USER`, `TOKEN_GITHUB_PACKAGES`,
+`GHCR_PULL_TOKEN`, `NEXT_PUBLIC_ASSET_PREFIX`,
+`NEXT_PUBLIC_OPENPANEL_CLIENT_ID`, `NEXT_PUBLIC_OPENPANEL_DASHBOARD_URL`,
+`OPENPANEL_CLIENT_SECRET`, `ADMIN_PASSWORD`, `NEON_DATABASE_URL`, `R2_ENDPOINT`,
+`R2_STATIC_BUCKET`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_PUBLIC_BASE`,
+`HCLOUD_TOKEN`, `K3S_TOKEN`.
 
-> **OpenPanel.** `NEXT_PUBLIC_OPENPANEL_CLIENT_ID` se inyecta en el bundle como
-> build-arg (es público; viaja al navegador). `OPENPANEL_CLIENT_SECRET` es
-> server-side: el workflow lo **parchea** dentro del secret `app-env` (merge,
-> sin recrear) y los pods nuevos lo leen al rolar. Variable opcional de repo:
-> `NEXT_PUBLIC_OPENPANEL_PRODUCTION_HOST` (default `terremotovenezuela.app`).
+Variable opcional de repo:
+`NEXT_PUBLIC_OPENPANEL_PRODUCTION_HOST` (default `terremotovenezuela.app`).
+
+> **GHCR.** El push de imágenes NO usa el `GITHUB_TOKEN` del run (tras mover el
+> repo a la org, no tiene write sobre el package de la org). Usa un PAT clásico:
+> username `GHCR_PULL_USER`, password `TOKEN_GITHUB_PACKAGES` (write:packages).
+> El secret de pull del clúster (`ghcr-pull`) usa `GHCR_PULL_USER` +
+> `GHCR_PULL_TOKEN` (read:packages, sin expiración).
+
+> **OpenPanel + admin (parche a `app-env`).** `NEXT_PUBLIC_OPENPANEL_CLIENT_ID`
+> se inyecta en el bundle como build-arg (es público; viaja al navegador).
+> `OPENPANEL_CLIENT_SECRET` (proxy server-side) y `ADMIN_PASSWORD` (panel admin)
+> son server-side: el workflow los **parchea** dentro del secret `app-env`
+> (strategic merge, sin recrear; cada clave se omite si su secret de GH no está
+> seteado) y los pods nuevos los leen al rolar.
 
 ## Rollback
 
-Si el roll falla, el workflow lo dice. Para revertir a la versión anterior:
+Si el roll falla, el workflow lo dice. El image se sirve desde **dos
+Deployments** (`web` y `api`), así que para revertir a la versión anterior hay
+que rotar atrás **cada uno**:
 
 ```bash
-kubectl -n mapa rollout undo deployment/app
+kubectl -n mapa rollout undo deployment/web
+kubectl -n mapa rollout undo deployment/api
 ```
+
+(Si el `migrate-worker` también se actualizó: `kubectl -n mapa rollout undo
+deployment/migrate-worker`.)

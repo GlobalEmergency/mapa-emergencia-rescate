@@ -119,11 +119,22 @@ export async function POST() { /* ... */ }
 
 ## Modelos disponibles (`components.schemas`)
 
-Definidos en `lib/swagger.ts`, espejo de los DTO públicos del backend:
+Definidos en `lib/swagger.ts`, espejo de los DTO públicos del backend.
+Actualmente hay **27 modelos** (la lista completa y vigente está en `SCHEMAS`
+dentro de `lib/swagger.ts`):
 
-`EmergencyReport`, `MissingPerson`, `MissingMapMarker`, `MissingStats`,
-`Hospital`, `HospitalPatient`, `Donation`, `DonationStats`, `ChatMessage`,
-`Error`.
+- Generales: `Error`, `EmergencyReport`, `ChatMessage`.
+- Desaparecidos: `MissingPerson`, `MissingMapMarker`, `MissingStats`.
+- Hospitales (base): `Hospital`, `HospitalPatient`, `HospitalPocAssignment`.
+- Donaciones: `Donation`, `DonationStats`.
+- Insumos de hospital: `HospitalSupplyFreshness`, `HospitalSupplyCategory`,
+  `HospitalSupplySemaphore`, `HospitalSupplyUrgencySemaphore`,
+  `HospitalSupplyCategoryStatus`, `HospitalSupplyStatus`,
+  `HospitalSupplyNeed`, `HospitalSupplyNeedRestricted`,
+  `HospitalSupplySummary`, `HospitalSupplyStatusUpdateInput`,
+  `HospitalSupplyNeedInput`, `HospitalSupplyNeedPatchInput`,
+  `HospitalSupplyHelpRequest`, `HospitalSupplyHelpRequestInput`,
+  `HospitalSupplyHelpPatchInput`, `AdminHospitalSupplyRow`.
 
 Para un DTO nuevo, agrégalo a `SCHEMAS` en `lib/swagger.ts` reflejando el tipo
 TS público que devuelve el endpoint, y referencialo con `$ref`.

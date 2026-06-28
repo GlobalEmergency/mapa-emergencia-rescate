@@ -34,7 +34,13 @@ Tres optimizaciones, **sin cambiar el esquema** (se mantiene el índice trigram)
 2. **Conteo acotado a `SEARCH_COUNT_CAP = 500`**:
    `SELECT count(*) FROM (SELECT 1 … LIMIT 500) t`. El conteo para temprano
    (**42 ms → 17 ms**) y la UI muestra "500+". El listado **sin** búsqueda
-   conserva el conteo exacto (es el número de titular).
+   también acota el conteo, pero con un cap mucho más alto
+   (`LIST_COUNT_CAP = 100_000`): un `count(*)` exacto sin límite sobre 67k+
+   filas tardaba segundos por request (audit R-1). El cap queda por encima del
+   dataset real (~67k activas, ~11k encontradas), así que la paginación sigue
+   alcanzando todas las filas; solo recorta el peor caso patológico (>100k). Los
+   titulares exactos del home no usan este conteo: salen de
+   `/api/missing/stats` (`countMissingStats`), que no está acotado.
 3. **TTL de caché más largo para búsquedas** (2 s → 30 s, y `s-maxage` 2 → 30).
    Las búsquedas no necesitan frescura de 2 s; el TTL largo colapsa los re-counts
    del polling y comparte las búsquedas populares entre usuarios.

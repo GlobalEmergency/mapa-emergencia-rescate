@@ -4,7 +4,8 @@ Plataforma de reporte ciudadano en tiempo real para coordinar rescates,
 identificar daños estructurales y organizar la entrega de ayuda humanitaria.
 
 Construida con **Next.js (App Router)**, **Leaflet + OpenStreetMap** (sin API key)
-y **Neon Postgres**. Pensada para alto tráfico y para funcionar bien en móvil.
+y **Postgres** (acceso vía **Drizzle ORM**), con **workers BullMQ** para el trabajo
+asíncrono. Pensada para alto tráfico y para funcionar bien en móvil.
 
 ## Funcionalidad
 
@@ -24,7 +25,7 @@ pública.
 ## Optimizaciones para alto flujo de uso
 
 - **Caché de CDN** en `GET /api/reports` (`s-maxage=4, stale-while-revalidate=30`):
-  miles de usuarios haciendo polling se sirven desde el edge de Vercel y no
+  miles de usuarios haciendo polling se sirven desde el edge/CDN y no
   golpean la base de datos en cada petición.
 - **Actualizaciones optimistas**: el reporte propio aparece al instante aunque el
   CDN sirva una versión cacheada de la lista durante unos segundos.
@@ -52,41 +53,75 @@ El proyecto usa un flujo fork-first para contribuciones externas, plantillas de
 issues/PRs y reglas estrictas para no publicar datos personales o sensibles en
 GitHub. Para vulnerabilidades o fugas de datos, usa [SECURITY.md](SECURITY.md).
 
-## Despliegue en Vercel
+## Despliegue
 
-1. Sube el repositorio a GitHub e **importa el proyecto en Vercel**
-   (o ejecuta `vercel` con la CLI).
-2. Conecta **Neon Postgres** para que los reportes se compartan y persistan:
+El despliegue canónico es **Hetzner Cloud + k3s**, aprovisionado con **OpenTofu**
+(`infra/tofu/`) y desplegado con manifiestos de Kubernetes (`infra/k8s/`). El
+workflow `.github/workflows/deploy-hetzner.yml` construye la imagen, la publica
+en GHCR y aplica los manifiestos por entorno (`staging` | `prod`).
 
-   ```bash
-   vercel integration add neon
-   ```
+Componentes principales del clúster:
 
-   Esto crea la base, la conecta al proyecto y agrega `DATABASE_URL` (entre otras)
-   automáticamente. También puedes hacerlo desde el dashboard:
-   **Storage → Marketplace → Neon**. La tabla `reports` se crea sola en la primera
-   petición.
-3. Vuelve a desplegar (`vercel --prod`) para que las variables surtan efecto.
+- Dos `Deployment` de la misma imagen: `web` (tier `web`) y `api` (tier `api`),
+  cada uno con 3 réplicas base y autoescalado por HPA (`web` 3–20, `api` 3–30,
+  CPU 60%).
+- Dos `Service` `LoadBalancer`: `web` → LB público (dominio del sitio) y `api` →
+  LB para terceros. El perfil TLS se inyecta por target con `envsubst` (staging =
+  cert origin tras Cloudflare; prod = cert gestionado por Hetzner).
+- Workers BullMQ (`worker-deployment.yaml`) para sync, geocode, deduplicación,
+  rehost de imágenes y los schedulers; el Job `migrate` aplica las migraciones de
+  Drizzle (`worker/migrate.ts`) antes del roll.
+- Nodos efímeros con cluster-autoscaler de Hetzner: la configuración por defecto
+  (`infra/tofu/variables.tf`, `k3s_worker_count = 0`) y los manifiestos apuntan a
+  ese modelo. El runbook de cutover está en `docs/rfcs/0004-*` (aún con pasos
+  manuales).
 
-Para desarrollo local con la misma base:
+La base de datos es **Postgres** y el esquema es la **única fuente de verdad** en
+`infra/db/schema.ts`: NO hay `CREATE TABLE` en runtime. Los cambios se generan con
+`npm run db:generate` (migraciones en `infra/db/migrations/`) y el Job `migrate`
+los aplica de forma idempotente en cada deploy.
+
+> Vercel/Neon pueden seguir presentes como alternativa o despliegue legado
+> (`vercel.json` aún define crons), pero el camino soportado y descrito arriba es
+> Hetzner + k3s.
+
+Para desarrollo local define `DATABASE_URL` en `.env.local` (o usa el modo demo en
+memoria) y ejecuta:
 
 ```bash
-vercel env pull .env.local
 npm run dev
 ```
 
 ## Estructura
 
+El repo creció bastante: hoy hay ~46 endpoints (`route.ts`) bajo `app/api/`. Vista
+de alto nivel:
+
 ```
 app/
-  api/reports/route.ts        # GET (lista, cacheada) y POST (crear)
-  api/reports/[id]/route.ts   # DELETE (marcar atendido)
-  components/EmergencyApp.tsx  # estado, polling, updates optimistas
-  components/MapView.tsx       # mapa Leaflet (carga solo en cliente)
-  components/ReportForm.tsx    # formulario emergente
-  page.tsx                     # landing (títulos, pasos, leyenda, aviso)
-lib/
-  types.ts                     # tipos y definición de marcadores
-  store.ts                     # Neon Postgres con fallback en memoria
-  ratelimit.ts                 # rate limiting en memoria
+  api/
+    admin/        # panel: contacto, datos, donaciones, suministros, login
+    chat/         # chat ciudadano (lista cacheada + hilos)
+    contact/      # bandeja de contacto
+    donations/    # donaciones y stats
+    geo/  geocode/ # geolocalización y geocodificación
+    hospitals/    # hospitales, pacientes y suministros (status/needs/help)
+    hub/          # federación con el hub "Venezuela Ayuda" (reportes, stats)
+    missing/      # personas desaparecidas (mapa, stats, fotos, resolución)
+    patients/     # búsqueda de pacientes
+    reports/      # GET (lista, cacheada), POST (crear), confirmar, foto, DELETE
+    sync/         # run/cron/geocode/duplicates/status (encolan jobs BullMQ)
+    docs/ openapi/ readyz/ stats/ op/   # docs Swagger, healthcheck, etc.
+  components/      # UI pública: mapa Leaflet, formularios, paneles
+  page.tsx        # landing
+lib/              # tipos, acceso a datos (Drizzle), cache, sync, rate-limit
+infra/
+  db/schema.ts    # esquema Drizzle (fuente de verdad) + migrations/
+  k8s/            # manifiestos: web/api, services, hpa, workers, migrate
+  tofu/           # OpenTofu: red, k3s, postgres, valkey, firewall
+worker/           # workers BullMQ (sync, geocode, rehost, schedulers, migrate)
+docs/             # RFCs, ADRs, arquitectura y guías
 ```
+
+El acceso a datos pasa por **Drizzle ORM** (`lib/drizzle.ts`); el esquema y sus 27
+tablas viven en `infra/db/schema.ts`.

@@ -9,8 +9,10 @@
 # de api (su propio HPA, su propio blast radius), nunca al render del front.
 #
 # Placeholders rellenados por el workflow (envsubst) por entorno y por tier:
-#   ${WEB_TLS_ANNOTATIONS} ${API_TLS_ANNOTATIONS}  (los puertos son estáticos)
-# (no se escriben en $-form en los comentarios para que envsubst no los toque).
+#   WEB_TLS_ANNOTATIONS / API_TLS_ANNOTATIONS  (los puertos son estáticos).
+# OJO: aquí van SIN signo $ a propósito — envsubst sustituye también dentro de
+# los comentarios, así que un ${...} aquí inyectaría el bloque TLS multilínea en
+# medio del comentario y rompería el YAML ("did not find expected key").
 #
 #   target=staging -> TLS en Cloudflare (proxied). LB habla HTTP plano :80.
 #   target=prod    -> TLS en el LB. Cert managed Let's Encrypt en :443 por host.

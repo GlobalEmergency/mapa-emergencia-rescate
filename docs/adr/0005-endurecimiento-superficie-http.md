@@ -26,10 +26,12 @@ Nota: **no** se encontró SQL injection (toda la SQL dinámica usa placeholders
 - **`lib/body.ts` `readJson(request, maxBytes)`**: rechaza por `Content-Length`
   declarado y, además, **corta el stream** apenas se supera el límite — cubre el
   caso sin `Content-Length` (transfer-encoding chunked). Reemplaza a
-  `request.json()` en los 9 endpoints POST. Topes por tipo: foto ~2 MB, texto
-  16 KB, login/donaciones 4 KB, proxy 32 KB.
-- **Rate-limit en `/api/admin/login`** (5 intentos por IP) + nota en
-  `.env.example`: `ADMIN_PASSWORD`/`CRON_SECRET` de 32+ caracteres aleatorios.
+  `request.json()`: hoy se usa en ~15 `route.ts` (cubre los ~19 handlers POST; el
+  alcance original eran los 9 endpoints POST de entonces). Topes por tipo: foto
+  ~2 MB, texto 16 KB, login/donaciones 4 KB, proxy 32 KB.
+- **Rate-limit en `/api/admin/login`** (5 intentos por IP). Recomendado:
+  `ADMIN_PASSWORD`/`CRON_SECRET` de 32+ caracteres aleatorios (aún no
+  documentados en `.env.example`).
 - **`clientIp` deja de confiar en `x-forwarded-for`**: usa `TRUSTED_IP_HEADER`
   (configurable, la cabecera no falsificable de tu proxy/CDN) y, si no, `x-real-ip`.
 - Endurecidos los rate-limits de mutación pública (`found` 6→2, `patients`
@@ -45,5 +47,5 @@ Nota: **no** se encontró SQL injection (toda la SQL dinámica usa placeholders
   distribuido es un CDN/WAF (infra; ver guía).
 - ⚠️ Decisión de producto: el teléfono de `contact` de personas desaparecidas
   **sigue público** en `/api/missing` (scrapeable). Si aparece abuso, el "botón
-  de pánico" es de una línea: quitar `contact` de `SELECT_COLS` en
+  de pánico" es de una línea: quitar `contact` de `selectCols` en
   `lib/missing.ts` y desplegar en caliente.

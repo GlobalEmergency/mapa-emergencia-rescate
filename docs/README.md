@@ -14,6 +14,11 @@ docs/
 ├── rfcs/              📝 Propuestas de diseño (antes de construir algo grande)
 ├── adr/              ✅ Decisiones de arquitectura (el "qué se decidió y por qué")
 ├── architecture/     🏗️  Cómo funciona el sistema HOY (estado actual)
+├── db/               🗄️  Modelo de datos (esquema + relaciones)
+├── deploy/           🚀 Despliegue y operación (workflow, DNS/TLS, migraciones)
+├── infra/            🔌 Notas de infraestructura e integraciones externas
+├── audits/           🔍 Auditorías técnicas y de seguridad (con fecha)
+├── security/         🔒 Hallazgos y TODOs de seguridad/PII
 └── guides/           📘 Guías operativas y how-tos (despliegue, sync, runbooks)
 ```
 
@@ -74,6 +79,12 @@ acción.
 
 - [0001 — Sincronización automática de fuentes de desaparecidos](rfcs/0001-sincronizacion-fuentes.md)
   · _propuesta_ · relacionado con la issue #1 (sync PFIF).
+- [0002 — Federación con el hub central (ingesta async)](rfcs/0002-federacion-hub-venezuela-ayuda.md)
+  · _propuesta_ · integración con el hub "Venezuela Ayuda".
+- [0003 — Refactor async: request-path no bloqueante + colas](rfcs/0003-refactor-async-http-y-colas.md)
+  · _propuesta_.
+- [0004 — Nodos efímeros (cluster-autoscaler) + split web/api](rfcs/0004-autoscaling-y-split-web-api.md)
+  · _propuesta_.
 
 ### ADRs
 
@@ -99,6 +110,19 @@ acción.
 - [Dominio, DNS y TLS](deploy/dominio-y-dns.md)
 - [Migraciones de base de datos (Drizzle)](deploy/migraciones-de-base-de-datos.md)
 - [Estructura de la infraestructura](deploy/estructura-infra.md)
+
+### Infraestructura e integraciones
+
+- [Información compartida con APIs externas](infra/INFORMATION_SEND.MD)
+
+### Auditorías
+
+- [2026-06-27 — Auditoría pesada](audits/2026-06-27-auditoria-pesada.md)
+- [2026-06-28 — Cambios del refactor async](audits/2026-06-28-cambios-refactor-async.md)
+
+### Seguridad
+
+- [TODO — fuga de PII en pacientes (`notes`) sin autenticación](security/TODO-pii-patient-notes.md)
 
 ### Guías
 

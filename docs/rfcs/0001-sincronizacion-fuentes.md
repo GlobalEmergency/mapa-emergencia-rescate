@@ -63,10 +63,12 @@ manualmente se guardaron CRUDOS (ej. `p8fd01c513881`). Si namespáramos
 actualizarlas. En cambio, guardamos el `external_id` crudo y movemos la unicidad
 a un índice compuesto parcial `(source, external_id) WHERE external_id IS NOT
 NULL`. Así dos fuentes pueden reusar el mismo id sin chocar, y los datos
-existentes siguen funcionando. La migración en prod es solo un *swap de índice*
-(crear el compuesto, soltar el viejo de solo `external_id`) — `ensureSchema` lo
-aplica solo. Confirmado read-only contra prod: los ids de la API coinciden 20/20
-con los `external_id` ya importados.
+existentes siguen funcionando. El índice único parcial vive en Drizzle:
+`missing_persons_source_external_id_idx ON (source, external_id) WHERE
+external_id IS NOT NULL` (definido en `infra/db/schema.ts`, fuente de verdad), y
+lo aplica el Job `migrate` en cada deploy vía `migrate()` de drizzle-orm. Ya no
+hay DDL en runtime (`ensureSchema` fue eliminado). Confirmado read-only contra
+prod: los ids de la API coinciden 20/20 con los `external_id` ya importados.
 
 ### 3.2 Adaptador de fuente (el punto de extensión)
 
@@ -152,25 +154,34 @@ en su **propio cron** con tope por corrida (no bloquea la sync).
 ```json
 {
   "crons": [
-    { "path": "/api/sync/cron",    "schedule": "*/15 * * * *" },
-    { "path": "/api/sync/geocode", "schedule": "*/10 * * * *" }
+    { "path": "/api/sync/cron",    "schedule": "*/10 * * * *" },
+    { "path": "/api/sync/geocode", "schedule": "*/5 * * * *" }
   ]
 }
 ```
 
 - **Endpoints cron** (`app/api/sync/cron/route.ts`, `.../geocode/route.ts`):
   Vercel manda `Authorization: Bearer $CRON_SECRET`; el handler lo verifica.
+  Tras el refactor async **ya no corren trabajo inline**: encolan jobs BullMQ y
+  responden `202 {ok:true, queued:true, jobIds}` (el estado se consulta por
+  `/api/sync/status`). En Hetzner el scheduler canónico vive en el worker BullMQ;
+  el cron de Vercel queda como fallback. Idempotente (jobId determinístico por
+  fuente+modo).
 - **Disparo manual admin** (`app/api/sync/run/route.ts`): protegido con el
-  `x-admin-token` existente. Permite "Sincronizar ahora" + `?dryRun=1`.
+  `x-admin-token` existente. Encola y devuelve `202 {jobId}`; permite
+  "Sincronizar ahora" + `?dryRun=1`.
 - ⚠️ **Next.js 16**: revisar `node_modules/next/dist/docs` antes de escribir los
   route handlers (firmas cambiaron).
 
-### 3.5 Límite serverless (importante)
+### 3.5 Límite de tiempo (importante)
 
-Traer 37k+ registros y hacer upsert en **una** invocación puede exceder el
-tiempo máximo de función. Estrategias (combinables):
+Traer 37k+ registros y hacer upsert en **una** invocación HTTP excede el tiempo
+máximo de una función serverless. Estrategias (combinables):
 
-- `export const maxDuration = 300` en el route segment (según plan de Vercel).
+- **Trabajo largo fuera del request**: el handler encola un job BullMQ y
+  responde `202 {jobId}`; el trabajo corre en el **worker** (Hetzner), sin tope
+  de duración de función. No existe `export const maxDuration` (lo prohíbe
+  `endpoints:check`).
 - **Sync incremental por watermark**: guardar en `sync_state` el `max(updatedAt)`
   visto por fuente; cada corrida procesa solo lo más nuevo (cuando la fuente lo
   permita filtrar) o, si la fuente solo da todo, hacer upsert acotado por lote y
@@ -279,9 +290,10 @@ lotes baja a segundos.
 ### Fase 2.5 — Ejecución por chunks
 
 Con el upsert resuelto, el costo pasa a **traer ~437 páginas**: medido ~10 s por
-20 páginas → **~215 s** el scan completo (el write batched es ~5 s). Roza el
-`maxDuration = 300` y la API es flaky bajo carga, así que un solo invoke NO es
-confiable. Para robustez:
+20 páginas → **~215 s** el scan completo (el write batched es ~5 s). Eso rozaba
+el límite de una función serverless y la API es flaky bajo carga, así que un solo
+invoke NO es confiable (hoy el scan corre en el worker BullMQ, ya sin tope de
+función). Para robustez:
 
 - Cursor por fuente en `sync_state` (última página / watermark `updatedAt`).
 - Cada tick de cron procesa un **rango acotado de páginas** y avanza el cursor;
@@ -293,7 +305,9 @@ confiable. Para robustez:
 
 ### Fase 3 — Cron + observabilidad
 
-- `vercel.json`: `/api/sync/cron` (cada 15–30 min) y `/api/sync/geocode`.
+- `vercel.json`: `/api/sync/cron` (`*/10`) y `/api/sync/geocode` (`*/5`). Tras el
+  refactor async, el scheduler canónico vive en el worker BullMQ y el cron de
+  Vercel queda como fallback; ambos encolan jobs (`202`).
 - `CRON_SECRET` (`Authorization: Bearer`) en los endpoints de cron.
 - Tabla `sync_runs` (corridas: fuente, contadores, duración, ok) y `sync_state`
   (cursor/watermark por fuente).

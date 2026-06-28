@@ -105,11 +105,12 @@ npm run build && npm start          # build de prod (no usar `npm run dev`)
 ```
 
 **1. Primitivo de caché en aislamiento** (single-flight / SWR / TTL / LRU). Hay
-un test independiente que ejercita `lib/cache.ts` sin servidor ni BD; correrlo
-con Node + type-stripping:
+un test de Vitest que ejercita `lib/cache.ts` sin servidor ni BD, en
+`tests/unit/cache.test.ts`; correrlo con el runner de pruebas:
 
 ```bash
-node --experimental-strip-types ruta/al/cache.test.ts
+npm test                              # vitest run (toda la suite)
+npx vitest run tests/unit/cache.test.ts   # solo el test de caché
 ```
 
 **2. ETag / 304:**

@@ -19,8 +19,13 @@ upserts no harían match y se habrían **duplicado ~33k filas**.
 - Mover la unicidad a un índice compuesto parcial
   `UNIQUE (source, external_id) WHERE external_id IS NOT NULL`.
 - El upsert usa `ON CONFLICT (source, external_id)`.
-- `ensureSchema` migra el índice automáticamente: crea el compuesto y luego
-  suelta el antiguo de solo `external_id` (la unicidad nunca queda desprotegida).
+- El esquema (incluido el índice único compuesto
+  `missing_persons_source_external_id_idx`) vive en `infra/db/schema.ts` y se
+  aplica por **migraciones Drizzle** (el `ensureSchema` a nivel de app fue
+  eliminado). La migración crea el compuesto y suelta el antiguo de solo
+  `external_id`, dejando la unicidad siempre protegida. Las migraciones las
+  corre el Job `migrate` (`worker/migrate.ts` → `migrate()` de drizzle-orm) en
+  cada deploy.
 
 ## Consecuencias
 

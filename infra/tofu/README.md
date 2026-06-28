@@ -28,27 +28,38 @@ no surprise validation steps.
   the API over the public IP.
 - **Recreating the cluster:** `ignore_changes=[user_data]` means editing the
   cloud-init won't replace running nodes. To force the master to re-run its
-  cloud-init (e.g. after a template fix), use the `recreate-master` action in the
-  deploy workflow — it `-replace`s the master **and** the workers (a fresh master
-  gets a new cluster CA, so workers must rejoin). DB + Valkey are never touched.
+  cloud-init (e.g. after a template fix), `-replace` the master **and** the
+  workers by hand (a fresh master gets a new cluster CA, so workers must rejoin).
+  This is a manual tofu step — it is NOT wired into the deploy workflow. DB +
+  Valkey are never touched.
 - `k3s-workers.tf` + `cloud-init/k3s-agent.yaml.tftpl` — `k3s_worker_count`
-  (default 2) agents that join the master over the private net. This is the
-  always-on floor (min 2) for zero-downtime rolls.
-- The GitHub Actions `provision` step scp's the kubeconfig off the master after
-  boot and rewrites the API address to the master's public IP.
+  **fixed** agents that join the master over the private net. The default is
+  **0**: in the fully-ephemeral model the fixed-worker resource creates nothing
+  and the cluster-autoscaler owns ALL workers (see below). Set it `>0` only if
+  you want a fixed base in addition to the CA pool (not recommended).
+- Provisioning (scp the kubeconfig off the master after boot and rewrite the API
+  address to the master's public IP) is done by hand, outside the deploy
+  workflow — see RFC 0004 for the cutover runbook.
 
 ⚠️ **`flannel_iface = "enp7s0"`** in the k3s templates assumes the Hetzner
 private NIC name on cx-line servers. Verify on first boot (`ip a` on a node); if
 the private NIC differs, update both templates.
 
-## ⛏️ Stage B — cluster-autoscaler (NOT done yet — see ../../TODO.md)
+## cluster-autoscaler — ephemeral workers (configured)
 
-The cluster currently has **fixed** workers (min 2, no autoscaling). The
-autoscaler (scale 2→4 under load) is intentionally deferred to a second step so
-we bring the cluster up on a known-good base first. Plan: add the
-kubernetes/autoscaler (hetzner provider) as one more auto-deploy manifest on the
-master, with `--nodes=2:4:cx23:hel1:mapa-autoscaled` and the agent cloud-init as
-its `HCLOUD_CLOUD_INIT`. Full notes in ../../TODO.md.
+The configured model is **fully ephemeral**: `k3s_worker_count` defaults to 0
+and the cluster-autoscaler owns ALL workers. It lives in
+`infra/k8s/cluster-autoscaler.yaml` (Hetzner CA, pool
+`--nodes=2:5:cx23:hel1:mapa-pool` — min 2 floor, max 5 ceiling) and is applied
+by the deploy workflow's "Apply manifests" step whenever the
+`cluster-autoscaler-hcloud` secret exists. New VPS join with the SAME cloud-init
+as the tofu agents (`cloud-init/k3s-agent.yaml.tftpl`: private-IP join + token +
+`cloud-provider=external` for the CCM), injected via the CA's
+`HCLOUD_CLUSTER_CONFIG`.
+
+This is the target state wired into the manifests and tofu defaults; the cutover
+runbook still has manual provisioning steps — see RFC 0004
+(`docs/rfcs/0004-autoscaling-y-split-web-api.md`).
 
 ## Files
 
@@ -91,8 +102,12 @@ tofu apply
 tofu output -raw database_url   # paste into the DATABASE_URL GitHub secret
 ```
 
-In CI the same is driven by the confirm-gated job in
-`../../.github/workflows/deploy-hetzner.yml` (`provision_confirm=apply-infra`).
+This `tofu apply` is run **by hand** — it is not part of CI. The deploy workflow
+(`../../.github/workflows/deploy-hetzner.yml`) does app-only rolls (build → push
+to GHCR → apply k8s manifests → gated migrate → roll) and has a single
+`workflow_dispatch` input, `target` (staging | prod); it has no provision /
+recreate-master / apply-infra inputs or steps. Infra provisioning stays outside
+the workflow — see RFC 0004 for the runbook.
 
 ## ⚠️ Before first apply — clear leftovers from the earlier CLI bootstrap
 

@@ -2,7 +2,8 @@
 
 Background jobs that migrate the Neon prod data + images onto the Hetzner stack.
 Pattern mirrors boahaus-backend (BullMQ + ioredis) and clickup-argo's concurrency
-safety (Valkey `SET NX EX` lock, `FOR UPDATE SKIP LOCKED`, deterministic jobIds).
+safety (Valkey `SET NX EX` lock, atomic guarded `UPDATE … WHERE photo_migrated_at
+IS NULL`, deterministic jobIds).
 
 > **Scope:** this `worker/` system is the **one-time backlog migration** (old
 > base64-in-DB photos + external image URLs → R2). NEW photos uploaded through
@@ -29,7 +30,7 @@ safety (Valkey `SET NX EX` lock, `FOR UPDATE SKIP LOCKED`, deterministic jobIds)
 | `r2.ts` | S3-compatible R2 upload (`@aws-sdk/client-s3`) |
 | `tables.ts` | per-table PK + conflict policy (update vs ignore) |
 | `jobs/migrateTable.ts` | keyset-batched upsert copy |
-| `jobs/migratePhoto.ts` | base64/external → R2, `FOR UPDATE SKIP LOCKED` |
+| `jobs/migratePhoto.ts` | base64/external → R2; short read txn + atomic guarded `UPDATE … WHERE photo_migrated_at IS NULL` |
 | `queues.ts` | BullMQ queues + worker factory + producers |
 | `index.ts` | worker entrypoint (graceful SIGTERM) |
 | `enqueue.ts` | producer: acquires the Valkey lock, enqueues tables then photos |
@@ -100,4 +101,7 @@ public POST endpoints use it so new photos never land as base64 in Postgres:
   `--target`, docker builds the worker image and pushes it under the app tag —
   the app then has no `.next/static` (R2 upload + the app both break).
 - `worker/` is excluded from the app `tsconfig.json`; it has its own
-  `worker/tsconfig.json` (es2022 / nodenext) and runs via `tsx`.
+  `worker/tsconfig.json` (`target: es2022`, `module: esnext`,
+  `moduleResolution: bundler`, `paths "@/*": ["../*"]` — **not** `nodenext`,
+  which would treat the files as CJS and break `import.meta` in `lib/*`) and
+  runs via `tsx`.

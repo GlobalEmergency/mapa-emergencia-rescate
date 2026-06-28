@@ -4,11 +4,13 @@ Esquema de la base de datos (Neon Postgres / Hetzner `app`) del proyecto
 **Mapa de Emergencia y Rescate**.
 
 > **Fuente de verdad:** [`infra/db/schema.ts`](../../infra/db/schema.ts) (Drizzle)
-> define las **16 tablas** que existen en prod: 12 canónicas activas +
-> `contact_messages` (su DDL viva está en `lib/contact-inbox.ts`) +
+> define las **27 tablas** que existen en prod: canónicas activas (reportes,
+> personas, hospitales y su acopio `hospital_supply_*` / `hospital_poc_*`,
+> donaciones, contadores, sync) + `contact_messages` (ya en Drizzle) +
 > `analytics_events`, `damage_candidates`, `unidentified_persons` (legado/externas
-> sin código de app, pero presentes en la base). Si cambias el esquema, edita
-> `schema.ts` y luego actualiza este doc.
+> sin código de app, pero presentes en la base) + la federación `hub_*` con el
+> hub central (espejo read-only, ver RFC 0002). Si cambias el esquema, edita
+> `schema.ts`, corre `npm run db:generate` y luego actualiza este doc.
 
 ## Convenciones
 
@@ -32,16 +34,27 @@ Tomadas del código (ver cabecera de `schema.ts`):
 | `chat_messages` | canónica | `id` | Chat ciudadano (con hilos) |
 | `hospitals` | canónica | `id` | Hospitales y centros de atención |
 | `hospital_patients` | canónica | `id` | Pacientes por hospital (**FK** → hospitals) |
+| `hospital_supply_statuses` | canónica | `id` | Estado de insumos por hospital (**FK** → hospitals) |
+| `hospital_supply_needs` | canónica | `id` | Necesidades de insumos por hospital (**FK** → hospitals) |
+| `hospital_supply_help_requests` | canónica | `id` | Pedidos de ayuda del hospital (**FK** → hospitals) |
+| `hospital_poc_assignments` | canónica | `id` | POC asignado al hospital (**FK** → hospitals) |
+| `hospital_supply_events` | canónica | `id` | Bitácora de eventos de acopio (**FK** → hospitals) |
 | `donations` | canónica | `id` | Donaciones registradas |
 | `click_counters` | canónica | `key` | Contadores de clics agregados |
 | `click_counter_dedup` | canónica | `(counter_key, ip_hash)` | Dedup de clics por IP |
 | `geocode_cache` | canónica | `normalized_key` | Caché de geocodificación |
 | `sync_state` | canónica | `source` | Estado de paginación de cada sync |
 | `sync_runs` | canónica | `id` | Bitácora de ejecuciones de sync |
-| `contact_messages` | runtime-DDL | `id` | Bandeja de contacto (DDL en `lib/contact-inbox.ts`) |
+| `contact_messages` | canónica | `id` | Bandeja de contacto (admin) |
 | `analytics_events` | legado/externa | `id` | Eventos de analítica (sin código de app) |
 | `damage_candidates` | legado/externa | `id` | Candidatos de daño estructural (sin código) |
 | `unidentified_persons` | legado/externa | `id` | Personas no identificadas (sin código) |
+| `hub_missing_persons` | federación | `id` | Espejo read-only de desaparecidos del hub |
+| `hub_checkins` | federación | `id` | Espejo read-only de check-ins del hub |
+| `hub_help_requests` | federación | `id` | Espejo read-only de pedidos de ayuda del hub |
+| `hub_help_offers` | federación | `id` | Espejo read-only de ofertas de ayuda del hub |
+| `hub_damaged_buildings` | federación | `id` | Espejo read-only de edificios dañados del hub |
+| `hub_sync_state` | federación | `type` | Cursor de paginación por tipo del hub |
 
 ---
 
@@ -89,6 +102,7 @@ Personas desaparecidas y localizadas (incluye registros importados por sync).
 | `id` | TEXT | no | — | PK |
 | `name` | TEXT | no | — | |
 | `age` | INTEGER | sí | — | |
+| `nationality` | TEXT | no | `''` | |
 | `description` | TEXT | no | `''` | |
 | `last_seen` | TEXT | no | `''` | |
 | `contact` | TEXT | no | `''` | |
@@ -108,7 +122,9 @@ Personas desaparecidas y localizadas (incluye registros importados por sync).
 
 Índices: `idx_missing_status_created (status, created_at DESC)`;
 `idx_missing_map_coords (lat, lng)`;
-`idx_missing_photo_pending (id) WHERE photo_migrated_at IS NULL AND (photo IS NOT NULL OR photo_external_url IS NOT NULL)`.
+`idx_missing_photo_pending (id) WHERE photo_migrated_at IS NULL AND (photo IS NOT NULL OR photo_external_url IS NOT NULL)`;
+`missing_persons_source_external_id_idx (source, external_id) UNIQUE WHERE external_id IS NOT NULL`
+(árbitro del `ON CONFLICT` del upsert de registros externos).
 
 ### `chat_messages`
 
@@ -156,7 +172,8 @@ Hospitales y centros de atención.
 
 ### `hospital_patients`
 
-Pacientes asociados a un hospital. **Única FK real del esquema.**
+Pacientes asociados a un hospital. Una de las **6 FK reales** del esquema, todas
+hacia `hospitals.id` con `ON DELETE CASCADE`.
 
 | Columna | Tipo | Nulo | Default | Notas |
 | --- | --- | --- | --- | --- |
@@ -172,6 +189,119 @@ Pacientes asociados a un hospital. **Única FK real del esquema.**
 | `updated_at` | BIGINT | no | — | epoch-ms |
 
 Índices: `idx_hospital_patients_hospital (hospital_id, status, admitted_at DESC)`.
+
+### `hospital_supply_statuses`
+
+Estado de cada categoría de insumos de un hospital (semáforo de acopio).
+**FK** `hospital_id` → `hospitals.id` `ON DELETE CASCADE`.
+
+| Columna | Tipo | Nulo | Default | Notas |
+| --- | --- | --- | --- | --- |
+| `id` | TEXT | no | — | PK |
+| `hospital_id` | TEXT | no | — | **FK** → `hospitals.id` `ON DELETE CASCADE` |
+| `category` | TEXT | no | — | |
+| `status` | TEXT | no | `'unknown'` | |
+| `public_note` | TEXT | no | `''` | Nota visible al público |
+| `restricted_note` | TEXT | no | `''` | Nota interna/restringida |
+| `stale_after_hours` | INTEGER | no | `12` | Umbral de "dato viejo" |
+| `last_updated_at` | BIGINT | no | — | epoch-ms |
+| `last_confirmed_at` | BIGINT | no | — | epoch-ms |
+| `updated_by` | TEXT | no | `'equipo_operativo'` | |
+| `source` | TEXT | no | `'admin_panel'` | |
+| `created_at` | BIGINT | no | — | epoch-ms |
+
+Índices: `idx_hospital_supply_status_unique (hospital_id, category) UNIQUE`;
+`idx_hospital_supply_status_stale (category, status, last_confirmed_at)`;
+`idx_hospital_supply_status_hospital (hospital_id)`.
+
+### `hospital_supply_needs`
+
+Necesidades puntuales de insumos por hospital. **FK** `hospital_id` →
+`hospitals.id` `ON DELETE CASCADE`.
+
+| Columna | Tipo | Nulo | Default | Notas |
+| --- | --- | --- | --- | --- |
+| `id` | TEXT | no | — | PK |
+| `hospital_id` | TEXT | no | — | **FK** → `hospitals.id` `ON DELETE CASCADE` |
+| `category` | TEXT | no | — | |
+| `item_type` | TEXT | no | — | |
+| `quantity` | INTEGER | sí | — | |
+| `unit` | TEXT | no | `''` | |
+| `urgency` | TEXT | no | `'yellow'` | |
+| `status` | TEXT | no | `'active'` | |
+| `public_note` | TEXT | no | `''` | |
+| `restricted_note` | TEXT | no | `''` | |
+| `last_confirmed_at` | BIGINT | no | — | epoch-ms |
+| `updated_by` | TEXT | no | `'equipo_operativo'` | |
+| `source` | TEXT | no | `'admin_panel'` | |
+| `created_at` | BIGINT | no | — | epoch-ms |
+| `updated_at` | BIGINT | no | — | epoch-ms |
+
+Índices: `idx_hospital_supply_needs_active (hospital_id, status, urgency, updated_at DESC)`;
+`idx_hospital_supply_needs_category (category, status)`.
+
+### `hospital_supply_help_requests`
+
+Pedidos de ayuda emitidos por el hospital. **FK** `hospital_id` →
+`hospitals.id` `ON DELETE CASCADE`.
+
+| Columna | Tipo | Nulo | Default | Notas |
+| --- | --- | --- | --- | --- |
+| `id` | TEXT | no | — | PK |
+| `hospital_id` | TEXT | no | — | **FK** → `hospitals.id` `ON DELETE CASCADE` |
+| `category` | TEXT | no | — | |
+| `message` | TEXT | no | `''` | |
+| `urgency` | TEXT | no | `'yellow'` | |
+| `status` | TEXT | no | `'open'` | |
+| `requested_by` | TEXT | no | `'poc_hospitalario'` | |
+| `source` | TEXT | no | `'admin_panel'` | |
+| `restricted_note` | TEXT | no | `''` | |
+| `created_at` | BIGINT | no | — | epoch-ms |
+| `updated_at` | BIGINT | no | — | epoch-ms |
+
+Índices: `idx_hospital_supply_help_open (status, urgency, created_at DESC)`;
+`idx_hospital_supply_help_hospital (hospital_id)`.
+
+### `hospital_poc_assignments`
+
+Punto de contacto (POC) asignado a un hospital. **FK** `hospital_id` →
+`hospitals.id` `ON DELETE CASCADE`.
+
+| Columna | Tipo | Nulo | Default | Notas |
+| --- | --- | --- | --- | --- |
+| `id` | TEXT | no | — | PK |
+| `hospital_id` | TEXT | no | — | **FK** → `hospitals.id` `ON DELETE CASCADE` |
+| `display_name` | TEXT | no | `'POC hospitalario'` | |
+| `role` | TEXT | no | `'hospital_poc'` | |
+| `restricted_contact` | TEXT | no | `''` | Contacto interno/restringido |
+| `access_token_hash` | TEXT | no | `''` | Hash del token de acceso del POC |
+| `active` | BOOLEAN | no | `true` | |
+| `created_at` | BIGINT | no | — | epoch-ms |
+| `updated_at` | BIGINT | no | — | epoch-ms |
+
+Índices: `idx_hospital_poc_assignments_hospital (hospital_id, active)`;
+`idx_hospital_poc_assignments_token (hospital_id, access_token_hash, active)`.
+
+### `hospital_supply_events`
+
+Bitácora de acciones sobre el acopio de un hospital. **FK** `hospital_id` →
+`hospitals.id` `ON DELETE CASCADE`.
+
+| Columna | Tipo | Nulo | Default | Notas |
+| --- | --- | --- | --- | --- |
+| `id` | TEXT | no | — | PK |
+| `hospital_id` | TEXT | no | — | **FK** → `hospitals.id` `ON DELETE CASCADE` |
+| `category` | TEXT | sí | — | |
+| `entity_type` | TEXT | no | — | |
+| `entity_id` | TEXT | sí | — | |
+| `action` | TEXT | no | — | |
+| `actor` | TEXT | no | `'equipo_operativo'` | |
+| `source` | TEXT | no | `'admin_panel'` | |
+| `payload` | JSONB | no | `{}` | |
+| `created_at` | BIGINT | no | — | epoch-ms |
+
+Índices: `idx_hospital_supply_events_hospital (hospital_id, created_at DESC)`;
+`idx_hospital_supply_events_entity (entity_type, entity_id)`.
 
 ### `donations`
 
@@ -268,18 +398,17 @@ Bitácora de ejecuciones de sync (append-only).
 
 ---
 
-## Tablas adicionales (legado / DDL en runtime)
+## Tablas adicionales (admin / legado)
 
-> Estas tablas ya están en `infra/db/schema.ts`, pero conviene resaltar su
-> origen: `contact_messages` tiene su DDL viva en `lib/contact-inbox.ts`; las
-> otras 3 son legado/externas sin código de app (presentes solo porque existen
-> en prod y la migración las copia).
+> Estas tablas ya están en `infra/db/schema.ts`. `contact_messages` es la
+> bandeja de contacto del panel admin; las otras 3 son legado/externas sin
+> código de app (presentes solo porque existen en prod y la migración las copia).
 
-### `contact_messages` — DDL en runtime
+### `contact_messages`
 
-Definida con `CREATE TABLE IF NOT EXISTS` en
-[`lib/contact-inbox.ts`](../../lib/contact-inbox.ts) (bandeja de contacto del
-panel admin). Candidata a moverse al esquema Drizzle.
+Bandeja de contacto del panel admin. Definida en `infra/db/schema.ts` y
+consumida por [`lib/contact-inbox.ts`](../../lib/contact-inbox.ts) vía Drizzle
+(ya no usa `CREATE TABLE IF NOT EXISTS` en runtime).
 
 | Columna | Tipo | Nulo | Default | Notas |
 | --- | --- | --- | --- | --- |
@@ -350,10 +479,50 @@ código de la app. Definición tomada de la base.
 
 ---
 
+## Federación con el hub central (`hub_*`)
+
+Espejo **read-only** de los datos de otros sitios socios traídos del hub central
+"Venezuela Ayuda" (ver [`docs/rfcs/0002-federacion-hub-venezuela-ayuda.md`](../rfcs/0002-federacion-hub-venezuela-ayuda.md)).
+Una tabla por tipo del hub; nunca se mezclan con las tablas nativas.
+
+Columnas comunes (`hubCommon`) en todas las `hub_*` salvo `hub_sync_state`:
+`id` (PK), `hub_id` (uuid del hub, **UNIQUE** → idempotencia del upsert),
+`source`, `external_id`, `city`, `lat`, `lng`, `hub_created_at` (ISO del hub),
+`ingested_at`, `updated_at`. Los tipos con foto agregan `photo_external_url`,
+`photo_url`, `photo_migrated_at` (NULL = pendiente) y `photo_broken`.
+
+| Tabla | Foto | Campos propios |
+| --- | --- | --- |
+| `hub_missing_persons` | sí | `name`, `status`, `message`, `place_name` |
+| `hub_checkins` | sí | `name`, `status`, `message`, `place_name` |
+| `hub_help_requests` | no | `category`, `description`, `urgency`, `status`, `place_name` |
+| `hub_help_offers` | no | `category`, `description`, `availability`, `available` |
+| `hub_damaged_buildings` | sí | `place_name`, `name`, `description`, `severity` |
+
+Índices: cada tabla tiene `idx_hub_<tipo>_hubid (hub_id) UNIQUE` y
+`idx_hub_<tipo>_source (source)`; `hub_missing_persons` añade
+`idx_hub_missing_photo_pending (id) WHERE photo_migrated_at IS NULL AND photo_external_url IS NOT NULL`.
+
+### `hub_sync_state`
+
+Cursor de paginación por tipo del hub (equivalente a `sync_state` para la
+federación).
+
+| Columna | Tipo | Nulo | Default | Notas |
+| --- | --- | --- | --- | --- |
+| `type` | TEXT | no | — | PK (`missing_person`, `checkin`, …) |
+| `cursor` | TEXT | sí | — | último `next_cursor` visto (NULL = desde el inicio) |
+| `last_run_at` | BIGINT | sí | — | epoch-ms |
+| `cycle_completed_at` | BIGINT | sí | — | epoch-ms |
+
+---
+
 ## Relaciones
 
-- **FK real (única):** `hospital_patients.hospital_id` → `hospitals.id`
-  (`ON DELETE CASCADE`).
+- **FK reales (6, todas → `hospitals.id` con `ON DELETE CASCADE`):**
+  `hospital_patients`, `hospital_supply_statuses`, `hospital_supply_needs`,
+  `hospital_supply_help_requests`, `hospital_poc_assignments` y
+  `hospital_supply_events`, cada una por su columna `hospital_id`.
 - **Relaciones lógicas (no forzadas por FK):**
   - `report_confirmations.report_id` → `reports.id`
   - `click_counter_dedup.counter_key` → `click_counters.key`
@@ -372,6 +541,11 @@ El resto de las tablas son independientes (sin relaciones).
 ```mermaid
 erDiagram
     hospitals ||--o{ hospital_patients : "tiene (FK)"
+    hospitals ||--o{ hospital_supply_statuses : "acopio (FK)"
+    hospitals ||--o{ hospital_supply_needs : "necesita (FK)"
+    hospitals ||--o{ hospital_supply_help_requests : "pide (FK)"
+    hospitals ||--o{ hospital_poc_assignments : "POC (FK)"
+    hospitals ||--o{ hospital_supply_events : "bitacora (FK)"
     reports ||--o{ report_confirmations : "confirma (logico)"
     click_counters ||--o{ click_counter_dedup : "dedup (logico)"
     chat_messages ||--o{ chat_messages : "hilo (logico)"
@@ -448,5 +622,6 @@ erDiagram
 
 > El diagrama muestra solo las tablas **con relaciones**. Las demás
 > (`donations`, `geocode_cache`, `sync_state`, `sync_runs`, `contact_messages`,
-> `analytics_events`, `damage_candidates`, `unidentified_persons`) son
-> independientes; sus columnas están en las secciones de arriba.
+> `analytics_events`, `damage_candidates`, `unidentified_persons` y la familia
+> `hub_*` de federación) son independientes a nivel de FK; sus columnas están en
+> las secciones de arriba.

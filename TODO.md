@@ -1,25 +1,22 @@
 # TODO — Hetzner deployment pending items
 
 Tracks what's deferred or needs attention in the Hetzner/k3s deploy. The data
-tier (Postgres + Valkey) and the k3s cluster (master + 2 fixed workers + CCM)
-are done via OpenTofu; these are the remaining pieces.
+tier (Postgres + Valkey) and the k3s master + CCM are done via OpenTofu; these
+are the remaining pieces.
 
-## Stage B — cluster-autoscaler (deferred)
+## Cluster-autoscaler — configured (see RFC 0004 for the cutover runbook)
 
-The cluster runs **fixed** workers (min 2, no scale-up). Zero-downtime deploys
-work without it (`maxUnavailable:0` on the Deployment). Autoscaling (2→4 under
-load) is deferred so the cluster came up on a known-good base first.
+The infra is wired for **fully-ephemeral** workers: `infra/tofu/variables.tf`
+sets `k3s_worker_count` default `0` (no fixed workers managed by tofu), and the
+Hetzner cluster-autoscaler in `infra/k8s/cluster-autoscaler.yaml` owns ALL
+workers via its pool `--nodes=2:5:cx23:hel1:mapa-pool` (min 2 floor, max 5
+ceiling), creating/destroying VPS on demand. Zero-downtime deploys are imposed
+by the manifests (`maxUnavailable:0` + `/api/readyz` readiness probe).
 
-**Plan (all via the k3s auto-deploy-manifest pattern, no new tooling):**
-- Deploy the **kubernetes/autoscaler Hetzner provider** as an auto-deploy
-  manifest dropped by the master's cloud-init (or applied post-provision).
-- Config: `--nodes=2:4:cx23:hel1:mapa-autoscaled` (min 2, max 4).
-- Give it `HCLOUD_TOKEN` (from the `hcloud` secret) and `HCLOUD_CLOUD_INIT` =
-  base64 of `cloud-init/k3s-agent.yaml.tftpl` so scaled-up nodes join k3s
-  identically to the static workers.
-- Ref: https://github.com/kubernetes/autoscaler/blob/master/cluster-autoscaler/cloudprovider/hetzner/README.md
-- ⚠️ This is the finicky part (node-template/labels must match exactly). Do it
-  on the already-healthy cluster so it can be debugged in isolation.
+The cutover to this ephemeral model is the **target state** in the manifests and
+tofu defaults; the runbook still has **manual steps** (provision, secrets,
+KUBECONFIG) — see `docs/rfcs/0004-autoscaling-y-split-web-api.md` before flipping
+prod, and verify the node-template/labels match the pool exactly.
 
 ## Other pending / verify-on-first-run
 
@@ -30,18 +27,23 @@ load) is deferred so the cluster came up on a known-good base first.
       needs the secret). The provision run prints the reminder.
 - [ ] **New GitHub secrets** required by the tofu-native cluster:
       `K3S_TOKEN` (openssl rand -hex 32) — upload via `upload-github-secrets.sh`.
-- [ ] **DNS** — point `vzla-terremoto.dreamit.software` A-record at the Hetzner
-      LB IP (created by the app's `Service: LoadBalancer`) so the managed
-      Let's Encrypt cert issues. Use DNS-only (no Cloudflare proxy).
+- [ ] **DNS** — there are now TWO LoadBalancer Services (`infra/k8s/service.yaml`):
+      `web` → LB `mapa-lb` (public domain) and `api` → LB `mapa-api-lb` (3rd
+      parties, `api.` host). Point each A-record at its LB IP. Prod uses a
+      Hetzner managed cert (DNS-only, no Cloudflare proxy); staging is
+      Cloudflare-proxied with a cf-origin cert.
 - [ ] **PGDATA on the volume** — `mapa-pgdata` (40GB) is attached but Postgres
       still writes to the boot disk. Move PGDATA onto the volume before real data.
 - [ ] **Rotate secrets** — `HCLOUD_TOKEN` + Hetzner S3 keys were exposed during
       setup; regenerate and re-upload.
-- [ ] **Drizzle migrations** — `infra/db/schema.ts` is descriptive only; wire
-      `drizzle-kit migrate` into the gated migrate Job when schema becomes
-      explicit (see infra/db/README.md).
-- [ ] **Cloudflare R2 + CDN** for `/_next/static` (version-skew fix) once
-      multi-pod traffic is live (see infra/README.md).
+- [x] **Drizzle migrations** — done. `infra/db/schema.ts` is the source of
+      truth; migrations `0000`..`0006` live in `infra/db/migrations/` and the
+      gated migrate Job applies them via `worker/migrate.ts` (drizzle-orm
+      `migrate()` at runtime, NOT the drizzle-kit CLI). Idempotent and
+      re-runnable (tracked in `__drizzle_migrations`).
+- [x] **Cloudflare R2 + CDN** for `/_next/static` — done. `next.config.ts`
+      sets `assetPrefix` from `NEXT_PUBLIC_ASSET_PREFIX`; the deploy uploads
+      static assets to R2 (see infra/README.md).
 - [ ] **Tighten firewall** — SSH currently open to `0.0.0.0/0`; restrict to your
       admin IP for prod (infra/tofu/firewall.tf).
 - [ ] **`lib/db.ts`** — `DB_DRIVER=tcp` pins Hetzner Postgres; confirm Vercel

@@ -5,7 +5,7 @@ perezosa de tablas en runtime (`CREATE TABLE IF NOT EXISTS` en `lib/*`).
 
 ## Fuente de verdad
 
-- **Esquema:** `infra/db/schema.ts` (Drizzle). Define las 16 tablas.
+- **Esquema:** `infra/db/schema.ts` (Drizzle). Define las 27 tablas.
 - **Migraciones generadas:** `infra/db/migrations/*.sql` (+ `meta/_journal.json`).
 - **Config drizzle-kit:** `infra/db/drizzle.config.ts`.
 - **Acceso desde la app:** `lib/drizzle.ts` (`getDb()`, helper central).

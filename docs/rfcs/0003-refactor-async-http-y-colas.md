@@ -1,10 +1,17 @@
 # RFC 0003 — Refactor async: request-path no bloqueante + colas para todo el I/O pesado
 
-Estado: propuesto
-Fecha: 2026-06-27
+Estado: implementado (merged via PR #108, 2026-06-28)
+Fecha: 2026-06-27 (propuesta) / 2026-06-28 (implementado)
 Autor: anon (+ asistencia)
 Relacionado: `docs/audits/2026-06-27-auditoria-pesada.md` (hallazgos C-1, A-1..A-7,
 M-1..M-8, R-1..R-7), `docs/rfcs/0002-federacion-hub-venezuela-ayuda.md` (colas hub).
+
+> Registro: este RFC ya está implementado. El refactor async (request-path
+> no bloqueante + colas) y el split de infra (web/api + autoscaling) se
+> mergearon en `main` vía **PR #108** ("refactor: async overhaul"). El texto
+> de abajo se conserva como diseño de referencia; lo que era estado "antes" se
+> redacta en pasado. Para el cutover de nodos efímeros / cron→scheduler ver el
+> runbook en `docs/rfcs/0004-*` (aún con pasos manuales).
 
 ## 0. TL;DR
 
@@ -123,16 +130,18 @@ Salida: PR `db/missing-search-and-upsert-indexes`. Expand-contract, idempotente.
 ### Fase 3 — El refactor central: sync de fuentes → cola (el corazón del RFC)
 
 Esto es el equivalente directo de `poll_all_jira` → `sync_one_connection.delay(id)`
-de Hermes, y del `startProductScan` 202 de boahaus. Hoy `app/api/sync/run` y
-`/cron` ejecutan `runAllSources(Chunked)` inline hasta 300s
-(`route.ts:104-113`, `engine.ts:113-130,269-288`).
+de Hermes, y del `startProductScan` 202 de boahaus. **Antes** del refactor,
+`app/api/sync/run` y `/cron` ejecutaban `runAllSources(Chunked)` inline hasta
+300s (`maxDuration:300`). **Hoy** ese trabajo vive en la cola `sources-sync`
+(`worker/sourcesSync.queue.ts`): los handlers encolan y devuelven `202`, y ya
+no existe ningún `export const maxDuration` en `app/`.
 
-**Diseño (mismo shape que la cola hub que ya existe):**
+**Diseño implementado (mismo shape que la cola hub que ya existe):**
 
-1. **Nueva cola `sources-sync`** en `worker/queues.ts`, junto a `hub-ingest`:
-   - `SOURCES_SYNC_QUEUE = "sources-sync"`, getter `sourcesSyncQueue()`,
-     `enqueueSourceSync(sourceId, mode)` con `jobId` determinístico
-     `sync-${sourceId}-${mode}` (`-`, no `:`), `attempts:3`,
+1. **Cola `sources-sync`** en `worker/sourcesSync.queue.ts`, junto a `hub-ingest`:
+   - `SOURCES_SYNC_QUEUE = "sources-sync"`, productor
+     `enqueueSourceSync({sourceId, mode})` con `jobId` determinístico
+     `sync-${mode}-${sourceId}` (`-`, no `:`), `attempts:3`,
      `backoff:{type:'exponential', delay:10_000}`, rate-limit por cola si la
      fuente lo necesita.
    - Processor `sourcesSyncProcessor` que llama el `runSyncChunked(adapter, opts)`
@@ -144,16 +153,18 @@ de Hermes, y del `startProductScan` 202 de boahaus. Hoy `app/api/sync/run` y
 2. **Scheduler (beat) reemplaza al cron de Vercel para el caso periódico:**
    `registerSourceSchedulers()` con `upsertJobScheduler` por fuente (incremental
    cada N min), igual que `registerHubSchedulers()`. Esto es el RedBeat de Hermes.
-   El `app/api/sync/cron` queda como **fallback/no-op** o se elimina si el worker
-   corre 24/7 (lo hace: Deployment `app=mapa` + workers dedicados).
+   El `app/api/sync/cron` queda como **fallback** que solo encola; el camino
+   primario es el scheduler del worker, que corre 24/7 (Deployments `web` +
+   `api` + worker dedicado, ver `infra/k8s/worker-deployment.yaml`).
 
-3. **Endpoints pasan a encolar→202:**
+3. **Endpoints encolan→202 (implementado):**
    - `POST /api/sync/run` (admin): valida → `enqueueSourceSync` por fuente (o una
      sola si `?source=`) → `202 {ok:true, jobIds:[...]}`. Sin `maxDuration:300`.
-   - `POST /api/sync/cron`: si lo mantenemos por compat, solo encola y vuelve 202.
-   - **Nuevo** `GET /api/sync/status?jobId=` (admin): `getJob(id).getState()` +
-     progreso (espejo de `getScanStatus` de boahaus / el status-poll de Hermes).
-     Documentar con `@swagger`.
+   - `/api/sync/cron`: solo encola y devuelve `202 {ok:true, queued:true, jobIds}`
+     (ya no `200` con totales). `geocode` y `duplicates` siguen el mismo patrón.
+   - `GET /api/sync/status?jobId=` (admin): `getSyncJobState(id)` →
+     `getJob(id).getState()` + progreso (espejo de `getScanStatus` de boahaus /
+     el status-poll de Hermes). Documentado con `@swagger`.
 
 4. **Producer one-shot** (opcional, como `hub-backfill.ts`): para forzar un sync
    completo manual sin pasar por el handler.
