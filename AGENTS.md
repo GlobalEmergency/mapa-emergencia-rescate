@@ -80,8 +80,9 @@ tres paquetes npm y una carpeta de infraestructura compartida:
 - Despliegue canónico: Hetzner Cloud + k3s + Postgres/Valkey privados,
   Cloudflare delante, R2 para fotos/assets y GHCR para imágenes.
 
-La raíz no tiene `package.json`. Ejecuta comandos dentro de `frontend/` o
-`backend/`, o usa `docker compose` para levantar el stack completo.
+La raíz no tiene `package.json`. Los comandos `npm` se ejecutan dentro de
+`frontend/`, `backend/` o `admin/`. Para correr el sistema completo, `docker
+compose` es la vía preferida.
 
 ## Comandos útiles
 
@@ -108,12 +109,16 @@ npm run build
 npx tsc --noEmit -p worker/tsconfig.json
 ```
 
-Stack local completo:
+Stack local completo (vía preferida):
 
 ```bash
 docker compose up --build
 docker compose down
 ```
+
+Expone `frontend` en `:3000`, `admin` en `:3001`, `backend` en `:8080`, Postgres
+en `:5432` y Valkey en `:6379`. Detalle del entorno local y la tabla de puertos
+en `README.md`.
 
 Base de datos:
 

@@ -79,7 +79,7 @@ export default function PrivacidadPage() {
           proyecto; las decisiones de gobernanza se toman colectivamente
           por el equipo de mantenedores listado en el pie de página y en{" "}
           <a
-            href="https://github.com/ArturoRiosMock/mapa-emergencia-rescate"
+            href="https://github.com/terremotovenezuela/mapa-emergencia-rescate"
             target="_blank"
             rel="noopener noreferrer"
             className="font-semibold text-sky-700 hover:underline"
@@ -383,7 +383,7 @@ export default function PrivacidadPage() {
             Código abierto auditable por la comunidad en GitHub. Las
             vulnerabilidades se reportan de forma responsable según{" "}
             <a
-              href="https://github.com/ArturoRiosMock/mapa-emergencia-rescate/blob/main/docs/SECURITY.md"
+              href="https://github.com/terremotovenezuela/mapa-emergencia-rescate/blob/main/docs/SECURITY.md"
               target="_blank"
               rel="noopener noreferrer"
               className="font-semibold text-sky-700 hover:underline"

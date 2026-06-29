@@ -290,7 +290,7 @@ export default function TerminosPage() {
           El código fuente de la Plataforma es de código abierto y está
           disponible en{" "}
           <a
-            href="https://github.com/ArturoRiosMock/mapa-emergencia-rescate"
+            href="https://github.com/terremotovenezuela/mapa-emergencia-rescate"
             target="_blank"
             rel="noopener noreferrer"
             className="font-semibold text-sky-700 hover:underline"

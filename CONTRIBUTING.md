@@ -36,7 +36,7 @@ plataforma confiable.
 Usa este flujo si no eres maintainer con permiso de escritura en el repo
 principal.
 
-1. Haz fork de `ArturoRiosMock/mapa-emergencia-rescate` en GitHub.
+1. Haz fork de `terremotovenezuela/mapa-emergencia-rescate` en GitHub.
 2. Clona tu fork:
 
    ```bash
@@ -47,7 +47,7 @@ principal.
 3. Agrega el repo original como `upstream`:
 
    ```bash
-   git remote add upstream https://github.com/ArturoRiosMock/mapa-emergencia-rescate.git
+   git remote add upstream https://github.com/terremotovenezuela/mapa-emergencia-rescate.git
    git fetch upstream
    ```
 
@@ -57,16 +57,16 @@ principal.
    git switch -c fix/descripcion-corta upstream/main
    ```
 
-5. Instala dependencias y corre la app. La raíz **no** tiene `package.json`:
-   trabaja dentro de `frontend/` o `backend/`, o usa Docker Compose para el
-   stack completo:
+5. Corre la app. Docker Compose es la vía preferida y levanta el stack completo
+   (frontend + admin + backend + Postgres + Valkey) sin instalar dependencias a
+   mano:
 
    ```bash
-   docker compose up --build      # stack completo (frontend + backend + Postgres + Valkey)
-   # o por paquete:
-   cd frontend && npm install && npm run dev
-   cd backend  && npm install && npm run dev
+   docker compose up --build
    ```
+
+   Para el detalle del entorno local y la tabla de puertos, mira el
+   [`README.md`](README.md).
 
 6. Haz cambios pequeños y enfocados. Si el alcance crece, abre una issue nueva o
    separa otro PR.
@@ -79,7 +79,7 @@ principal.
    ```
 
 8. Sube tu rama y abre un PR contra
-   `ArturoRiosMock/mapa-emergencia-rescate:main`.
+   `terremotovenezuela/mapa-emergencia-rescate:main`.
 
 Si eres maintainer, puedes crear una rama en el repo principal, pero conserva la
 misma disciplina: rama desde `main`, PR pequeño, issue enlazada y validación

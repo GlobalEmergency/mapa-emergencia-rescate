@@ -36,8 +36,7 @@ pública.
 - **Sondeo pausado** automáticamente cuando la pestaña está en segundo plano.
 
 > `docker compose` inyecta `DATABASE_URL`, `VALKEY_URL` y las URLs locales entre
-> frontend/backend. Si levantas paquetes a mano, define esas variables en el
-> entorno correspondiente.
+> frontend/backend.
 
 ## Arquitectura actual
 
@@ -99,20 +98,18 @@ fotos a R2.
 docker compose up --build
 ```
 
-Abre http://localhost:3000. El backend queda en http://localhost:8080 y Postgres
-+ Valkey corren dentro de Docker.
+Puertos expuestos en el host:
 
-También puedes levantar cada paquete por separado:
+| Servicio | Puerto host | URL / acceso          |
+| -------- | ----------- | --------------------- |
+| frontend | 3000        | http://localhost:3000 |
+| admin    | 3001        | http://localhost:3001 |
+| backend  | 8080        | http://localhost:8080 |
+| postgres | 5432        | postgres://localhost:5432 |
+| valkey   | 6379        | redis://localhost:6379 |
 
-```bash
-cd backend
-npm install
-npm run dev
-
-cd ../frontend
-npm install
-npm run dev
-```
+Docker Compose es la vía preferida para correr el proyecto localmente; Postgres
+y Valkey corren dentro de Docker.
 
 ## Contribuir
 
@@ -159,12 +156,6 @@ cada despliegue.
 
 > Neon queda como origen legado para backfills (`NEON_DATABASE_URL`), no como
 > base viva de la app. El camino soportado y descrito arriba es Hetzner + k3s.
-
-Para desarrollo local completo usa Docker Compose:
-
-```bash
-docker compose up --build
-```
 
 ## Estructura
 
