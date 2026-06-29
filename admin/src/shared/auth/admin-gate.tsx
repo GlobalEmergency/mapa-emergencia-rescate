@@ -21,7 +21,11 @@ export function AdminGate({ children }: AdminGateProps) {
   }
 
   if (!user) {
-    return <LoginForm onSubmit={login} />;
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-8">
+        <LoginForm onSubmit={login} />
+      </div>
+    );
   }
 
   return <>{children}</>;

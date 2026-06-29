@@ -71,6 +71,7 @@ function AuthedShell({ children }: { children: ReactNode }) {
                   <NavLink href="/users" label="Usuarios" pathname={pathname} />
                 )}
                 {can("role:read") && <NavLink href="/roles" label="Roles" pathname={pathname} />}
+                {can("audit:read") && <NavLink href="/audit" label="Auditoría" pathname={pathname} />}
               </ul>
             </>
           )}
