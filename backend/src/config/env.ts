@@ -65,6 +65,13 @@ const schema = z.object({
   // Proxy de analítica OpenPanel (route op/[...op]). Opcionales.
   OPENPANEL_API_URL: z.string().default("https://api.openpanel.dev"),
   OPENPANEL_CLIENT_SECRET: z.string().optional(),
+
+  // ResponseGrid: API externa de centros de acopio (logística humanitaria). El
+  // backend la PROXEA en /api/acopio (cache + rate-limit + ETag); el navegador
+  // NUNCA la llama directo (no expone CORS para nuestro origen). Defaults sanos:
+  // apuntan a la API pública y a la emergencia del terremoto de Venezuela.
+  RESPONSEGRID_API_URL: z.string().default("https://api.responsegrid.app"),
+  RESPONSEGRID_EMERGENCY_SLUG: z.string().default("terremoto-venezuela-2026"),
 });
 
 const parsed = schema.safeParse(process.env);

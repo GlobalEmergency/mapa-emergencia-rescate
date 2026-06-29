@@ -95,6 +95,8 @@ function buildFromJsDoc(): object {
     apis: [
       path.join(srcRoot, "routes", "**", "*.{ts,js}"),
       path.join(srcRoot, "public-api", "**", "*.{ts,js}"),
+      // Módulos de integración (DDD): el @swagger vive en su capa interface/http.
+      path.join(srcRoot, "modules", "**", "*.{ts,js}"),
     ],
   });
 }

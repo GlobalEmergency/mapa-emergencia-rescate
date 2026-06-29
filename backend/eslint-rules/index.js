@@ -157,8 +157,9 @@ const userFacingMutationNeedsGuard = {
   },
   create(context) {
     const file = context.filename || context.getFilename();
-    // Solo routes/** (sitio público). public-api tiene su propia regla.
-    if (!file.includes("/routes/")) return {};
+    // routes/** (sitio público) y modules/** (integraciones DDD). public-api
+    // tiene su propia regla (capability).
+    if (!file.includes("/routes/") && !file.includes("/modules/")) return {};
     if (file.includes("/public-api/")) return {};
     // auth.ts: login/accept/forgot SON públicos por naturaleza (no puedes gatear
     // el propio login tras auth). Su protección es rateLimit, exigido por la otra

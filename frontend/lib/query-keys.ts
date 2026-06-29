@@ -40,5 +40,10 @@ export const qk = {
   contact: {
     all: ["contact"] as const,
   },
+  acopio: {
+    all: ["acopio"] as const,
+    list: (p: { country?: string; category?: string; q?: string }) =>
+      ["acopio", "list", p] as const,
+  },
   geocode: (q: string) => ["geocode", q] as const,
 } as const;

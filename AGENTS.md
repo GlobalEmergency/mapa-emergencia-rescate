@@ -190,7 +190,19 @@ autorización (`backend/test/`).
 ### Backend/API
 
 - Las rutas viven en `backend/src/routes/`; la lógica de negocio vive en
-  `backend/src/services/`.
+  `backend/src/services/`. Este patrón simple aplica al sitio público propio.
+- **Integraciones con terceros** (APIs externas que proyectamos en un dominio
+  propio) van como módulos DDD en `backend/src/modules/<dominio>/`, NO como un
+  `service` plano. Capas con dependencias hacia adentro:
+  `domain/` (entidades + value objects + reglas puras + el **puerto**/interfaz de
+  la fuente; sin HTTP ni `env`), `application/` (casos de uso), `infrastructure/`
+  (adaptadores que implementan el puerto: cliente HTTP, mapper anti-corruption,
+  decorador de cache), `interface/http/` (router + controller + presenter; única
+  capa con Express y el `@swagger`) y `<dominio>-module.ts` (composition root:
+  único sitio que lee `env` y cablea todo). Referencia: `modules/acopio/`.
+  Añadir otra fuente = otro adaptador del mismo puerto en el composition root.
+  El navegador nunca llama al tercero directo: siempre se proxea por el backend
+  (cache/contrato/CORS bajo nuestro control).
 - Monta rutas con `Router`, `asyncHandler`, `validate()` y los middlewares
   existentes (`rateLimit`, `requireHuman`, `requireAdmin`, auth de hospital)
   antes de crear helpers nuevos.
@@ -235,6 +247,7 @@ autorización (`backend/test/`).
 ```text
 frontend/               Next.js UI/SSR, hooks, componentes, assets publicos
 backend/src/            Express API, servicios, middleware, acceso Drizzle
+backend/src/modules/    Integraciones como modulos DDD (dominio/aplicacion/infra/http)
 backend/worker/         BullMQ workers, sync, migraciones y backfills
 infra/db/               Esquema Drizzle + migraciones
 infra/k8s/              Deployments, Services, HPA, Jobs y Secrets ejemplo

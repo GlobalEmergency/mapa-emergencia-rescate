@@ -16,6 +16,7 @@ const ruleTester = new RuleTester({
 // Los filenames simulan la ubicación (las reglas dependen del path).
 const PUBLIC_API = "/repo/backend/src/public-api/resources/x.resource.ts";
 const ROUTES = "/repo/backend/src/routes/x.ts";
+const MODULES = "/repo/backend/src/modules/acopio/interface/http/x-router.ts";
 
 describe("require-rate-limit", () => {
   it("pasa/falla según rateLimit", () => {
@@ -81,11 +82,19 @@ describe("user-facing-mutation-needs-guard", () => {
         { code: `router.delete("/:id", requireAdmin, handler)`, filename: ROUTES },
         // GET no es mutación -> ok sin gate.
         { code: `router.get("/", handler)`, filename: ROUTES },
+        // Módulos de integración (DDD): la regla también los cubre.
+        { code: `router.post("/", requireCapability("x"), handler)`, filename: MODULES },
       ],
       invalid: [
         {
           code: `router.post("/", validate({}), handler)`,
           filename: ROUTES,
+          errors: [{ messageId: "unguarded" }],
+        },
+        {
+          // Mutación sin guard dentro de un módulo -> también falla.
+          code: `router.post("/", validate({}), handler)`,
+          filename: MODULES,
           errors: [{ messageId: "unguarded" }],
         },
       ],

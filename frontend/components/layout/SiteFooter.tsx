@@ -127,6 +127,30 @@ export default function SiteFooter() {
                 </li>
               </ul>
             </div>
+
+            <div>
+              <h4 className="qi-eyebrow text-[var(--etext2)]">
+                📦 Acopio y ayuda
+              </h4>
+              <ul className="mt-2 space-y-2">
+                <li>
+                  <a
+                    href="https://responsegrid.app/e/terremoto-venezuela-2026"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="e-card block px-3 py-2 text-sm transition hover:shadow-md"
+                  >
+                    <span className="font-semibold text-[var(--etext)]">
+                      ResponseGrid
+                    </span>
+                    <span className="block text-xs text-[var(--etext2)]">
+                      Directorio de centros de acopio y necesidades · datos por
+                      ResponseGrid / Global Emergency (CC BY-SA 4.0)
+                    </span>
+                  </a>
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
 

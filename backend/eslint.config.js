@@ -40,8 +40,14 @@ export default tseslint.config(
     },
   },
   {
-    // Reglas de arquitectura: solo donde se montan rutas.
-    files: ["src/routes/**/*.ts", "src/public-api/**/*.ts"],
+    // Reglas de arquitectura: donde se montan rutas. Incluye los módulos de
+    // integración (DDD): su capa interface/http también declara rutas y debe
+    // pasar el gate (rate-limit + guard de mutaciones).
+    files: [
+      "src/routes/**/*.ts",
+      "src/public-api/**/*.ts",
+      "src/modules/**/*.ts",
+    ],
     plugins: { local },
     rules: {
       "local/require-rate-limit": "error",

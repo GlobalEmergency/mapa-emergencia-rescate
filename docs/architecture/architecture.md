@@ -71,6 +71,32 @@ con `mediaUrl()`.
   (Cloudflare Turnstile). Las rutas admin usan `ADMIN_PASSWORD`/headers
   existentes.
 - Lecturas polleadas usan cache en proceso y ETag cuando el contrato lo permite.
+- APIs de terceros se consumen vía PROXY del backend (nunca desde el navegador),
+  para controlar cache/contrato y no depender del CORS del tercero. Caso simple:
+  `/api/geocode` proxea Nominatim (`services/geocode.ts`).
+
+## Módulos de integración (DDD/hexagonal)
+
+Las integraciones con terceros viven como **bounded contexts** en
+`backend/src/modules/<dominio>/`, con capas separadas y dependencias hacia
+adentro (la infraestructura depende del dominio, no al revés):
+
+- `domain/`: entidades + value objects + reglas puras y el **puerto** (interfaz)
+  que define la fuente. Sin HTTP, sin red, sin `env`.
+- `application/`: casos de uso que orquestan el dominio sobre el puerto.
+- `infrastructure/`: adaptadores que implementan el puerto (cliente HTTP, mapper
+  anti-corruption) y decoradores transversales (p.ej. cache).
+- `interface/http/`: router + controlador + presenter (única capa que conoce
+  Express). El `@swagger` vive aquí; `lib/swagger.ts` ya escanea `modules/**`.
+- `<dominio>-module.ts`: composition root; el único sitio que lee `env` y cablea
+  adaptador → puerto → caso de uso → router.
+
+Primer módulo: **acopio** (`modules/acopio/`), que proxea el directorio de
+centros de acopio de ResponseGrid (config en `RESPONSEGRID_API_URL` /
+`RESPONSEGRID_EMERGENCY_SLUG`). Añadir otra fuente = otro adaptador del mismo
+puerto, cableado en el composition root; el dominio y la capa HTTP no cambian.
+Las reglas ESLint de endpoints (`require-rate-limit`, guard de mutaciones)
+también cubren `src/modules/**`.
 
 ## Datos y migraciones
 
