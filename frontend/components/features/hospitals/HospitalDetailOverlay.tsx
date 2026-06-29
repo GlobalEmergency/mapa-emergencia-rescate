@@ -6,7 +6,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import HospitalDetailView from "@/app/components/HospitalDetailView";
+import HospitalDetailView from "@/components/features/hospitals/HospitalDetailView";
 import {
   buildHospitalSlug,
   FACILITY_TYPE_META,

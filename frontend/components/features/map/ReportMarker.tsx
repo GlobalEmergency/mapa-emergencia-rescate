@@ -5,7 +5,7 @@ import { REPORT_TYPES, type EmergencyReport } from "@/lib/types";
 import { mediaUrl } from "@/lib/api";
 import { timeAgo } from "@/lib/format";
 import { xShareHref, whatsappShareHref } from "@/lib/share";
-import LinkText from "@/app/components/LinkText";
+import LinkText from "@/components/ui/LinkText";
 import { markerIcon } from "./icons";
 
 /** Pin de reporte de emergencia con su popup. Memoizado: la lista re-renderiza

@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import {
   type MissingReportType,
   type MissingPersonPayload,
-} from "@/app/components/MissingPersonForm";
+} from "@/components/features/missing/MissingPersonForm";
 import { TabNav, type TabDef } from "@/components/ui/TabNav";
 import { useCreateMissing } from "@/hooks/missing";
 import { PersonsTab, type PersonsTabHandle } from "./PersonsTab";
@@ -13,7 +13,7 @@ import { HospitalsTab } from "./HospitalsTab";
 
 // Form de reporte: code-split (pesado, solo al pulsar "Reportar").
 const MissingPersonForm = dynamic(
-  () => import("@/app/components/MissingPersonForm"),
+  () => import("@/components/features/missing/MissingPersonForm"),
   { ssr: false },
 );
 

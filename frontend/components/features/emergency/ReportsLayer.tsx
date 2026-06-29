@@ -1,7 +1,7 @@
 "use client";
 
 import type { EmergencyReport, ReportType } from "@/lib/types";
-import type { MissingStats } from "@/app/components/useMissingStats";
+import type { MissingStats } from "@/hooks/useMissingStats";
 import {
   EDIFICIOS_COUNT,
   EDIFICIOS_SOURCE_LABEL,

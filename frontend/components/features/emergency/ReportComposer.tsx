@@ -13,7 +13,7 @@ export interface ReportComposerSubmit {
 
 // El formulario de reporte es un modal grande (campos + foto + cámara). Fuera del
 // bundle inicial: solo se carga cuando el usuario abre "+ Reportar".
-const ReportForm = dynamic(() => import("@/app/components/ReportForm"), {
+const ReportForm = dynamic(() => import("@/components/features/emergency/ReportForm"), {
   ssr: false,
 });
 

@@ -1,8 +1,7 @@
 import type { MetadataRoute } from "next";
 import { serverApiGet } from "@/lib/server-api";
 import { buildHospitalSlug, type Hospital } from "@/lib/hospitals-meta";
-
-const SITE_URL = "https://terremotovenezuela.app";
+import { SITE_URL } from "@/lib/site";
 
 // Refresca el sitemap cada hora para reflejar altas/bajas de hospitales sin
 // necesidad de un redeploy completo.

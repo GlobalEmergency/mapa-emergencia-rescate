@@ -16,7 +16,7 @@ import {
   type MissingPerson,
 } from "@/hooks/missing";
 import { qk } from "@/lib/query-keys";
-import { useLowBandwidthMode } from "@/app/components/useLowBandwidthMode";
+import { useLowBandwidthMode } from "@/hooks/useLowBandwidthMode";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { Pagination } from "@/components/ui/Pagination";
 import { MissingPersonCard } from "./MissingPersonCard";

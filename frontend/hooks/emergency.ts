@@ -18,7 +18,7 @@ import { apiGet, apiSend } from "@/lib/api";
 import { qk } from "@/lib/query-keys";
 import type { EmergencyReport } from "@/lib/types";
 import type { MissingMapMarker } from "@/hooks/missing";
-import type { MapBounds } from "@/app/components/MapView";
+import type { MapBounds } from "@/components/features/map";
 
 export interface ReportsResponse {
   reports: EmergencyReport[];

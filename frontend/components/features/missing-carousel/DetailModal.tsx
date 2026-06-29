@@ -9,7 +9,7 @@ import dynamic from "next/dynamic";
  * inicial. Re-exporta MissingPersonDetail TAL CUAL (misma UI/props/contrato).
  */
 const DetailModal = dynamic(
-  () => import("@/app/components/MissingPersonDetail"),
+  () => import("@/components/features/missing/MissingPersonDetail"),
   { ssr: false },
 );
 

@@ -1,0 +1,204 @@
+import Link from "next/link";
+import type { Metadata } from "next";
+import { notFound, redirect } from "next/navigation";
+import { serverApiGet, serverApiGetOrNull } from "@/lib/server-api";
+import {
+  buildHospitalSlug,
+  FACILITY_TYPE_META,
+  PRIORITY_ZONE_META,
+  type Hospital,
+  type HospitalPatient,
+  type PublicHospitalSupplySummary,
+} from "@/lib/hospitals-meta";
+import HospitalDetailView from "@/components/features/hospitals/HospitalDetailView";
+import { pageMetadata } from "@/lib/metadata";
+import { SITE_URL } from "@/lib/site";
+
+export const dynamic = "force-dynamic";
+
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
+
+async function fetchHospital(id: string): Promise<Hospital | null> {
+  const data = await serverApiGetOrNull<{ hospital: Hospital }>(
+    `/api/hospitals/${id}`,
+  );
+  return data?.hospital ?? null;
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { id } = await params;
+  const hospital = await fetchHospital(id);
+  if (!hospital) {
+    return pageMetadata({
+      title: "Hospital no encontrado",
+      description: "No encontramos el hospital solicitado.",
+      index: false,
+    });
+  }
+  return pageMetadata({
+    title: `${hospital.name} · Hospitales`,
+    description: `Información, pacientes registrados y datos del ${hospital.name} en ${hospital.state}. Iniciativa ciudadana, independiente y no gubernamental.`,
+    path: `/hospitales/${buildHospitalSlug(hospital)}`,
+  });
+}
+
+export default async function HospitalPage({ params }: PageProps) {
+  const { id } = await params;
+  const hospital = await fetchHospital(id);
+  if (!hospital) notFound();
+  const canonicalSlug = buildHospitalSlug(hospital);
+  if (id !== canonicalSlug) redirect(`/hospitales/${canonicalSlug}`);
+
+  const [patientsRes, supplyRes] = await Promise.all([
+    serverApiGet<{ patients: HospitalPatient[] }>(
+      `/api/hospitals/${hospital.id}/patients`,
+    ),
+    serverApiGet<{ supply: PublicHospitalSupplySummary | null }>(
+      `/api/hospitals/${hospital.id}/supplies`,
+    ),
+  ]);
+  const patients = patientsRes.patients ?? [];
+  const supply = supplyRes.supply ?? undefined;
+  const zone = PRIORITY_ZONE_META[hospital.priorityZone];
+  const facility = FACILITY_TYPE_META[hospital.facilityType];
+
+  const hospitalJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Hospital",
+    name: hospital.name,
+    url: `${SITE_URL}/hospitales/${canonicalSlug}`,
+    address: {
+      "@type": "PostalAddress",
+      ...(hospital.address ? { streetAddress: hospital.address } : {}),
+      addressLocality: hospital.municipality || hospital.state,
+      addressRegion: hospital.state,
+      addressCountry: "VE",
+    },
+  };
+
+  return (
+    <main className="flex-1 bg-slate-50">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(hospitalJsonLd).replace(/</g, "\\u003c"),
+        }}
+      />
+      <div className="border-b border-slate-200 bg-white">
+        <div className="mx-auto flex w-full max-w-5xl items-center gap-2 px-4 py-3 text-sm text-slate-500">
+          <Link href="/" className="hover:text-slate-700 hover:underline">
+            ← Inicio
+          </Link>
+          <span aria-hidden>/</span>
+          <Link
+            href="/hospitales"
+            className="hover:text-slate-700 hover:underline"
+          >
+            Hospitales
+          </Link>
+          <span aria-hidden>/</span>
+          <span className="truncate text-slate-700">{hospital.name}</span>
+        </div>
+      </div>
+
+      <section
+        className="border-b border-slate-200"
+        style={{
+          background: `linear-gradient(180deg, ${zone.color}18, transparent)`,
+        }}
+      >
+        <div className="mx-auto w-full max-w-5xl px-4 py-6">
+          <div className="flex flex-wrap items-center gap-2">
+            <span
+              className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white"
+              style={{ background: zone.color }}
+            >
+              {zone.emoji} {hospital.priorityZone} · {zone.label}
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-0.5 text-[11px] font-medium text-slate-700 shadow-sm">
+              {facility.emoji} {facility.label}
+            </span>
+            {hospital.level && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-0.5 text-[11px] font-medium text-slate-700 shadow-sm">
+                Nivel {hospital.level}
+              </span>
+            )}
+          </div>
+
+          <h1 className="mt-3 text-balance text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+            {hospital.name}
+          </h1>
+          <p className="mt-1 text-sm text-slate-600">
+            {hospital.state}
+            {hospital.municipality && ` · ${hospital.municipality}`}
+          </p>
+          {hospital.address && (
+            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600">
+              📍 {hospital.address}
+            </p>
+          )}
+
+          <div className="mt-5 grid max-w-2xl grid-cols-2 gap-2 sm:grid-cols-3">
+            <Stat
+              label="Hospitalizados"
+              value={hospital.activePatients}
+              accent="#1d4ed8"
+            />
+            <Stat
+              label="Total pacientes"
+              value={hospital.totalPatients}
+              accent="#0f172a"
+            />
+            <Stat label="Zona" value={zone.label} accent={zone.color} />
+          </div>
+        </div>
+      </section>
+
+      <div className="mx-auto w-full max-w-5xl px-4 py-6">
+        <HospitalDetailView
+          hospital={hospital}
+          initialPatients={patients}
+          initialSupply={supply}
+        />
+
+        <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          <p className="font-semibold">⚠️ Importante</p>
+          <p className="mt-1 leading-relaxed">
+            Los datos de pacientes son reportes ciudadanos no verificados. Sirven
+            para ayudar a familiares a localizar a sus seres queridos. Si vas a
+            registrar a alguien, confirma que cuentas con su autorización o la de
+            un familiar directo. Si encuentras información incorrecta o
+            desactualizada, contáctanos.
+          </p>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+function Stat({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: number | string;
+  accent: string;
+}) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+        {label}
+      </p>
+      <p
+        className="mt-0.5 truncate text-base font-bold sm:text-lg"
+        style={{ color: accent }}
+        title={String(value)}
+      >
+        {value}
+      </p>
+    </div>
+  );
+}

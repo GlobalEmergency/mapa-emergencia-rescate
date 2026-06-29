@@ -9,6 +9,10 @@
 # Datos reales de prod viven en el volumen `postgres_data` (cargados por dump SSH).
 # Persisten entre up/down; solo `down -v` los borra.
 #
+# El servicio one-shot `migrate-seed` aplica migraciones y siembra datos DEMO
+# (SOLO local) antes de que arranque el backend. Es idempotente y se niega a
+# correr si detecta datos NO-demo (no mezcla fixtures con un dump real).
+#
 # Wiring API (como en prod): el frontend llama al backend por URL ABSOLUTA
 # (NEXT_PUBLIC_API_URL). El browser corre fuera de la red de Docker, así que la
 # URL es http://localhost:8080 (NO el nombre de servicio). NEXT_PUBLIC_* se
@@ -45,13 +49,14 @@ services:
 
   # Job one-shot: aplica migraciones + seed (capacidades, rol admin, superadmin)
   # ANTES de que el backend arranque. Espeja el Job gateado de prod
-  # (infra/k8s/migrate-job.yaml). Corre, siembra y termina (restart: no). El
-  # backend depende de que complete con éxito.
-  migrate:
+  # (infra/k8s/migrate-job.yaml). Luego siembra datos DEMO locales (salvo
+  # SKIP_SEED=1). Corre y termina (restart: no); el backend depende de que
+  # complete con éxito.
+  migrate-seed:
     build:
       context: .
       dockerfile: backend/Dockerfile
-    command: ["npm", "run", "migrate"]
+    command: sh -c 'npm run migrate && { [ "$$SKIP_SEED" = "1" ] && echo "[seed] omitido (SKIP_SEED=1)" || npm run seed; }'
     environment:
       NODE_ENV: development
       DATABASE_URL: postgres://mapa_app:localdev@db:5432/app
@@ -59,6 +64,7 @@ services:
       JWT_SECRET: local-dev-jwt-secret-not-for-prod-0123456789
       SEED_ADMIN_EMAIL: anonymous-dev@globalemergency.online
       SEED_ADMIN_PASSWORD: localadminpass123
+      SKIP_SEED: "${SKIP_SEED:-0}"
     restart: "no"
     depends_on:
       db:
@@ -94,7 +100,7 @@ services:
         condition: service_healthy
       valkey:
         condition: service_healthy
-      migrate:
+      migrate-seed:
         condition: service_completed_successfully
 
   frontend:
@@ -106,6 +112,12 @@ services:
         NEXT_PUBLIC_API_URL: "http://localhost:8080"
         # Base pública del CDN de fotos (no sensible).
         NEXT_PUBLIC_R2_PUBLIC_BASE: "https://bucket-vzla-terremoto.dreamit.software"
+    environment:
+      # SSR / Server Components dentro de Docker llaman al backend por la RED
+      # interna (nombre de servicio), NO localhost. Sin esto, server-api.ts cae a
+      # localhost:8080 dentro del contenedor frontend y el fetch SSR (p.ej.
+      # /hospitales/[id], sitemap) falla con ECONNREFUSED.
+      INTERNAL_API_URL: http://backend:8080
     ports:
       - "3000:3000"
     depends_on:

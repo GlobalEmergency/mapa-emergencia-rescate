@@ -16,6 +16,22 @@ export async function serverApiGet<T>(path: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+// Variante cacheada (ISR): la página se prerenderiza y se revalida cada N
+// segundos en vez de pegar al backend por request. Para datos estables (p. ej.
+// el directorio de hospitales) bajo tráfico alto.
+export async function serverApiGetCached<T>(
+  path: string,
+  revalidateSeconds: number,
+): Promise<T> {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    next: { revalidate: revalidateSeconds },
+  });
+  if (!res.ok) {
+    throw new Error(`GET ${path} → ${res.status}`);
+  }
+  return res.json() as Promise<T>;
+}
+
 // Variante para detalle: devuelve null en 404 (para notFound()).
 export async function serverApiGetOrNull<T>(path: string): Promise<T | null> {
   const res = await fetch(`${BASE_URL}${path}`, { cache: "no-store" });

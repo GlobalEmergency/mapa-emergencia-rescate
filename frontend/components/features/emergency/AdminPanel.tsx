@@ -1,6 +1,6 @@
 "use client";
 
-import AdminLogin from "@/app/components/AdminLogin";
+import AdminLogin from "@/components/features/emergency/AdminLogin";
 
 /** Botón de sesión admin (login/logout) para el header de la lista. */
 export function AdminToggle({

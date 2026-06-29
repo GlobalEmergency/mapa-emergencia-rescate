@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import { MapContainer, Marker, TileLayer, ZoomControl } from "react-leaflet";
-import EdificiosAfectadosLayer from "@/app/components/EdificiosAfectadosLayer";
+import EdificiosAfectadosLayer from "@/components/features/map/EdificiosAfectadosLayer";
 import { draftIcon as makeDraftIcon } from "./icons";
 import {
 	BoundsHandler,

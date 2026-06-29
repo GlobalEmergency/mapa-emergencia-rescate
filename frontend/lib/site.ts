@@ -1,3 +1,6 @@
+export const SITE_URL = "https://terremotovenezuela.app";
+export const SITE_NAME = "Mapa de Emergencia Venezuela";
+
 export const CONTACT_EMAIL = "info@terremotovenezuela.app";
 
 /** Grupo/comunidad de voluntarios en WhatsApp (configurable en Vercel). */

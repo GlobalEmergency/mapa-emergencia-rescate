@@ -11,8 +11,8 @@ import {
   HospitalCard,
   HospitalStatsRow,
   HospitalZoneFilters,
-} from "@/app/components/HospitalDirectoryUI";
-import { trackHospitalDetailViewed } from "@/app/components/analytics";
+} from "@/components/features/hospitals/HospitalDirectoryUI";
+import { trackHospitalDetailViewed } from "@/lib/analytics";
 import { useHospitals } from "@/hooks/hospitals";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { Pagination } from "@/components/ui/Pagination";
@@ -20,7 +20,7 @@ import { useHospitalGridColumns } from "./useHospitalGridColumns";
 
 // Overlay de detalle pesado: code-split, solo carga al tocar un hospital.
 const HospitalDetailOverlay = dynamic(
-  () => import("@/app/components/Hospitals").then((m) => m.HospitalDetailOverlay),
+  () => import("@/components/features/hospitals/HospitalDetailOverlay"),
   { ssr: false },
 );
 

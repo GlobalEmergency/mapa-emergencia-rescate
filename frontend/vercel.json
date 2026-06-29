@@ -1,6 +1,0 @@
-{
-  "crons": [
-    { "path": "/api/sync/cron", "schedule": "*/10 * * * *" },
-    { "path": "/api/sync/geocode", "schedule": "*/5 * * * *" }
-  ]
-}

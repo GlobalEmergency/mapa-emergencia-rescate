@@ -7,9 +7,12 @@ const nextConfig: NextConfig = {
   // + infra/). En Vercel es inocuo. `public` y `.next/static` se copian a mano
   // en el Dockerfile, tal como indican los docs de Next.
   output: "standalone",
-  // `pg` solo se usa en desarrollo local (ver lib/db.ts). Lo mantenemos fuera
-  // del bundle para que se cargue como módulo de Node en tiempo de ejecución.
-  serverExternalPackages: ["pg"],
+  // Tree-shaking de barrels: importa solo los iconos usados de lucide-react en
+  // vez del módulo completo. Next 16 ya lo hace por defecto para lucide; queda
+  // explícito por si cambia el default o se suman más libs de barril.
+  experimental: {
+    optimizePackageImports: ["lucide-react"],
+  },
   // Fija la raíz del workspace a este directorio. Sin esto Turbopack la infiere
   // por lockfiles en carpetas superiores (p. ej. un pnpm-lock.yaml en el home).
   turbopack: {
