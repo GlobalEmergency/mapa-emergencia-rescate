@@ -71,6 +71,10 @@ NUNCA llega al clúster.
 7. **Roll zero-downtime**: `kubectl set image` + `rollout status` sobre
    `deployment/web` y `deployment/api` (bloquea hasta que los pods nuevos estén
    Ready y los viejos drenen). El `migrate-worker` se rola aparte.
+8. **Smoke post-deploy** (`scripts/smoke.sh`): tras el roll, pega al **edge
+   público** (web `WEB_BASE`, api `API_BASE`) y verifica que sirve tráfico real.
+   Si falla, **auto-rollback** y el job queda rojo. Ver
+   [Smoke post-deploy y rollback](#smoke-post-deploy-y-rollback).
 
 ## `target`: staging vs prod (perfil TLS del LB)
 
@@ -127,15 +131,56 @@ Variables opcionales de repo:
 > secret `app-env` (strategic merge, sin recrear; cada clave se omite si su
 > secret de GH no está seteado) y los pods nuevos los leen al rolar.
 
-## Rollback
+## Smoke post-deploy y rollback
 
-Si el roll falla, el workflow lo dice. El image se sirve desde **dos
-Deployments** (`web` y `api`), así que para revertir a la versión anterior hay
-que rotar atrás **cada uno**:
+### Health checks
+
+La API expone dos endpoints separados (`backend/src/server.ts`), que también
+usan las probes de k8s (`infra/k8s/deployment.yaml`):
+
+| Endpoint | Qué verifica | Probe | Fallo |
+| --- | --- | --- | --- |
+| `GET /api/healthz` | proceso vivo, **sin I/O** | `livenessProbe` | kubelet reinicia el pod |
+| `GET /api/readyz` | conectividad a la DB (`select 1`, timeout ~2s) → 200/503 | `readinessProbe` + health-check del LB api | saca el pod de rotación (no lo reinicia) |
+
+Separarlos evita que un blip de DB reinicie pods: liveness no toca la DB, así un
+fallo de readiness solo **drena**, no entra en restart-loop.
+
+### Smoke
+
+Tras el roll, el workflow corre `scripts/smoke.sh` contra el **edge público**.
+El script:
+
+- Solo **GET** (no crea reportes ni datos).
+- Mira **solo el status code** (`curl -o /dev/null`): nunca vuelca cuerpos, así
+  no aterrizan datos de reportes ni secretos en los logs.
+- Timeout por request (`SMOKE_TIMEOUT`, default 10s) + reintentos con backoff
+  (`SMOKE_RETRIES`, default 5).
+- Objetivos: web `/`, `/robots.txt`, `/sitemap.xml`; api `/api/healthz`,
+  `/api/readyz`, `/api/reports`, `/api/missing/stats`.
+
+Bases (overrideables por repo vars): `WEB_BASE`
+(`https://${NEXT_PUBLIC_OPENPANEL_PRODUCTION_HOST}`) y `API_BASE`
+(`NEXT_PUBLIC_API_URL`). Para correrlo a mano:
+
+```bash
+WEB_BASE=https://terremotovenezuela.app \
+API_BASE=https://api.terremotovenezuela.app \
+bash scripts/smoke.sh
+```
+
+### Rollback
+
+Si el smoke (o cualquier paso posterior al roll) falla, el workflow ejecuta
+**auto-rollback**: `kubectl rollout undo` sobre `web`, `api` y `admin`, espera a
+que converjan y deja el job **rojo** (el deploy no se considera sano aunque el
+rollback funcione). El image se sirve desde tres Deployments, así que para
+revertir a mano hay que rotar atrás **cada uno**:
 
 ```bash
 kubectl -n mapa rollout undo deployment/web
 kubectl -n mapa rollout undo deployment/api
+kubectl -n mapa rollout undo deployment/admin
 ```
 
 (Si el `migrate-worker` también se actualizó: `kubectl -n mapa rollout undo
