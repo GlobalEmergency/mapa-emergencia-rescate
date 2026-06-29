@@ -79,7 +79,12 @@ export default function HospitalDetailView({
       }
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al cargar.");
+      // No filtramos el error técnico (p. ej. "network timeout" del service worker):
+      // mostramos un mensaje accionable. El botón "🔄 Actualizar" permite reintentar.
+      console.error("Error al cargar el hospital:", err);
+      setError(
+        "No pudimos cargar la información del hospital. Revisa tu conexión e inténtalo de nuevo con 🔄 Actualizar.",
+      );
     } finally {
       if (manual) setRefreshing(false);
     }
@@ -273,16 +278,10 @@ function HospitalSupplyPanel({
             Estado por categoría
           </h2>
           <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600">
-            Datos operativos reportados por POC/admin. No incluye contactos
-            privados ni notas restringidas.
+            Datos operativos reportados por personal verificado. No incluye
+            contactos privados ni notas restringidas.
           </p>
         </div>
-        <Link
-          href="/admin"
-          className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
-        >
-          Actualizar
-        </Link>
       </div>
 
       {statuses.length === 0 && activeNeeds.length === 0 ? (

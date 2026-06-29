@@ -6,12 +6,13 @@ import AdminLogin from "@/components/features/emergency/AdminLogin";
 export function AdminToggle({
   isAdmin,
   onLogout,
-  onOpenLogin,
 }: {
   isAdmin: boolean;
   onLogout: () => void;
-  onOpenLogin: () => void;
 }) {
+  // No exponer la entrada al panel admin en la UI pública: el botón de login solo
+  // tiene sentido para quien ya es admin (logout). El acceso inicial se hace por
+  // los disparadores ocultos existentes (no por un botón visible "🔒 Admin").
   return isAdmin ? (
     <button
       type="button"
@@ -21,15 +22,7 @@ export function AdminToggle({
     >
       Admin ✓ · Salir
     </button>
-  ) : (
-    <button
-      type="button"
-      onClick={onOpenLogin}
-      className="shrink-0 rounded-md border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-50"
-    >
-      🔒 Admin
-    </button>
-  );
+  ) : null;
 }
 
 /** Modal de login admin. Solo se monta cuando `open`. */

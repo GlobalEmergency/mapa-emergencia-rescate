@@ -669,7 +669,6 @@ export default function EmergencyApp() {
           onConfirm={handleConfirm}
           onResolve={handleResolve}
           onLogout={logoutAdmin}
-          onOpenLogin={() => setShowAdminLogin(true)}
         />
       </div>
 

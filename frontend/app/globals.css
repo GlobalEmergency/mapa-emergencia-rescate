@@ -1310,7 +1310,8 @@ a:focus-visible,
 .e-person-modal__close {
 	position: absolute;
 	top: 0.875rem;
-	left: 0.875rem;
+	/* Cerrar arriba a la derecha, consistente con el resto de los modales. */
+	right: 0.875rem;
 	z-index: 3;
 	display: grid;
 	place-items: center;

@@ -116,22 +116,14 @@ export default function MissingCarousel() {
       <div className="mx-auto w-full max-w-[1120px] px-4 py-8 sm:px-6 sm:py-10">
         <div className="-mx-4 mb-7 border-b-2 border-[var(--eborder)] px-4 sm:mx-0 sm:px-0">
           <div className="grid gap-2 py-3 sm:flex sm:items-center sm:justify-end">
-            <span className="text-sm font-semibold text-slate-500">
-              Reportar:
-            </span>
+            {/* Un solo botón: el modal trae el toggle "desaparecida / encontrada"
+                adentro, así que abrimos en "missing" por defecto. */}
             <button
               type="button"
               onClick={() => openReportForm("missing")}
               className="e-btn w-full border-red-600 bg-red-600 px-5 py-2.5 text-white hover:bg-red-700 sm:w-auto"
             >
-              Persona desaparecida
-            </button>
-            <button
-              type="button"
-              onClick={() => openReportForm("found")}
-              className="e-btn w-full border-indigo-600 bg-indigo-600 px-5 py-2.5 text-white hover:bg-indigo-700 sm:w-auto"
-            >
-              Persona encontrada
+              Reportar persona
             </button>
           </div>
           <TabNav

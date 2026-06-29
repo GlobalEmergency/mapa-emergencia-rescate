@@ -29,7 +29,6 @@ export interface ReportsLayerProps {
   onConfirm: (id: string) => void;
   onResolve: (id: string) => void;
   onLogout: () => void;
-  onOpenLogin: () => void;
 }
 
 export default function ReportsLayer({
@@ -50,7 +49,6 @@ export default function ReportsLayer({
   onConfirm,
   onResolve,
   onLogout,
-  onOpenLogin,
 }: ReportsLayerProps) {
   return (
     <div className="e-map-sidebar">
@@ -76,11 +74,7 @@ export default function ReportsLayer({
             Toca un tipo en el mapa para filtrar la lista
           </p>
         </div>
-        <AdminToggle
-          isAdmin={isAdmin}
-          onLogout={onLogout}
-          onOpenLogin={onOpenLogin}
-        />
+        <AdminToggle isAdmin={isAdmin} onLogout={onLogout} />
       </div>
 
       <div className="mt-3 flex flex-col gap-2 px-3">

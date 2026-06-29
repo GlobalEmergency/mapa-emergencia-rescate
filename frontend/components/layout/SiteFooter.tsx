@@ -212,12 +212,6 @@ export default function SiteFooter() {
             >
               Riesgo sísmico
             </Link>
-            <a
-              href="/admin"
-              className="whitespace-nowrap text-[var(--etext3)] hover:text-[var(--etext2)] hover:underline"
-            >
-              Panel de administración
-            </a>
           </div>
         </div>
       </div>

@@ -6,8 +6,10 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      // Panel interno y endpoints de API no deben rastrearse ni indexarse.
-      disallow: ["/admin", "/api/"],
+      // Los endpoints de API no deben rastrearse. NO listamos /admin a
+      // propósito: ya es noindex y enumerarlo aquí solo revelaría la ruta del
+      // panel a quien lea robots.txt.
+      disallow: ["/api/"],
     },
     sitemap: `${SITE_URL}/sitemap.xml`,
     host: SITE_URL,

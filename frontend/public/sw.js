@@ -125,10 +125,18 @@ async function networkFirst(request, cacheName) {
     const fresh = await fetchWithTimeout(request, API_TIMEOUT_MS);
     if (fresh.ok) cache.put(request, fresh.clone());
     return fresh;
-  } catch (err) {
+  } catch {
     const cached = await cache.match(request);
     if (cached) return cached;
-    throw err;
+    // Sin red y sin caché: degradamos con una respuesta JSON sintética en vez de
+    // propagar el error. Si hiciéramos `throw`, `event.respondWith()` recibiría una
+    // promesa rechazada y el navegador filtraría "FetchEvent.respondWith received an
+    // error: …" a la UI. Con un 503 normal, la app ve `!res.ok` y muestra su propio
+    // mensaje amable.
+    return new Response(JSON.stringify({ error: "offline" }), {
+      status: 503,
+      headers: { "Content-Type": "application/json; charset=utf-8" },
+    });
   }
 }
 
