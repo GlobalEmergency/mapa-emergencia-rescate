@@ -49,6 +49,12 @@ export const CROSS_CUTTING: { key: string; category: string; description: string
   { key: "grant:read", category: "auth", description: "Ver grants de capacidades" },
   { key: "grant:manage", category: "auth", description: "Conceder/revocar capacidades individuales" },
   { key: "audit:read", category: "audit", description: "Ver la bitácora de auditoría" },
+  // Self-service: gestionar TUS PROPIAS API keys. Se siembra en todos los roles
+  // (cualquier usuario invitado puede crear sus llaves). Revocar llaves AJENAS es
+  // potestad del admin semilla (no necesita esta cap). Es capability — no "solo
+  // autenticado" — para encajar en el deny-by-default del repo y poder quitársela
+  // a un rol restringido si hiciera falta (least-privilege).
+  { key: "apikey:manage", category: "auth", description: "Crear y revocar tus propias API keys" },
 ];
 
 export interface CapabilityDef {

@@ -66,6 +66,19 @@ export async function seedAuth(): Promise<void> {
   }
   console.log("[seed] rol 'admin' con todas las capacidades.");
 
+  // 2b) `apikey:manage` es self-service: TODO rol la lleva, para que cualquier
+  // usuario invitado (cualquier rol) pueda crear/revocar SUS PROPIAS API keys.
+  // Idempotente (onConflictDoNothing). Solo añade; nunca quita lo que un admin
+  // haya configurado a mano en un rol.
+  const allRoles = await db.select({ id: schema.roles.id }).from(schema.roles);
+  for (const r of allRoles) {
+    await db
+      .insert(schema.roleCapabilities)
+      .values({ roleId: r.id, capabilityKey: "apikey:manage" })
+      .onConflictDoNothing();
+  }
+  console.log(`[seed] apikey:manage sembrada en ${allRoles.length} rol(es).`);
+
   // 3) Primer superadmin (opcional, no destructivo).
   const seedEmail = process.env.SEED_ADMIN_EMAIL?.trim().toLowerCase();
   if (seedEmail) {

@@ -825,3 +825,32 @@ export const earthquakes = pgTable(
     index("idx_earthquakes_geo").on(t.lat, t.lng),
   ],
 );
+
+/* ---------------------------------------------------------------- api_keys */
+// API keys self-service por usuario (integraciones máquina-a-máquina contra
+// api/public/*). Nunca se guarda la llave cruda: solo su hash SHA-256 (igual que
+// hospital_poc_assignments e invitations). `prefix` es los primeros caracteres
+// (no secreto) para identificar la llave en la UI. `scopes` acota la llave a un
+// SUBCONJUNTO de las capacidades del usuario (least-privilege por integración);
+// el permiso efectivo en cada request = scopes ∩ capacidades vivas del usuario.
+// Soft-delete vía revokedAt (nunca borrado físico) — espeja el patrón de users.
+export const apiKeys = pgTable(
+  "api_keys",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull(), // dueño de la llave
+    name: text("name").notNull().default(""), // etiqueta del usuario ("CI", "Postman"…)
+    keyHash: text("key_hash").notNull(), // SHA-256(llave cruda), nunca la cruda
+    prefix: text("prefix").notNull(), // primeros chars para mostrar (no secreto)
+    scopes: jsonb("scopes").notNull(), // string[] de capability keys (subconjunto del usuario)
+    createdAt: epochMs("created_at").notNull(),
+    lastUsedAt: epochMs("last_used_at"), // se actualiza fire-and-forget en cada uso
+    expiresAt: epochMs("expires_at"), // NULL = sin expiración
+    revokedAt: epochMs("revoked_at"), // NULL = activa (soft delete)
+    revokedBy: text("revoked_by"), // user.id que la revocó (self o admin)
+  },
+  (t) => [
+    uniqueIndex("idx_api_keys_hash").on(t.keyHash), // lookup O(1) en auth
+    index("idx_api_keys_user").on(t.userId), // listar "mis llaves"
+  ],
+);

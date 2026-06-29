@@ -71,6 +71,13 @@
       "when": 1782732496615,
       "tag": "0009_round_azazel",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1782753069671,
+      "tag": "0010_opposite_tombstone",
+      "breakpoints": true
     }
   ]
 }

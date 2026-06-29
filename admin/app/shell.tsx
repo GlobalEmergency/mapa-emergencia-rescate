@@ -51,6 +51,14 @@ function AuthedShell({ children }: { children: ReactNode }) {
             )}
           </ul>
 
+          {/* Self-service: gestionar TUS propias API keys. apikey:manage está
+              sembrada en todos los roles, así que cualquier usuario invitado lo ve. */}
+          {can("apikey:manage") && (
+            <ul className="mt-1 flex flex-col gap-1">
+              <NavLink href="/api-keys" label="API Keys" pathname={pathname} />
+            </ul>
+          )}
+
           {/* Administración RBAC — cada enlace gateado por su capacidad. La
               gestión de usuarios (incluida la invitación) vive en /users. */}
           {(can("role:read") || can("user:read") || can("user:invite")) && (

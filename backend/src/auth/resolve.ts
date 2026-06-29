@@ -27,6 +27,15 @@ export interface AuthUser {
   status: string;
   /** True si su rol es el semilla "admin" (is_system). */
   isSystemAdmin: boolean;
+  /**
+   * Si la sesión se autenticó con una API KEY, aquí van los scopes de esa llave
+   * (subconjunto de capabilities). El permiso efectivo se ACOTA a este set: una
+   * capacidad solo pasa si está en los scopes Y el usuario la tiene de verdad —
+   * incluso para el admin semilla. `undefined` = sesión normal (JWT/cookie), sin
+   * acotar. Es lo que hace que una llave sea least-privilege y no un alias total
+   * del usuario.
+   */
+  apiKeyScopes?: string[];
 }
 
 /** Cache de capacidades por-request (clave = capability key -> bool). */
@@ -70,7 +79,12 @@ export async function userHasCapability(
   capability: string,
   cache?: CapCache,
 ): Promise<boolean> {
-  // 1) Admin semilla: todo.
+  // 0) Techo de API key: si la sesión es por llave, la capacidad DEBE estar en
+  // sus scopes — aun para el admin semilla. Esto hace la llave least-privilege
+  // (no un alias total). Va ANTES del short-circuit de admin a propósito.
+  if (user.apiKeyScopes && !user.apiKeyScopes.includes(capability)) return false;
+
+  // 1) Admin semilla: todo (lo que el techo de scope no haya cortado ya).
   if (user.isSystemAdmin) return true;
 
   if (cache?.has(capability)) return cache.get(capability)!;

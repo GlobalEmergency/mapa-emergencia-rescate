@@ -74,6 +74,18 @@ con `mediaUrl()`.
 - APIs de terceros se consumen vía PROXY del backend (nunca desde el navegador),
   para controlar cache/contrato y no depender del CORS del tercero. Caso simple:
   `/api/geocode` proxea Nominatim (`services/geocode.ts`).
+- **API keys (integraciones).** La superficie `api/public/*` se autentica con JWT
+  (cookie/Bearer) O con una **API key** (`Authorization: Bearer mer_sk_…`). El
+  middleware (`middleware/auth.ts`) detecta el prefijo, busca el hash SHA-256 en
+  `api_keys` (índice único → O(1)), valida que no esté revocada/expirada y cuelga
+  el mismo `req.user` que el JWT — así `requireCapability` no cambia. Las llaves
+  son **self-service**: cualquier usuario invitado (capacidad `apikey:manage`,
+  sembrada en todos los roles) crea/lista/revoca las suyas en el panel; el admin
+  semilla puede revocar ajenas. Cada llave lleva **scopes** (subconjunto de
+  capacidades): el permiso efectivo en cada request = `scopes ∩ capacidades vivas
+  del usuario` — un techo least-privilege que aplica **incluso al admin semilla**
+  (ver el corte en `auth/resolve.ts`). La llave cruda se muestra una sola vez; en
+  DB solo va su hash + un prefijo no secreto. Revocar = soft-delete (`revokedAt`).
 
 ## Módulos de integración (DDD/hexagonal)
 

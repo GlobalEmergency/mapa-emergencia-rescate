@@ -22,6 +22,7 @@ import { unauthorized, forbidden } from "@/lib/errors";
 import { env } from "@/config/env";
 import { verifyToken } from "@/auth/jwt";
 import { loadAuthUser, userHasCapability, type AuthUser } from "@/auth/resolve";
+import { looksLikeApiKey, resolveApiKey } from "@/services/api-keys";
 
 // Aumenta el tipo de Express Request con el usuario autenticado + cache de caps.
 declare global {
@@ -44,15 +45,36 @@ function extractToken(req: Request): string | null {
 }
 
 /**
+ * Resuelve un token a un AuthUser, sea API KEY o JWT:
+ *  - Si tiene forma de API key (`mer_sk_…`): hash → lookup → llave activa → carga
+ *    el usuario y le adjunta los scopes de la llave (techo least-privilege). La
+ *    cookie nunca lleva una API key (guarda un JWT), así que el prefijo basta
+ *    para distinguir sin ambigüedad.
+ *  - Si no: verifica el JWT y carga el usuario (sesión normal, sin acotar).
+ * Devuelve null si el token es inválido / la llave está revocada o expirada / el
+ * usuario no existe o está desactivado.
+ */
+async function resolvePrincipal(token: string): Promise<AuthUser | null> {
+  if (looksLikeApiKey(token)) {
+    const resolved = await resolveApiKey(token);
+    if (!resolved) return null;
+    const user = await loadAuthUser(resolved.userId);
+    if (!user) return null;
+    return { ...user, apiKeyScopes: resolved.scopes };
+  }
+  const payload = verifyToken(token);
+  if (!payload) return null;
+  return loadAuthUser(payload.sub);
+}
+
+/**
  * Resuelve la sesión y cuelga `req.user` (sin fallar si no hay). Útil para
  * endpoints que adaptan su respuesta a autenticado/anónimo. NO bloquea.
  */
 export const attachUser: RequestHandler = (req, _res, next) => {
   const token = extractToken(req);
   if (!token) return next();
-  const payload = verifyToken(token);
-  if (!payload) return next();
-  loadAuthUser(payload.sub)
+  resolvePrincipal(token)
     .then((u) => {
       if (u) {
         req.user = u;
@@ -67,11 +89,9 @@ export const attachUser: RequestHandler = (req, _res, next) => {
 export const requireAuth: RequestHandler = (req, _res, next) => {
   const token = extractToken(req);
   if (!token) return next(unauthorized("Se requiere autenticación."));
-  const payload = verifyToken(token);
-  if (!payload) return next(unauthorized("Sesión inválida o expirada."));
-  loadAuthUser(payload.sub)
+  resolvePrincipal(token)
     .then((u) => {
-      if (!u) return next(unauthorized("Usuario no encontrado o desactivado."));
+      if (!u) return next(unauthorized("Sesión inválida o expirada."));
       req.user = u;
       req.capCache = new Map();
       next();

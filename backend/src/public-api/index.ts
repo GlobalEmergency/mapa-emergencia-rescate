@@ -25,6 +25,7 @@ import { usersRouter } from "@/public-api/routers/users.router";
 import { grantsRouter } from "@/public-api/routers/grants.router";
 import { auditRouter } from "@/public-api/routers/audit.router";
 import { capabilitiesRouter } from "@/public-api/routers/capabilities.router";
+import { apiKeysRouter } from "@/public-api/routers/api-keys.router";
 
 /**
  * Registro path → CONFIG del recurso. Fuente de verdad ÚNICA: de aquí salen
@@ -59,4 +60,5 @@ export function mountPublicApi(app: Express): void {
   app.use("/api/public/grants", grantsRouter); // grant:read/manage
   app.use("/api/public/audit", auditRouter); // audit:read
   app.use("/api/public/capabilities", capabilitiesRouter); // role:read (catálogo p/ UI)
+  app.use("/api/public/api-keys", apiKeysRouter); // apikey:manage (self-service)
 }
