@@ -2,12 +2,12 @@
  * /api/geo — detecta el código de país (ISO 3166-1 alpha-2) desde las cabeceras
  * de geo que inyecta el edge/CDN (Cloudflare, Vercel, CloudFront…).
  *
- * Lectura pública sin DB ni rate-limit (es trivial y por-request, igual que el
- * Next previo). Respuesta { countryCode } con Cache-Control private, no-store
+ * Lectura pública sin DB (trivial y por-request). Respuesta { countryCode }
+ * con rate-limit generoso (es lectura) y Cache-Control private, no-store
  * (depende de la IP del visitante; nunca cachear).
  */
 import { Router } from "express";
-import { asyncHandler } from "@/middleware";
+import { asyncHandler, rateLimit } from "@/middleware";
 
 export const geoRouter = Router();
 
@@ -40,6 +40,7 @@ const COUNTRY_HEADER_NAMES = [
  */
 geoRouter.get(
   "/",
+  rateLimit({ scope: "geo:lookup", limit: 120 }),
   asyncHandler(async (req, res) => {
     const countryCode = COUNTRY_HEADER_NAMES.map((name) => {
       const v = req.headers[name];

@@ -94,6 +94,7 @@ chatRouter.post(
 // ---- DELETE /api/chat/:id : borrar mensaje (ADMIN) --------------------------
 chatRouter.delete(
   "/:id",
+  rateLimit({ scope: "chat:delete", limit: 30 }), // write admin sensible
   requireAdmin,
   validate({ params: idParam }),
   asyncHandler(async (req, res) => {

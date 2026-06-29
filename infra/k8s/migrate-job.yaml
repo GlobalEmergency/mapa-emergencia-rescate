@@ -43,6 +43,23 @@ spec:
           env:
             - name: MIGRATIONS_DIR
               value: "../infra/db/migrations"
+            # Superadmin semilla del motor de auth (idempotente: solo crea si no
+            # existe, nunca pisa una cuenta). SEED_ADMIN_EMAIL/PASSWORD viven en
+            # el secret app-env (CI los parchea). Sin ellos, seedAuth siembra el
+            # rol "admin" + capacidades pero NO crea usuario. Opcionales -> el Job
+            # no falla si faltan (optional:true).
+            - name: SEED_ADMIN_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: app-env
+                  key: SEED_ADMIN_EMAIL
+                  optional: true
+            - name: SEED_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: app-env
+                  key: SEED_ADMIN_PASSWORD
+                  optional: true
           envFrom:
             - secretRef:
                 name: app-env # DATABASE_URL

@@ -207,6 +207,18 @@ export async function addMessage(input: AddMessageInput): Promise<ChatDTO> {
   };
 }
 
+/** Devuelve un mensaje por id como DTO (allowlist), o null si no existe. */
+export async function getMessageById(id: string): Promise<ChatDTO | null> {
+  const db = await getDb();
+  const rows = (await db
+    .select()
+    .from(chatMessages)
+    .where(eq(chatMessages.id, id))
+    .limit(1)) as ChatRow[];
+  const first = rows[0];
+  return first ? toChatDTO(first) : null;
+}
+
 async function getParentFromDb(id: string): Promise<ChatDTO | null> {
   const db = await getDb();
   const rows = (await db

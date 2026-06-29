@@ -143,6 +143,36 @@ npm run migrate
   externa), encola en BullMQ y devuelve un estado consultable; no lo bloquees en
   el request path.
 
+### Endpoints del backend (reglas ESLint, gate en CI)
+
+El backend tiene DOS superficies HTTP y cada una sigue su patrón. Las reglas se
+**enforcan con ESLint** (`backend/eslint-rules/`, corren en `npm run lint` + CI);
+romperlas falla el PR. Hay tests propios de las reglas y una matriz de
+autorización (`backend/test/`).
+
+- **`src/public-api/*` — superficie autenticada (integraciones + admin).**
+  - NO es navegador: **no** lleva `requireHuman` (Turnstile) — la regla
+    `no-turnstile-in-public-api` lo prohíbe.
+  - Es **deny-by-default**: todo va gateado por `requireCapability("<rec>:<verbo>")`.
+    Para un CRUD de modelo NO escribas el router a mano: añade un
+    `resources/<modelo>.resource.ts` (config) y la **fábrica** (`crud-factory.ts`)
+    monta router + valida + auditoría + doc OpenAPI desde esa config.
+  - Capacidades CRUD = `read | create | edit | delete`. El catálogo fijo vive en
+    `src/auth/capabilities.ts` (se siembra en la tabla `capabilities`).
+
+- **`src/routes/*` — sitio público (anónimo) + admin.**
+  - Toda **mutación** (POST/PUT/PATCH/DELETE) lleva `requireHuman` (Turnstile) O
+    un gate (`requireAdmin` / `requireCapability` / `requireCron` /
+    `requireSupplyWrite`). La regla `user-facing-mutation-needs-guard` lo exige.
+  - Excepción legítima (mutación pública protegida solo por rate-limit, p.ej.
+    analítica/confirm anónimo): documenta con
+    `// eslint-disable-next-line local/user-facing-mutation-needs-guard -- razón`.
+
+- **Ambas:** TODA ruta declara `rateLimit({ scope, limit })` (regla
+  `require-rate-limit`, sin excepción — el rate-limit no se desactiva por
+  comentario). Mantén `@swagger` en los routes escritos a mano; los routers de la
+  fábrica auto-documentan vía sus esquemas zod.
+
 ### Frontend
 
 - Todo acceso HTTP debe pasar por `frontend/lib/api.ts`,

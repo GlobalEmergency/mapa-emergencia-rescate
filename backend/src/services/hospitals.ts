@@ -602,6 +602,57 @@ export async function addHospital(input: NewHospital): Promise<Hospital> {
   return hospital;
 }
 
+export interface UpdateHospitalInput {
+  name?: string;
+  facilityType?: HospitalFacilityType;
+  state?: string;
+  municipality?: string;
+  address?: string;
+  level?: HospitalLevel;
+  priorityZone?: HospitalPriorityZone;
+}
+
+/**
+ * Actualiza campos permitidos de un hospital (no se mueve id/externalId/createdAt
+ * ni los contadores derivados de pacientes). `isPriority` se re-deriva de la zona,
+ * igual que en addHospital. Devuelve el DTO actualizado o null si no existe.
+ */
+export async function updateHospital(
+  id: string,
+  input: UpdateHospitalInput,
+): Promise<Hospital | null> {
+  const db = await getDb();
+  const patch: Record<string, unknown> = {};
+  if (input.name !== undefined) {
+    const name = input.name.trim();
+    if (!name) throw new Error("El nombre es obligatorio.");
+    patch.name = name.slice(0, MAX_HOSPITAL_NAME);
+  }
+  if (input.facilityType !== undefined) patch.facilityType = normalizeFacilityType(input.facilityType);
+  if (input.state !== undefined) patch.state = input.state.trim().slice(0, 120);
+  if (input.municipality !== undefined) patch.municipality = input.municipality.trim().slice(0, 120);
+  if (input.address !== undefined) patch.address = input.address.trim().slice(0, 400);
+  if (input.level !== undefined) patch.level = normalizeLevel(input.level);
+  if (input.priorityZone !== undefined) {
+    const zone = normalizePriority(input.priorityZone);
+    patch.priorityZone = zone;
+    patch.isPriority = zone === "P0" || zone === "P1";
+  }
+  if (Object.keys(patch).length === 0) return getHospital(id);
+  await db.update(hospitals).set(patch).where(eq(hospitals.id, id));
+  return getHospital(id);
+}
+
+/** Elimina un hospital. True si existía. */
+export async function removeHospital(id: string): Promise<boolean> {
+  const db = await getDb();
+  const result = await db.execute(
+    sql`DELETE FROM ${hospitals} WHERE ${hospitals.id} = ${id} RETURNING ${hospitals.id}`,
+  );
+  const rows = (Array.isArray(result) ? result : result.rows) as unknown[];
+  return rows.length > 0;
+}
+
 // ============================================================================
 // PACIENTES
 // ============================================================================

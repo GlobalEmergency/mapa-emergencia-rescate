@@ -515,6 +515,72 @@ export async function removeMissing(id: string): Promise<boolean> {
   return execRows<{ id: string }>(result).length > 0;
 }
 
+/** Devuelve una persona por id como DTO (allowlist, rowToPerson), o null. */
+export async function getMissingById(id: string): Promise<MissingDTO | null> {
+  const db = await getDb();
+  const res = await db.execute(
+    sql`SELECT id, name, age, nationality, description, last_seen, contact,
+               (photo IS NOT NULL) AS has_photo,
+               photo_external_url,
+               status,
+               resolution_note,
+               (resolution_photo IS NOT NULL) AS has_resolution_photo,
+               resolved_at, created_at
+        FROM missing_persons WHERE id = ${id}`,
+  );
+  const rows = execRows<Row>(res);
+  return rows.length > 0 ? rowToPerson(rows[0]!) : null;
+}
+
+/** Campos editables de la ficha (no se permite mover id/createdAt/status/foto). */
+export interface UpdateMissingInput {
+  name?: string;
+  age?: number | string | null;
+  nationality?: string;
+  description?: string;
+  lastSeen?: string;
+  contact?: string;
+}
+
+/**
+ * Actualiza campos permitidos de la ficha de una persona. Recorta/clampa con los
+ * mismos límites que addMissing. Devuelve el DTO actualizado o null si no existe.
+ * Escape `sql` por el tipo unión de drivers (igual que markMissingFound).
+ */
+export async function updateMissing(
+  id: string,
+  input: UpdateMissingInput,
+): Promise<MissingDTO | null> {
+  const sets: ReturnType<typeof sql>[] = [];
+  if (input.name !== undefined)
+    sets.push(sql`name = ${input.name.trim().slice(0, MAX_NAME)}`);
+  if (input.age !== undefined) sets.push(sql`age = ${normalizeAge(input.age)}`);
+  if (input.nationality !== undefined)
+    sets.push(sql`nationality = ${input.nationality.trim().slice(0, MAX_NATIONALITY)}`);
+  if (input.description !== undefined)
+    sets.push(sql`description = ${input.description.trim().slice(0, MAX_DESCRIPTION)}`);
+  if (input.lastSeen !== undefined)
+    sets.push(sql`last_seen = ${input.lastSeen.trim().slice(0, MAX_LAST_SEEN)}`);
+  if (input.contact !== undefined)
+    sets.push(sql`contact = ${input.contact.trim().slice(0, MAX_CONTACT)}`);
+  if (sets.length === 0) return getMissingById(id);
+
+  const db = await getDb();
+  const result = await db.execute(
+    sql`UPDATE missing_persons SET ${sql.join(sets, sql`, `)}
+        WHERE id = ${id}
+        RETURNING id, name, age, nationality, description, last_seen, contact,
+                  (photo IS NOT NULL) AS has_photo,
+                  photo_external_url,
+                  COALESCE(status, 'active') AS status,
+                  resolution_note,
+                  (resolution_photo IS NOT NULL) AS has_resolution_photo,
+                  resolved_at, created_at`,
+  );
+  const rows = execRows<Row>(result);
+  return rows.length > 0 ? rowToPerson(rows[0]!) : null;
+}
+
 /** Totales consolidados para el panel del mapa y el hero. */
 export async function countMissingStats(): Promise<MissingStats> {
   const db = await getDb();

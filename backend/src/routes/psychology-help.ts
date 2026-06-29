@@ -77,6 +77,7 @@ psychologyHelpRouter.get(
   }),
 );
 
+// eslint-disable-next-line local/user-facing-mutation-needs-guard -- contador de clics público y anónimo; protegido solo por rateLimit + dedup por hash de IP, sin humano ni gate por diseño
 psychologyHelpRouter.post(
   "/",
   rateLimit({ scope: "psychology-help:click", limit: 20 }),

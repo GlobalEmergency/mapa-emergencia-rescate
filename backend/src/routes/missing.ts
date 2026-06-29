@@ -286,6 +286,7 @@ missingRouter.post(
 // ---- POST /api/missing/:id/restore : restaurar a activa (ADMIN) ------------
 missingRouter.post(
   "/:id/restore",
+  rateLimit({ scope: "missing:restore", limit: 30 }), // escritura admin sensible
   requireAdmin,
   validate({ params: idParams }),
   asyncHandler(async (req, res) => {
@@ -299,6 +300,7 @@ missingRouter.post(
 // ---- DELETE /api/missing/:id : eliminar reporte (ADMIN) --------------------
 missingRouter.delete(
   "/:id",
+  rateLimit({ scope: "missing:delete", limit: 30 }), // escritura admin sensible
   requireAdmin,
   validate({ params: idParams }),
   asyncHandler(async (req, res) => {

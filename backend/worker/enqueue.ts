@@ -75,7 +75,7 @@ async function enqueuePendingPhotos(table: PhotoTable): Promise<number> {
       : "photo IS NOT NULL";
   let cursor = "";
   let total = 0;
-  // eslint-disable-next-line no-constant-condition
+
   while (true) {
     const { rows } = await pool.query(
       `SELECT id FROM "${table}"

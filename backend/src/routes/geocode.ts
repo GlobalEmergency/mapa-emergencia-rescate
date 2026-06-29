@@ -6,12 +6,9 @@
  * SIN consumir rate-limit ni golpear Nominatim (igual que el Next previo).
  * Contrato de salida { results: [{lat,lng,label}] } IDÉNTICO.
  */
-import { Router } from "express";
+import { Router, type RequestHandler } from "express";
 import { z } from "zod";
-import { asyncHandler, validate } from "@/middleware";
-import { checkRateLimit } from "@/lib/rate-limit";
-import { clientIp } from "@/lib/client-ip";
-import { tooManyRequests } from "@/lib/errors";
+import { asyncHandler, rateLimit, validate } from "@/middleware";
 import * as service from "@/services/geocode";
 
 export const geocodeRouter = Router();
@@ -79,18 +76,21 @@ const geocodeQuery = z.object({
 geocodeRouter.get(
   "/",
   validate({ query: geocodeQuery }),
-  // El short-circuit de q<3 va ANTES del rate-limit (igual que el Next previo),
-  // por eso el rateLimit se aplica dentro del handler tras validar la longitud.
-  asyncHandler(async (req, res) => {
-    const { q, lat, lng } = req.query as unknown as z.infer<typeof geocodeQuery>;
-    const query = (q ?? "").trim();
-    if (query.length < 3) {
+  // El short-circuit de q<3 va ANTES del rate-limit (igual que el Next previo):
+  // las búsquedas vacías/cortas no consumen cuota ni golpean Nominatim.
+  ((req, res, next) => {
+    const { q } = req.query as unknown as z.infer<typeof geocodeQuery>;
+    if ((q ?? "").trim().length < 3) {
       res.status(200).json({ results: [] });
       return;
     }
-    // Rate-limit SOLO cuando hay búsqueda real (q>=3), igual que el Next previo.
-    const ok = await checkRateLimit(`geo:${clientIp(req)}`, { limit: 30 });
-    if (!ok) throw tooManyRequests("Demasiadas búsquedas. Espera un momento.");
+    next();
+  }) as RequestHandler,
+  // Rate-limit SOLO cuando hay búsqueda real (q>=3), igual que el Next previo.
+  rateLimit({ scope: "geo:search", limit: 30 }),
+  asyncHandler(async (req, res) => {
+    const { q, lat, lng } = req.query as unknown as z.infer<typeof geocodeQuery>;
+    const query = (q ?? "").trim();
     const bias =
       lat !== undefined && lng !== undefined ? { lat, lng } : null;
     const results = await service.geocode(query, bias);

@@ -332,6 +332,21 @@ jobs:
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
           CORS_ORIGINS: ${{ secrets.CORS_ORIGINS }}
           TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
+          # --- Motor de auth api/public/* (NUEVO). JWT_SECRET y COOKIE_SECURE son
+          # OBLIGATORIOS en prod: config/env.ts hace fail-fast (process.exit) si
+          # faltan, así que SIN ellos el api y el Job migrate crashean al arrancar.
+          # SEED_ADMIN_* crean el superadmin semilla (idempotente). SMTP_* habilitan
+          # los emails de invitación/reset; sin ellos degradan (link en respuesta).
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          COOKIE_SECURE: ${{ secrets.COOKIE_SECURE }}
+          APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
+          SEED_ADMIN_EMAIL: ${{ secrets.SEED_ADMIN_EMAIL }}
+          SEED_ADMIN_PASSWORD: ${{ secrets.SEED_ADMIN_PASSWORD }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          SMTP_FROM: ${{ secrets.SMTP_FROM }}
         run: |
           set -euo pipefail
           if ! kubectl -n mapa get secret app-env >/dev/null 2>&1; then
@@ -340,7 +355,7 @@ jobs:
           fi
           # Construimos el patch JSON solo con las claves que SÍ tienen valor
           # (omitimos las vacías para no pisar con "" lo que ya esté en el secret).
-          patch=$(KEYS="OPENPANEL_CLIENT_SECRET ADMIN_PASSWORD CORS_ORIGINS TURNSTILE_SECRET_KEY" \
+          patch=$(KEYS="OPENPANEL_CLIENT_SECRET ADMIN_PASSWORD CORS_ORIGINS TURNSTILE_SECRET_KEY JWT_SECRET COOKIE_SECURE APP_BASE_URL SEED_ADMIN_EMAIL SEED_ADMIN_PASSWORD SMTP_HOST SMTP_PORT SMTP_USERNAME SMTP_PASSWORD SMTP_FROM" \
             python3 -c 'import json,os; ks=os.environ["KEYS"].split(); print(json.dumps({k:os.environ[k] for k in ks if os.environ.get(k)}))')
           if [ "$patch" = '{}' ]; then
             echo "No runtime secrets to patch."

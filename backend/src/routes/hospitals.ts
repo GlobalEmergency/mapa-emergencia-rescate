@@ -225,6 +225,7 @@ hospitalsRouter.post(
 // ===========================================================================
 hospitalsRouter.delete(
   "/:id/patients/:patientId",
+  rateLimit({ scope: "hospitals:patients:delete", limit: 30 }),
   requireAdmin,
   validate({ params: z.object({ id: z.string().min(1), patientId: z.string().min(1) }) }),
   asyncHandler(async (req, res) => {

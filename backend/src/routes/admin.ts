@@ -64,6 +64,7 @@ const markReadBody = z.object({ id: z.string().min(1, "Falta id del mensaje.") }
  *         description: Acceso de administrador no configurado en el servidor.
  *         content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
  */
+// eslint-disable-next-line local/user-facing-mutation-needs-guard -- login admin es público por naturaleza; su protección es rateLimit anti-brute-force
 adminRouter.post(
   "/login",
   rateLimit({ scope: "login", limit: 5 }), // anti-brute-force por IP
@@ -111,6 +112,7 @@ adminRouter.post(
  */
 adminRouter.get(
   "/donations",
+  rateLimit({ scope: "admin:donations", limit: 120 }),
   requireAdmin,
   asyncHandler(async (_req, res) => {
     try {
@@ -145,6 +147,7 @@ adminRouter.get(
  */
 adminRouter.get(
   "/contact",
+  rateLimit({ scope: "admin:contact", limit: 120 }),
   requireAdmin,
   asyncHandler(async (_req, res) => {
     try {
@@ -161,6 +164,7 @@ adminRouter.get(
 
 adminRouter.patch(
   "/contact",
+  rateLimit({ scope: "admin:contact:mark-read", limit: 60 }),
   requireAdmin,
   validate({ body: markReadBody }),
   asyncHandler(async (req, res) => {
@@ -186,6 +190,7 @@ adminRouter.patch(
  */
 adminRouter.get(
   "/data",
+  rateLimit({ scope: "admin:data", limit: 120 }),
   requireAdmin,
   asyncHandler(async (_req, res) => {
     const [reports, messages, people, syncRuns, syncState] = await Promise.all([
@@ -286,6 +291,7 @@ interface AdminHospitalSupplyRow {
  */
 adminRouter.get(
   "/hospital-supplies",
+  rateLimit({ scope: "admin:hospital-supplies", limit: 120 }),
   requireAdmin,
   asyncHandler(async (_req, res) => {
     try {

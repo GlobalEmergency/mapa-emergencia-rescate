@@ -112,6 +112,7 @@ reportsRouter.delete(
 );
 
 // ---- POST /api/reports/:id/confirm : confirmar (PÚBLICO, dedup por hashIp) --
+// eslint-disable-next-line local/user-facing-mutation-needs-guard -- confirmación anónima por diseño: protegida por rateLimit + dedup por hashIp, sin login.
 reportsRouter.post(
   "/:id/confirm",
   rateLimit({ scope: "reports:confirm", limit: 60 }), // generoso: confirmar es barato

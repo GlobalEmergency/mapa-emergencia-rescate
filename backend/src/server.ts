@@ -1,6 +1,10 @@
 import express from "express";
+import cookieParser from "cookie-parser";
+import swaggerUi from "swagger-ui-express";
 import { env, corsOrigins } from "@/config/env";
 import { errorHandler } from "@/middleware";
+import { mountPublicApi } from "@/public-api";
+import { buildOpenApiSpec } from "@/lib/swagger";
 import { missingRouter } from "@/routes/missing";
 import { reportsRouter } from "@/routes/reports";
 import { chatRouter } from "@/routes/chat";
@@ -63,8 +67,24 @@ app.use((req, res, next) => {
   return globalJson(req, res, next);
 });
 
+// Lee cookies (sesión httpOnly de api/public/*). Antes de las rutas.
+app.use(cookieParser());
+
 // Healthcheck para el LB de k8s (readinessProbe).
 app.get("/api/readyz", (_req, res) => res.json({ ok: true }));
+
+// --- Documentación OpenAPI (Swagger) ---
+// Generada de los bloques @swagger de cada route. /api/openapi.json = spec cruda,
+// /api/docs = Swagger UI interactivo. La spec se construye una vez al arrancar.
+const openapiSpec = buildOpenApiSpec();
+app.get("/api/openapi.json", (_req, res) => res.json(openapiSpec));
+app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(openapiSpec));
+
+// --- Superficie autenticada para integraciones + admin (api/public/*) ---
+// Mínimo: autenticación (JWT cookie o Bearer) + rate-limit. SIN Turnstile (no es
+// interacción humana de navegador). Capacidades/auditoría por endpoint, todo
+// generado por la fábrica CRUD a partir de la config de cada recurso.
+mountPublicApi(app);
 
 // Rutas. (Reference endpoint ahora; el resto las añade el workflow de port.)
 app.use("/api/missing", missingRouter);
@@ -88,6 +108,14 @@ app.use("/api", (_req, res) => res.status(404).json({ error: "Ruta no encontrada
 // Error handler central (siempre el último middleware).
 app.use(errorHandler);
 
-app.listen(env.PORT, () => {
-  console.log(`mapa-backend escuchando en :${env.PORT}`);
-});
+// Exporta la app para tests (supertest la usa sin abrir un puerto). El listen()
+// solo corre cuando este módulo es el entrypoint (no al importarlo en un test).
+export { app };
+
+import { fileURLToPath } from "url";
+const isEntrypoint = process.argv[1] === fileURLToPath(import.meta.url);
+if (isEntrypoint) {
+  app.listen(env.PORT, () => {
+    console.log(`mapa-backend escuchando en :${env.PORT}`);
+  });
+}

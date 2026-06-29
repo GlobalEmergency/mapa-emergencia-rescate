@@ -7,7 +7,7 @@
  */
 import { Router } from "express";
 import { z } from "zod";
-import { asyncHandler, requireAdmin, requireCron, validate } from "@/middleware";
+import { asyncHandler, rateLimit, requireAdmin, requireCron, validate } from "@/middleware";
 import { badRequest, serviceUnavailable } from "@/lib/errors";
 import { getSyncJobState, getMaintenanceJobState, enqueueGeocode, enqueueDuplicatesReport, type SyncMode } from "@/lib/queues";
 import * as service from "@/services/sync";
@@ -69,6 +69,7 @@ const runQuery = z.object({
  */
 syncRouter.post(
   "/run",
+  rateLimit({ scope: "sync:run", limit: 10 }),
   requireAdmin,
   validate({ query: runQuery }),
   asyncHandler(async (req, res) => {
@@ -120,6 +121,7 @@ const resetQuery = z.object({ source: z.string().optional() });
  */
 syncRouter.post(
   "/reset",
+  rateLimit({ scope: "sync:reset", limit: 30 }),
   requireAdmin,
   validate({ query: resetQuery }),
   asyncHandler(async (req, res) => {
@@ -174,6 +176,7 @@ const dupsQuery = z.object({
  */
 syncRouter.post(
   "/duplicates",
+  rateLimit({ scope: "sync:duplicates", limit: 10 }),
   requireAdmin,
   validate({ query: dupsQuery }),
   asyncHandler(async (req, res) => {
@@ -225,6 +228,7 @@ const statusQuery = z.object({ jobId: z.string().min(1, "Falta el parámetro job
  */
 syncRouter.get(
   "/status",
+  rateLimit({ scope: "sync:status", limit: 120 }),
   requireAdmin,
   validate({ query: statusQuery }),
   asyncHandler(async (req, res) => {
@@ -268,6 +272,7 @@ syncRouter.get(
  */
 syncRouter.get(
   "/cron",
+  rateLimit({ scope: "sync:cron", limit: 30 }),
   requireCron,
   asyncHandler(async (_req, res) => {
     try {
@@ -311,6 +316,7 @@ const geocodeQuery = z.object({ max: z.coerce.number().int().min(1).optional() }
  */
 syncRouter.get(
   "/geocode",
+  rateLimit({ scope: "sync:geocode", limit: 30 }),
   requireCron,
   validate({ query: geocodeQuery }),
   asyncHandler(async (req, res) => {

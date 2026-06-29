@@ -50,6 +50,20 @@
       "when": 1782622519296,
       "tag": "0006_dashing_charles_xavier",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1782683928730,
+      "tag": "0007_tiny_blonde_phantom",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1782686198127,
+      "tag": "0008_omniscient_eternity",
+      "breakpoints": true
     }
   ]
 }

@@ -615,3 +615,185 @@ export const hubSyncState = pgTable("hub_sync_state", {
   lastRunAt: epochMs("last_run_at"),
   cycleCompletedAt: epochMs("cycle_completed_at"),
 });
+
+/* ============================================================================
+ * AUTH / RBAC — superficie autenticada `api/public/*` (integraciones + admin)
+ * ============================================================================
+ * Motor de roles+capacidades portado del de Argo (PermissionGrant + resolución
+ * centralizada con short-circuit de admin y cache por-request) PERO con los
+ * roles guardados en la DB (creados por admins), no como enum en código.
+ *
+ * Modelo de decisión (capa que protege cada endpoint nuevo):
+ *   capability  = unidad atómica `recurso:verbo` (report:create, role:edit…).
+ *                 Catálogo FIJO (sembrado por código, no editable por usuarios).
+ *   role        = fila en DB que admins crean; agrupa capacidades (bundle).
+ *   role_caps   = M:N rol↔capacidades.
+ *   user        = tiene un rol base (bundle) + posibles grants individuales.
+ *   grant       = capacidad individual encima del rol (flexibilidad por-persona),
+ *                 con expiry/revoke (modelo de Argo). Sujeto: user O role.
+ *   invitation  = alta por invitación (flujo de Argo): token → accept → JWT.
+ *   audit_log   = TODA mutación de auth (rol/grant/invite/login) queda registrada.
+ *
+ * Tenancy por fases: `org_id` viaja en roles/users/grants pero queda NULL (global)
+ * hoy. Fase 2 = poblarlo + un filtro de scope en userHasCapability. El core no
+ * cambia. NULL = global / aplica en todas las orgs.
+ */
+
+/* ------------------------------------------------------------- capabilities */
+// Catálogo FIJO de capacidades. Se siembra por migración; NO lo crean usuarios.
+// key = `recurso:verbo` (allowlist). category agrupa para la UI de admin.
+export const capabilities = pgTable("capabilities", {
+  key: text("key").primaryKey(), // "report:create", "user:invite", ...
+  description: text("description").notNull().default(""),
+  category: text("category").notNull().default(""), // "reports", "auth", ...
+});
+
+/* -------------------------------------------------------------------- roles */
+// Roles creados por admins (filas, no enum). is_system marca el rol "admin"
+// semilla (inmutable: no se borra ni se le quitan capacidades). org_id = fase 2.
+export const roles = pgTable(
+  "roles",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    description: text("description").notNull().default(""),
+    isSystem: boolean("is_system").notNull().default(false),
+    orgId: text("org_id"), // NULL = global (fase 2: scope por organización)
+    createdBy: text("created_by"), // user.id que lo creó (NULL para el semilla)
+    createdAt: epochMs("created_at").notNull(),
+    updatedAt: epochMs("updated_at"),
+  },
+  (t) => [
+    // Nombre único por org (con org NULL = único global). Dos índices parciales
+    // para tratar NULL como "global" sin chocar con orgs concretas.
+    uniqueIndex("idx_roles_name_global").on(t.name).where(sql`org_id IS NULL`),
+    uniqueIndex("idx_roles_name_org").on(t.orgId, t.name).where(sql`org_id IS NOT NULL`),
+  ],
+);
+
+/* -------------------------------------------------------- role_capabilities */
+// M:N rol↔capacidades. Borrar un rol cae en cascada (FK app-side, sin DDL aquí).
+export const roleCapabilities = pgTable(
+  "role_capabilities",
+  {
+    roleId: text("role_id").notNull(),
+    capabilityKey: text("capability_key").notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.roleId, t.capabilityKey] }),
+    index("idx_role_caps_role").on(t.roleId),
+  ],
+);
+
+/* -------------------------------------------------------------------- users */
+// Usuarios autenticados (≠ ciudadanos anónimos del sitio público). password_hash
+// es bcrypt; NULL mientras la invitación esté pendiente. status: invited→active.
+export const users = pgTable(
+  "users",
+  {
+    id: text("id").primaryKey(),
+    email: text("email").notNull(),
+    name: text("name").notNull().default(""),
+    passwordHash: text("password_hash"), // NULL hasta aceptar invitación
+    roleId: text("role_id"), // rol base (bundle). NULL = sin rol (solo grants)
+    orgId: text("org_id"), // fase 2
+    status: text("status").notNull().default("invited"), // invited|active|disabled
+    createdAt: epochMs("created_at").notNull(),
+    lastLoginAt: epochMs("last_login_at"),
+  },
+  (t) => [
+    uniqueIndex("idx_users_email").on(sql`lower(${t.email})`),
+    index("idx_users_role").on(t.roleId),
+  ],
+);
+
+/* -------------------------------------------------------- permission_grants */
+// Capacidad individual encima del rol (modelo de Argo). subject = user O role
+// (XOR app-side). Activo = revoked_at NULL && (expires_at NULL || > now).
+export const permissionGrants = pgTable(
+  "permission_grants",
+  {
+    id: text("id").primaryKey(),
+    capabilityKey: text("capability_key").notNull(),
+    subjectType: text("subject_type").notNull(), // "user" | "role"
+    subjectUserId: text("subject_user_id"), // set si subject_type=user
+    subjectRoleId: text("subject_role_id"), // set si subject_type=role
+    orgId: text("org_id"), // fase 2: scope del grant
+    grantedBy: text("granted_by").notNull(),
+    grantedAt: epochMs("granted_at").notNull(),
+    expiresAt: epochMs("expires_at"), // NULL = sin expiración
+    revokedAt: epochMs("revoked_at"), // NULL = activo
+    revokedBy: text("revoked_by"),
+    reason: text("reason").notNull().default(""),
+  },
+  (t) => [
+    index("idx_grants_cap_subject").on(t.capabilityKey, t.subjectType, t.revokedAt),
+    index("idx_grants_user").on(t.subjectUserId),
+    index("idx_grants_role").on(t.subjectRoleId),
+  ],
+);
+
+/* -------------------------------------------------------------- invitations */
+// Alta por invitación (flujo de Argo). token_hash = sha256 del token enviado por
+// email (nunca guardamos el token en claro). Un solo uso; caduca.
+export const invitations = pgTable(
+  "invitations",
+  {
+    id: text("id").primaryKey(),
+    email: text("email").notNull(),
+    roleId: text("role_id"), // rol que tendrá al aceptar
+    orgId: text("org_id"), // fase 2
+    tokenHash: text("token_hash").notNull(),
+    invitedBy: text("invited_by").notNull(),
+    createdAt: epochMs("created_at").notNull(),
+    expiresAt: epochMs("expires_at").notNull(),
+    acceptedAt: epochMs("accepted_at"), // NULL = pendiente
+  },
+  (t) => [
+    uniqueIndex("idx_invitations_token").on(t.tokenHash),
+    index("idx_invitations_email").on(sql`lower(${t.email})`),
+  ],
+);
+
+/* ----------------------------------------------------------- password_resets */
+// Recuperación de contraseña por OTP (código de 6 dígitos enviado al email).
+// Guardamos solo el HASH del código (sha256), nunca el código en claro. Un solo
+// uso, caduca pronto (minutos). attempts limita el fuerza-bruta del código.
+export const passwordResets = pgTable(
+  "password_resets",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    codeHash: text("code_hash").notNull(),
+    createdAt: epochMs("created_at").notNull(),
+    expiresAt: epochMs("expires_at").notNull(),
+    consumedAt: epochMs("consumed_at"), // NULL = sin usar
+    attempts: integer("attempts").notNull().default(0),
+  },
+  (t) => [
+    index("idx_pwreset_user").on(t.userId),
+    index("idx_pwreset_expires").on(t.expiresAt),
+  ],
+);
+
+/* ---------------------------------------------------------------- audit_log */
+// Bitácora de TODA mutación sensible (auth + escrituras de api/public/*).
+// metadata jsonb lleva el contexto (antes/después, ids afectados, etc.).
+export const auditLog = pgTable(
+  "audit_log",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    actorUserId: text("actor_user_id"), // NULL = sistema/anónimo
+    action: text("action").notNull(), // "role.create", "report.delete", ...
+    targetType: text("target_type"), // "report", "user", "role", ...
+    targetId: text("target_id"),
+    metadata: jsonb("metadata"),
+    ipHash: text("ip_hash"), // IP hasheada (privacidad), nunca cruda
+    createdAt: epochMs("created_at").notNull(),
+  },
+  (t) => [
+    index("idx_audit_created").on(t.createdAt.desc()),
+    index("idx_audit_actor").on(t.actorUserId),
+    index("idx_audit_target").on(t.targetType, t.targetId),
+  ],
+);

@@ -235,6 +235,69 @@ export async function confirmReport(
   return rows && rows[0] ? Number(rows[0].confirmations) : null;
 }
 
+/** Devuelve un reporte por id como DTO (allowlist), o null si no existe. */
+export async function getReportById(id: string): Promise<ReportDTO | null> {
+  const db = await getDb();
+  const rows = await db
+    .select({
+      id: reports.id,
+      type: reports.type,
+      lat: reports.lat,
+      lng: reports.lng,
+      place: reports.place,
+      affected: reports.affected,
+      needs: reports.needs,
+      hasPhoto: sql<boolean>`${reports.photo} IS NOT NULL`,
+      confirmations: reports.confirmations,
+      createdAt: reports.createdAt,
+    })
+    .from(reports)
+    .where(eq(reports.id, id))
+    .limit(1);
+  const row = rows[0];
+  if (!row) return null;
+  return {
+    id: row.id,
+    type: row.type as ReportType,
+    lat: Number(row.lat),
+    lng: Number(row.lng),
+    place: row.place,
+    affected: Number(row.affected),
+    needs: row.needs,
+    photoUrl: row.hasPhoto ? `/api/reports/${row.id}/photo` : null,
+    confirmations: Number(row.confirmations ?? 0),
+    createdAt: Number(row.createdAt),
+  };
+}
+
+/** Campos editables de un reporte (no se permite mover id/createdAt/confirmations). */
+export interface UpdateReportInput {
+  type?: ReportType;
+  lat?: number;
+  lng?: number;
+  place?: string;
+  affected?: number;
+  needs?: string;
+}
+
+/** Actualiza campos permitidos de un reporte. Devuelve el DTO actualizado o null. */
+export async function updateReport(
+  id: string,
+  input: UpdateReportInput,
+): Promise<ReportDTO | null> {
+  const db = await getDb();
+  const patch: Record<string, unknown> = {};
+  if (input.type !== undefined && REPORT_TYPE_KEYS.includes(input.type)) patch.type = input.type;
+  if (input.lat !== undefined) patch.lat = Number(input.lat);
+  if (input.lng !== undefined) patch.lng = Number(input.lng);
+  if (input.place !== undefined) patch.place = input.place.trim().slice(0, 200);
+  if (input.affected !== undefined) patch.affected = Math.max(0, Math.trunc(Number(input.affected) || 0));
+  if (input.needs !== undefined) patch.needs = input.needs.trim().slice(0, 1000);
+  if (Object.keys(patch).length === 0) return getReportById(id);
+  await db.update(reports).set(patch).where(eq(reports.id, id));
+  return getReportById(id);
+}
+
 /** Elimina un reporte (marcar como atendido). True si existía. */
 export async function removeReport(id: string): Promise<boolean> {
   const db = await getDb();

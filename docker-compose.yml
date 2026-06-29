@@ -43,11 +43,36 @@ services:
       timeout: 3s
       retries: 10
 
+  # Job one-shot: aplica migraciones + seed (capacidades, rol admin, superadmin)
+  # ANTES de que el backend arranque. Espeja el Job gateado de prod
+  # (infra/k8s/migrate-job.yaml). Corre, siembra y termina (restart: no). El
+  # backend depende de que complete con éxito.
+  migrate:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    command: ["npm", "run", "migrate"]
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgres://mapa_app:localdev@db:5432/app
+      MIGRATIONS_DIR: ../infra/db/migrations
+      JWT_SECRET: local-dev-jwt-secret-not-for-prod-0123456789
+      SEED_ADMIN_EMAIL: anonymous-dev@globalemergency.online
+      SEED_ADMIN_PASSWORD: localadminpass123
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+
   backend:
     build:
       context: .
       dockerfile: backend/Dockerfile
     environment:
+      # Stack LOCAL → development: relaja los fail-fast de prod (JWT_SECRET largo,
+      # COOKIE_SECURE) que aplican solo con NODE_ENV=production. La imagen fija
+      # production por defecto; aquí lo sobreescribimos para el entorno local.
+      NODE_ENV: development
       PORT: "8080"
       DATABASE_URL: postgres://mapa_app:localdev@db:5432/app
       VALKEY_URL: redis://valkey:6379
@@ -57,6 +82,11 @@ services:
       IP_SALT: localdev-salt
       ADMIN_PASSWORD: localadmin
       # Turnstile DESACTIVADO en local (sin secret → requireHuman deja pasar).
+      # --- Auth api/public/* (JWT cookie + Bearer) ---
+      JWT_SECRET: local-dev-jwt-secret-not-for-prod-0123456789
+      COOKIE_SECURE: "false" # http local; en prod va a true (validado por env)
+      APP_BASE_URL: http://localhost:3000
+      # SMTP sin setear en local → el invite devuelve el link en la respuesta.
     ports:
       - "8080:8080"
     depends_on:
@@ -64,6 +94,8 @@ services:
         condition: service_healthy
       valkey:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
 
   frontend:
     build:

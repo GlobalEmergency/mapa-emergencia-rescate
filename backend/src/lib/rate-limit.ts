@@ -49,6 +49,12 @@ export async function checkRateLimit(
   key: string,
   { limit, windowMs = 60_000 }: RateLimitOptions,
 ): Promise<boolean> {
+  // Bypass SOLO para tests (RATE_LIMIT_DISABLED=1): el suite golpea los mismos
+  // endpoints muchas veces desde la misma "IP", lo que dispararía 429 legítimos
+  // y haría flaky la matriz. En prod jamás se setea. Es opt-in explícito, no por
+  // NODE_ENV, para no relajar nada por accidente.
+  if (process.env.RATE_LIMIT_DISABLED === "1") return true;
+
   const redis = getRedisSafe();
   if (redis) {
     try {

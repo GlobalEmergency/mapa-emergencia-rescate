@@ -10,7 +10,7 @@
  * Allowlist de salida: listRecentDonations selecciona solo {id,name,amountUsd,
  * createdAt} — NUNCA expone ip_hash / user_agent.
  */
-import { sql, desc } from "drizzle-orm";
+import { sql, desc, eq } from "drizzle-orm";
 import { getDb, schema } from "@/db";
 
 const { donations } = schema;
@@ -76,6 +76,19 @@ export async function listRecentDonations(limit = 30): Promise<DonationDTO[]> {
     .orderBy(desc(donations.createdAt))
     .limit(limit);
   return rows.map((r) => rowToDonationDTO(r as DonationRow));
+}
+
+/** Devuelve una donación por id como DTO (allowlist), o null si no existe. */
+export async function getDonationById(id: string): Promise<DonationDTO | null> {
+  const db = await getDb();
+  const rows = await db
+    .select(listColumns)
+    .from(donations)
+    .where(eq(donations.id, id))
+    .limit(1);
+  const row = rows[0];
+  if (!row) return null;
+  return rowToDonationDTO(row as DonationRow);
 }
 
 /** Todas las donaciones, más recientes primero (panel admin). DTO allowlist. */

@@ -193,3 +193,166 @@ export async function searchPatients(
     : result.rows) as PatientWithHospitalRow[];
   return rows.map(rowToSearchResult);
 }
+
+// ============================================================================
+// CRUD por id — respalda la fábrica `api/public/patients`. Mismo idioma que
+// searchPatients: `await getDb()` + escape `sql` + allowlist DTO. Datos médicos
+// sensibles: SOLO se exponen los campos de PatientDTO (sin columnas internas), y
+// las escrituras recortan/clampean igual que el resto del service.
+// ============================================================================
+
+/** Fila cruda del paciente (sin join), camelCase por los alias del SQL. */
+interface PatientRow {
+  id: string;
+  hospitalId: string;
+  name: string;
+  age: number | null;
+  condition: string;
+  status: string;
+  notes: string | null;
+  contact: string | null;
+  admittedAt: number;
+  updatedAt: number;
+}
+
+/** Convierte una fila sin join a PatientDTO (reusa la normalización con join vacío). */
+function rowToPatient(r: PatientRow): PatientDTO {
+  return rowToPatientDTO({
+    ...r,
+    hospitalName: "",
+    hospitalState: "",
+    hospitalMunicipality: "",
+    hospitalAddress: "",
+  });
+}
+
+/** SELECT base de un paciente (allowlist explícita de columnas, sin join). */
+const patientSelect = sql`
+  SELECT
+    p.id, p.hospital_id AS "hospitalId", p.name, p.age, p.condition,
+    p.status, p.notes, p.contact, p.admitted_at AS "admittedAt",
+    p.updated_at AS "updatedAt"
+  FROM hospital_patients p
+`;
+
+/** Devuelve un paciente por id como DTO (allowlist), o null si no existe. */
+export async function getPatientById(id: string): Promise<PatientDTO | null> {
+  const db = await getDb();
+  const result = await db.execute(sql`${patientSelect} WHERE p.id = ${id} LIMIT 1`);
+  const rows = (Array.isArray(result) ? result : result.rows) as PatientRow[];
+  return rows[0] ? rowToPatient(rows[0]) : null;
+}
+
+export interface CreatePatientInput {
+  hospitalId: string;
+  name: string;
+  age?: number | null;
+  condition?: PatientCondition;
+  status?: PatientStatus;
+  notes?: string;
+  contact?: string;
+}
+
+/** Crea un paciente. Recorta/clampea igual que el resto del service. */
+export async function createPatient(input: CreatePatientInput): Promise<PatientDTO> {
+  const db = await getDb();
+  const id = crypto.randomUUID();
+  const now = Date.now();
+  const condition = PATIENT_CONDITIONS.has(input.condition as PatientCondition)
+    ? (input.condition as PatientCondition)
+    : "unknown";
+  const status = PATIENT_STATUSES.has(input.status as PatientStatus)
+    ? (input.status as PatientStatus)
+    : "hospitalized";
+  const age =
+    input.age === null || input.age === undefined
+      ? null
+      : Math.max(0, Math.trunc(Number(input.age)));
+  const name = input.name.trim().slice(0, 120);
+  const notes = (input.notes ?? "").trim().slice(0, 600);
+  const contact = (input.contact ?? "").trim().slice(0, 120);
+
+  await db.execute(sql`
+    INSERT INTO hospital_patients
+      (id, hospital_id, name, age, condition, status, notes, contact, admitted_at, updated_at)
+    VALUES
+      (${id}, ${input.hospitalId}, ${name}, ${age}, ${condition}, ${status},
+       ${notes}, ${contact}, ${now}, ${now})
+  `);
+  return {
+    id,
+    hospitalId: input.hospitalId,
+    name,
+    age,
+    condition,
+    status,
+    notes,
+    contact,
+    admittedAt: now,
+    updatedAt: now,
+  };
+}
+
+export interface UpdatePatientInput {
+  name?: string;
+  age?: number | null;
+  condition?: PatientCondition;
+  status?: PatientStatus;
+  notes?: string;
+  contact?: string;
+}
+
+/** Actualiza campos permitidos de un paciente. Devuelve el DTO o null si no existe. */
+export async function updatePatient(
+  id: string,
+  input: UpdatePatientInput,
+): Promise<PatientDTO | null> {
+  const db = await getDb();
+  const sets = [sql`updated_at = ${Date.now()}`];
+  if (input.name !== undefined) sets.push(sql`name = ${input.name.trim().slice(0, 120)}`);
+  if (input.age !== undefined) {
+    const age = input.age === null ? null : Math.max(0, Math.trunc(Number(input.age)));
+    sets.push(sql`age = ${age}`);
+  }
+  if (input.condition !== undefined && PATIENT_CONDITIONS.has(input.condition))
+    sets.push(sql`condition = ${input.condition}`);
+  if (input.status !== undefined && PATIENT_STATUSES.has(input.status))
+    sets.push(sql`status = ${input.status}`);
+  if (input.notes !== undefined) sets.push(sql`notes = ${input.notes.trim().slice(0, 600)}`);
+  if (input.contact !== undefined)
+    sets.push(sql`contact = ${input.contact.trim().slice(0, 120)}`);
+
+  const result = await db.execute(sql`
+    UPDATE hospital_patients
+    SET ${sql.join(sets, sql`, `)}
+    WHERE id = ${id}
+    RETURNING id
+  `);
+  const rows = (Array.isArray(result) ? result : result.rows) as unknown[];
+  return rows.length > 0 ? getPatientById(id) : null;
+}
+
+/** Elimina un paciente. True si existía. */
+export async function removePatient(id: string): Promise<boolean> {
+  const db = await getDb();
+  const result = await db.execute(
+    sql`DELETE FROM hospital_patients WHERE id = ${id} RETURNING id`,
+  );
+  const rows = (Array.isArray(result) ? result : result.rows) as unknown[];
+  return rows.length > 0;
+}
+
+/** Lista pacientes (DTO allowlist, sin join). Hospitalizados / más recientes primero. */
+export async function listPatients(limit = 200): Promise<PatientDTO[]> {
+  const db = await getDb();
+  const cleanLimit = Math.min(Math.max(limit, 1), 500);
+  const result = await db.execute(sql`
+    ${patientSelect}
+    ORDER BY
+      CASE p.status WHEN 'hospitalized' THEN 0 ELSE 1 END,
+      p.admitted_at DESC
+    LIMIT ${cleanLimit}
+  `);
+  const rows = (Array.isArray(result) ? result : result.rows) as PatientRow[];
+  return rows.map(rowToPatient);
+}

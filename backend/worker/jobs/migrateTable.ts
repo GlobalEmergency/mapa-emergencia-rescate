@@ -117,7 +117,7 @@ export async function migrateTable(spec: TableSpec): Promise<MigrateTableResult>
   // Keyset cursor: the last conflict-key tuple we read.
   let cursor: unknown[] | null = null;
 
-  // eslint-disable-next-line no-constant-condition
+
   while (true) {
     // WHERE (k1,k2) > ($1,$2) using row-value comparison for a clean keyset.
     const where =

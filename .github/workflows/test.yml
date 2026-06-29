@@ -34,12 +34,24 @@ jobs:
       - name: Install (backend)
         working-directory: backend
         run: npm ci || npm install
+      - name: Lint (backend)
+        # Incluye las reglas de arquitectura de endpoints (eslint-rules/):
+        # capability/rate-limit/turnstile. Falla el PR si un endpoint nuevo
+        # rompe la guía.
+        working-directory: backend
+        run: npm run lint
       - name: Typecheck (backend)
         working-directory: backend
         run: npm run typecheck
       - name: Typecheck (backend worker)
         working-directory: backend
         run: npx tsc --noEmit -p worker/tsconfig.json
+      - name: Test rules + unit (backend, no DB)
+        # Las reglas ESLint locales tienen tests propios (RuleTester) que no
+        # necesitan DB. Los tests de integración (authz matrix, auth flow) corren
+        # en el job 'backend-integration' con servicios Postgres+Valkey.
+        working-directory: backend
+        run: npx vitest run eslint-rules
 
       # --- FRONTEND (Next, pura UI) -------------------------------------------
       - name: Install (frontend)
@@ -101,3 +113,50 @@ jobs:
       - name: No migration changes
         if: steps.changed.outputs.sql != 'true'
         run: echo "Sin cambios en migraciones — Squawk omitido."
+
+  # Tests de integración del backend (matriz de autorización + flujo de auth +
+  # integridad del catálogo). Necesitan Postgres + Valkey reales, así que corren
+  # en un job aparte con service containers. Migra+siembra el esquema antes.
+  backend-integration:
+    name: Backend integration tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: mapa_app
+          POSTGRES_PASSWORD: localdev
+          POSTGRES_DB: app
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U mapa_app -d app"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      valkey:
+        image: valkey/valkey:8-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "valkey-cli ping" --health-interval 5s
+          --health-timeout 3s --health-retries 10
+    env:
+      DATABASE_URL: postgres://mapa_app:localdev@localhost:5432/app
+      VALKEY_URL: redis://localhost:6379
+      JWT_SECRET: ci-test-jwt-secret-not-for-prod-0123456789
+      MIGRATIONS_DIR: ../infra/db/migrations
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - name: Install (backend)
+        working-directory: backend
+        run: npm ci || npm install
+      - name: Migrate + seed schema
+        working-directory: backend
+        run: npm run migrate
+      - name: Integration tests (authz matrix + auth flow + catalog)
+        working-directory: backend
+        run: npx vitest run test

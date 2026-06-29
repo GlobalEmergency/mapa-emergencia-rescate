@@ -117,6 +117,7 @@ opRouter.get(
   }),
 );
 
+// eslint-disable-next-line local/user-facing-mutation-needs-guard -- tracking anónimo público de OpenPanel: sin gate por diseño, protegido solo por rateLimit por IP.
 opRouter.post(
   "/*splat",
   rateLimit({ scope: "op:track", limit: 240 }),

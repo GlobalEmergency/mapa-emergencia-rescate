@@ -54,6 +54,13 @@ async function main() {
   } finally {
     await pool.end();
   }
+
+  // Seed idempotente del motor de auth (capacidades + rol admin + superadmin).
+  // Va DESPUÉS de migrate, en el mismo Job gateado: schema y datos base llegan
+  // juntos antes del roll de la app. Usa @/db (su propio Pool); por eso cerramos
+  // el pool de migración antes.
+  const { seedAuth } = await import("@/auth/seed");
+  await seedAuth();
 }
 
 main()

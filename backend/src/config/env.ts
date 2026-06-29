@@ -19,6 +19,29 @@ const schema = z.object({
   ADMIN_PASSWORD: z.string().optional(),
   CRON_SECRET: z.string().optional(),
 
+  // JWT de la superficie autenticada (api/public/*). Firma HS256. En prod DEBE
+  // ser largo (validado abajo). Sin esto en dev, el login/invite no operan.
+  JWT_SECRET: z.string().optional(),
+  // Vida del access token (segundos). Default 12h (alineado con ResponseGrid).
+  JWT_TTL_SECONDS: z.coerce.number().default(43200),
+  // Nombre de la cookie httpOnly que lleva el JWT en el navegador.
+  AUTH_COOKIE_NAME: z.string().default("mapa_session"),
+  // Cookie Secure (HTTPS). En prod SIEMPRE on; en dev local off para http.
+  COOKIE_SECURE: z.coerce.boolean().default(false),
+
+  // Invitaciones: base del frontend para construir el link de aceptación.
+  APP_BASE_URL: z.string().default("http://localhost:3000"),
+  // Caducidad de una invitación (horas).
+  INVITE_TTL_HOURS: z.coerce.number().default(72),
+
+  // SMTP para emails de invitación (motor de Argo). OPCIONAL: sin SMTP_HOST el
+  // invite devuelve el link en la respuesta (dev) en vez de mandar correo.
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().default(587),
+  SMTP_USERNAME: z.string().optional(),
+  SMTP_PASSWORD: z.string().optional(),
+  SMTP_FROM: z.string().default("Mapa Emergencia <noreply@dreamit.software>"),
+
   // Privacidad: sal para hashear IPs antes de persistir. Sin esto, hashIp lanza.
   IP_SALT: z.string().optional(),
 
@@ -51,4 +74,19 @@ if (!parsed.success) {
 }
 
 export const env = parsed.data;
+
+// Fail-fast de seguridad: en prod, un JWT_SECRET ausente o corto es una falla de
+// configuración crítica (tokens forjables). Validado en TODOS los envs distintos
+// de test para no descubrirlo en runtime sirviendo a gente en emergencia.
+if (env.NODE_ENV === "production") {
+  if (!env.JWT_SECRET || env.JWT_SECRET.length < 32) {
+    console.error("❌ JWT_SECRET es obligatorio y debe tener >=32 caracteres en producción.");
+    process.exit(1);
+  }
+  if (!env.COOKIE_SECURE) {
+    console.error("❌ COOKIE_SECURE debe estar activo en producción (cookies de sesión sobre HTTPS).");
+    process.exit(1);
+  }
+}
+
 export const corsOrigins = env.CORS_ORIGINS.split(",").map((s) => s.trim()).filter(Boolean);

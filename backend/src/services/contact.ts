@@ -6,7 +6,7 @@
  * La validación de longitudes/formato vive en el route (zod). Aquí solo persiste.
  * Devuelve solo el id (el route arma la respuesta pública); NUNCA expone ip_hash.
  */
-import { desc, sql } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import { getDb, schema } from "@/db";
 
 const { contactMessages } = schema;
@@ -103,4 +103,48 @@ export async function markContactMessageRead(id: string): Promise<boolean> {
   );
   const rows = (Array.isArray(result) ? result : (result as { rows: unknown[] }).rows) as unknown[];
   return rows.length > 0;
+}
+
+/** Un mensaje por id como DTO (allowlist, sin ip_hash), o null si no existe. */
+export async function getContactMessageById(
+  id: string,
+): Promise<ContactMessageDTO | null> {
+  const db = await getDb();
+  const rows = await db
+    .select({
+      id: contactMessages.id,
+      name: contactMessages.name,
+      email: contactMessages.email,
+      subject: contactMessages.subject,
+      message: contactMessages.message,
+      read: contactMessages.read,
+      createdAt: contactMessages.createdAt,
+    })
+    .from(contactMessages)
+    .where(eq(contactMessages.id, id))
+    .limit(1);
+  const r = rows[0];
+  if (!r) return null;
+  return {
+    id: r.id,
+    name: r.name,
+    email: r.email,
+    subject: r.subject,
+    message: r.message,
+    read: Boolean(r.read),
+    createdAt: Number(r.createdAt),
+  };
+}
+
+/**
+ * Marca un mensaje como leído y devuelve el DTO actualizado (o null si no
+ * existe). Único campo editable de la bandeja: `read`. Reúsa el UPDATE atómico
+ * y devuelve el DTO allowlist para encajar con el verbo `update` del CRUD.
+ */
+export async function setContactMessageRead(
+  id: string,
+): Promise<ContactMessageDTO | null> {
+  const ok = await markContactMessageRead(id);
+  if (!ok) return null;
+  return getContactMessageById(id);
 }
