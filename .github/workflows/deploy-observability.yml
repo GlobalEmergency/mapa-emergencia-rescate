@@ -69,13 +69,16 @@ jobs:
             -e "ssh -i ~/.ssh/obs_key -o StrictHostKeyChecking=no" \
             ./.observability.env "${{ secrets.OBS_USER }}@${{ secrets.OBS_HOST }}:${{ secrets.OBS_PROJECT_PATH }}/.observability.env"
 
+      # Comando remoto en una sola línea (sin heredoc): evita el bug del
+      # delimitador indentado de <<'SSH', que en un `run: |` con indentación no
+      # cierra el heredoc y manda comandos malformados al VPS.
       - name: Levantar el stack en el VPS
+        env:
+          OBS_PROJECT_PATH: ${{ secrets.OBS_PROJECT_PATH }}
         run: |
           ssh -i ~/.ssh/obs_key -o StrictHostKeyChecking=no \
-            "${{ secrets.OBS_USER }}@${{ secrets.OBS_HOST }}" <<'SSH'
-            set -euo pipefail
-            cd "${{ secrets.OBS_PROJECT_PATH }}"
-            docker compose --env-file .observability.env -f docker-compose.observability.yml pull || true
-            docker compose --env-file .observability.env -f docker-compose.observability.yml up -d
-            docker compose --env-file .observability.env -f docker-compose.observability.yml ps
-          SSH
+            "${{ secrets.OBS_USER }}@${{ secrets.OBS_HOST }}" \
+            "set -euo pipefail; cd '$OBS_PROJECT_PATH'; \
+             docker compose --env-file .observability.env -f docker-compose.observability.yml pull || true; \
+             docker compose --env-file .observability.env -f docker-compose.observability.yml up -d; \
+             docker compose --env-file .observability.env -f docker-compose.observability.yml ps"

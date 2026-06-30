@@ -46,10 +46,11 @@ limits_config:
 compactor:
   working_directory: /loki/compactor
   retention_enabled: true
+  # Loki 3 exige declarar dónde guardar las delete requests cuando hay retención.
+  # Usamos el mismo backend de los chunks (filesystem).
+  delete_request_store: filesystem
   delete_request_cancel_period: 10m
   compaction_interval: 10m
 
-# Loki >=3 exige declarar el límite de retención por defecto.
-table_manager:
-  retention_deletes_enabled: true
-  retention_period: 360h
+# Nota: en Loki 3 (TSDB) la retención la hace el compactor (arriba); ya no se usa
+# table_manager.
