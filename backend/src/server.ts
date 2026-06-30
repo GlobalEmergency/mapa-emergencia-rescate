@@ -43,10 +43,14 @@ app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Methods", "GET,POST,PATCH,DELETE,OPTIONS");
     res.setHeader(
       "Access-Control-Allow-Headers",
-      // openpanel-client-id: el SDK de OpenPanel lo manda en cada POST /api/op/track.
-      // Sin él en la allowlist, el preflight no autoriza el POST y el browser lo
-      // bloquea (TypeError: Failed to fetch) → analítica sin eventos. Ver routes/op.ts.
-      "Content-Type, If-None-Match, x-admin-token, cf-turnstile-token, authorization, openpanel-client-id",
+      // Headers openpanel-*: el SDK de OpenPanel los manda en CADA POST /api/op/track.
+      // El browser exige que TODOS los headers no-safelisted estén en esta allowlist
+      // o el preflight no autoriza el POST y lo bloquea (TypeError: Failed to fetch)
+      // → analítica sin eventos. El SDK envía siempre client-id + sdk-name +
+      // sdk-version (y opcionalmente client-secret/pending-revenues). Ver routes/op.ts.
+      "Content-Type, If-None-Match, x-admin-token, cf-turnstile-token, authorization, " +
+        "openpanel-client-id, openpanel-client-secret, openpanel-sdk-name, " +
+        "openpanel-sdk-version, openpanel-pending-revenues",
     );
   }
   if (req.method === "OPTIONS") {
