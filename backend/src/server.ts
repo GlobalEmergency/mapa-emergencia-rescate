@@ -1,6 +1,8 @@
 import express from "express";
 import cookieParser from "cookie-parser";
 import swaggerUi from "swagger-ui-express";
+import { sql } from "drizzle-orm";
+import { getDb } from "@/db";
 import { env, corsOrigins } from "@/config/env";
 import { errorHandler } from "@/middleware";
 import { mountPublicApi } from "@/public-api";
@@ -80,8 +82,35 @@ app.use((req, res, next) => {
 // Lee cookies (sesión httpOnly de api/public/*). Antes de las rutas.
 app.use(cookieParser());
 
-// Healthcheck para el LB de k8s (readinessProbe).
-app.get("/api/readyz", (_req, res) => res.json({ ok: true }));
+// --- Health checks (probes de k8s + smoke post-deploy) ---
+// DOS endpoints separados a propósito (ver infra/k8s/deployment.yaml):
+//   - /api/healthz = LIVENESS: ¿el proceso responde? SIN I/O. Un fallo aquí
+//     significa "proceso colgado" -> kubelet reinicia el pod.
+//   - /api/readyz  = READINESS: ¿puede servir tráfico? Chequea la DB. Un fallo
+//     aquí saca el pod de rotación (LB/readinessProbe) pero NO lo reinicia, así
+//     un blip de DB drena en vez de entrar en restart-loop.
+// Ningún endpoint declara rate-limit: los pollean las probes y el LB cada pocos
+// segundos (la regla local/require-rate-limit solo aplica a routes/ + public-api/).
+app.get("/api/healthz", (_req, res) => res.json({ ok: true }));
+
+// READINESS: SELECT 1 con timeout corto. 200 si la DB responde, 503 si no.
+// Nunca expone el error real (podría filtrar DATABASE_URL); loguea genérico.
+const READYZ_DB_TIMEOUT_MS = 2_000;
+app.get("/api/readyz", async (_req, res) => {
+  try {
+    const db = await getDb();
+    await Promise.race([
+      db.execute(sql`select 1`),
+      new Promise((_resolve, reject) =>
+        setTimeout(() => reject(new Error("readyz: db timeout")), READYZ_DB_TIMEOUT_MS),
+      ),
+    ]);
+    res.json({ ok: true });
+  } catch {
+    console.warn("readyz: db unreachable");
+    res.status(503).json({ ok: false });
+  }
+});
 
 // --- Documentación OpenAPI (Swagger) ---
 // Generada de los bloques @swagger de cada route. /api/openapi.json = spec cruda,

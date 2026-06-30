@@ -72,7 +72,10 @@ con `mediaUrl()`.
 - Express monta los routers en `backend/src/routes/` y delega lógica a
   `backend/src/services/`.
 - `backend/src/config/env.ts` valida entorno de forma fail-fast.
-- La API escucha en `:8080` y expone `/api/readyz` para health/readiness.
+- La API escucha en `:8080` y expone dos health checks: `/api/healthz`
+  (liveness, sin I/O) y `/api/readyz` (readiness, chequea la DB con `select 1` y
+  timeout corto → 503 si no responde). Las probes de k8s y el smoke post-deploy
+  los usan; ver [docs/deploy/proceso-de-deploy.md](../deploy/proceso-de-deploy.md).
 - CORS usa allowlist (`CORS_ORIGINS`), porque el frontend y la API son dominios
   separados.
 - Las mutaciones públicas combinan Zod, rate-limit y `requireHuman`

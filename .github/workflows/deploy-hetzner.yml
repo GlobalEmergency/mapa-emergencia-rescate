@@ -631,10 +631,39 @@ jobs:
               echo "::warning::migrate-worker roll lagging — check kubectl -n mapa get pods"
           fi
 
-      - name: Rollback hint on failure
+      # ---------------------------------------------------------------
+      # 4. Smoke post-deploy: el rollout puede converger (pods Ready) y aun así
+      #    servir 500s en rutas reales. Verificamos el edge público con GETs
+      #    (NUNCA crea datos) mirando SOLO el status code (sin volcar cuerpos ->
+      #    no filtra datos de reportes ni secretos). Si falla, el paso de
+      #    auto-rollback de abajo revierte y el job queda rojo.
+      # ---------------------------------------------------------------
+      - name: Post-deploy smoke
+        env:
+          # Mismas fuentes que el build del frontend: web = host público,
+          # api = NEXT_PUBLIC_API_URL. Overrideables por repo vars.
+          WEB_BASE: https://${{ vars.NEXT_PUBLIC_OPENPANEL_PRODUCTION_HOST || 'terremotovenezuela.app' }}
+          API_BASE: ${{ vars.NEXT_PUBLIC_API_URL || 'https://api.terremotovenezuela.app' }}
+        run: bash scripts/smoke.sh
+
+      # Auto-rollback: si CUALQUIER paso posterior al roll (incluido el smoke)
+      # falla, revertimos los tres tiers a la ReplicaSet anterior y esperamos a
+      # que converja. exit 1 al final para que el job quede ROJO aunque el
+      # rollback haya tenido éxito (el deploy NO se considera sano).
+      - name: Auto-rollback on failure
         if: ${{ failure() }}
         run: |
-          echo "::warning::Deploy failed. To revert: kubectl -n mapa rollout undo deployment/web && kubectl -n mapa rollout undo deployment/api && kubectl -n mapa rollout undo deployment/admin"
+          echo "::error::Deploy/smoke falló — revirtiendo web/api/admin a la versión anterior."
+          for tier in web api admin; do
+            kubectl -n mapa rollout undo "deployment/${tier}" || \
+              echo "::warning::rollout undo ${tier} falló (¿sin revisión previa?)."
+          done
+          for tier in web api admin; do
+            kubectl -n mapa rollout status "deployment/${tier}" --timeout=300s || \
+              echo "::warning::rollback de ${tier} no convergió en 300s — revisa kubectl -n mapa get pods."
+          done
+          echo "::error::Rollback ejecutado. Revisa por qué falló el deploy antes de reintentar."
+          exit 1
 
       - name: Done
         run: echo "✅ deploy ($TARGET) finished."
