@@ -1,0 +1,84 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "title": "Mapa · Traffic & IPs",
+  "uid": "mapa-traffic-ips",
+  "tags": ["mapa", "ips", "abuse", "logs"],
+  "time": { "from": "now-1h", "to": "now" },
+  "refresh": "30s",
+  "templating": {
+    "list": [
+      { "name": "logds", "label": "Loki", "type": "datasource", "query": "loki", "current": { "text": "Loki", "value": "Loki" } }
+    ]
+  },
+  "panels": [
+    {
+      "type": "table",
+      "title": "Top IPs by request count (who's hammering us)",
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "loki", "uid": "${logds}" },
+      "description": "Access logs JSON desde el backend. La IP es real (clientIp). Para bloquear: copia la IP y métela en Cloudflare/firewall.",
+      "targets": [
+        {
+          "expr": "topk(20, sum by (ip) (count_over_time({tier=\"api\"} | json | t=\"access\" [$__range])))",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "{{ip}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Request rate by top IP",
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "loki", "uid": "${logds}" },
+      "targets": [
+        {
+          "expr": "topk(10, sum by (ip) (rate({tier=\"api\"} | json | t=\"access\" [5m])))",
+          "legendFormat": "{{ip}}"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "Top IPs causing 4xx/5xx",
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 9 },
+      "datasource": { "type": "loki", "uid": "${logds}" },
+      "targets": [
+        {
+          "expr": "topk(20, sum by (ip) (count_over_time({tier=\"api\"} | json | t=\"access\" | status>=400 [$__range])))",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "{{ip}}"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "Top IPs hitting a given route (set route below)",
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 9 },
+      "datasource": { "type": "loki", "uid": "${logds}" },
+      "description": "Edita el filtro route=~\"...\" en la query para enfocar un endpoint (p.ej. /api/reports).",
+      "targets": [
+        {
+          "expr": "topk(20, sum by (ip) (count_over_time({tier=\"api\"} | json | t=\"access\" | route=~\"/api/.*\" [$__range])))",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "{{ip}}"
+        }
+      ]
+    },
+    {
+      "type": "logs",
+      "title": "Live access logs",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 18 },
+      "datasource": { "type": "loki", "uid": "${logds}" },
+      "options": { "showTime": true, "wrapLogMessage": true, "sortOrder": "Descending" },
+      "targets": [
+        { "expr": "{tier=\"api\"} | json | t=\"access\"" }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "version": 1
+}

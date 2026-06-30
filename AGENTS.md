@@ -62,7 +62,7 @@ como canal de emergencia ni como base de datos de personas afectadas.
 ## Estado actual del stack
 
 El repo ya no es una app Next monolítica en la raíz. Es un monorepo simple con
-dos paquetes npm y una carpeta de infraestructura compartida:
+tres paquetes npm y una carpeta de infraestructura compartida:
 
 - `frontend/`: Next.js 16 + React 19. Es UI/SSR; no debe acceder directo a la
   base de datos ni reintroducir rutas `app/api/**`.
@@ -71,13 +71,18 @@ dos paquetes npm y una carpeta de infraestructura compartida:
   para API, worker y migraciones.
 - `backend/worker/`: workers BullMQ para sync, geocode, deduplicación,
   federación hub y migraciones/backfills.
+- `admin/`: panel de administración como microservicio Next.js standalone (3er
+  tier, RBAC con JWT en cookie httpOnly). Su BFF (`app/api/*`) reenvía al backend
+  por la red interna; no es tráfico público. Ver
+  `docs/rfcs/0005-panel-admin-standalone.md`.
 - `infra/db/`: esquema Drizzle y migraciones versionadas.
 - `infra/k8s/` + `infra/tofu/`: manifiestos Kubernetes y OpenTofu para Hetzner.
 - Despliegue canónico: Hetzner Cloud + k3s + Postgres/Valkey privados,
   Cloudflare delante, R2 para fotos/assets y GHCR para imágenes.
 
-La raíz no tiene `package.json`. Ejecuta comandos dentro de `frontend/` o
-`backend/`, o usa `docker compose` para levantar el stack completo.
+La raíz no tiene `package.json`. Los comandos `npm` se ejecutan dentro de
+`frontend/`, `backend/` o `admin/`. Para correr el sistema completo, `docker
+compose` es la vía preferida.
 
 ## Comandos útiles
 
@@ -104,12 +109,16 @@ npm run build
 npx tsc --noEmit -p worker/tsconfig.json
 ```
 
-Stack local completo:
+Stack local completo (vía preferida):
 
 ```bash
 docker compose up --build
 docker compose down
 ```
+
+Expone `frontend` en `:3000`, `admin` en `:3001`, `backend` en `:8080`, Postgres
+en `:5432` y Valkey en `:6379`. Detalle del entorno local y la tabla de puertos
+en `README.md`.
 
 Base de datos:
 
@@ -122,7 +131,8 @@ npm run migrate
 > Importante: Next.js 16 puede tener APIs distintas a versiones anteriores.
 > Antes de tocar rutas, metadata, server components, acciones, cache o config,
 > consulta la documentación local instalada en
-> `frontend/node_modules/next/dist/docs/`.
+> `frontend/node_modules/next/dist/docs/` (coincide con la versión del proyecto);
+> como respaldo, la [documentación oficial](https://nextjs.org/docs).
 
 ## Convenciones de implementación
 
@@ -232,6 +242,40 @@ autorización (`backend/test/`).
   de Neon en `backend/worker/jobs/`, que espeja tablas históricas para importar
   datos; no copies ese patrón a endpoints públicos.
 
+### Actualizar listas de personas (hospitalizados / refugiados)
+
+Las personas localizadas (en hospital o en refugio/centro de acopio) viven en
+`hospital_patients`, ligadas a un lugar en `hospitals`. Conviven en la misma
+tabla para que una familia las encuentre en una sola búsqueda, distinguidas por:
+
+- `hospitals.facility_type`: `"refugio"` para centros de acopio/albergues; tipos
+  de hospital para el resto.
+- `hospital_patients.status`: `"hospitalized"` o `"sheltered"` ("En refugio").
+
+Son columnas `TEXT`: valores nuevos no requieren migración, pero sí agregar su
+etiqueta en `frontend/lib/hospitals-meta.ts` para que el front los muestre bien.
+
+Para **cargas en lote (bulk)** usa la skill `ingesta-pacientes`
+(`.claude/skills/ingesta-pacientes/`): tooling Node standalone (SQL crudo vía
+`pg`, **NO** Drizzle ni código de la app) que normaliza, mapea el lugar,
+deduplica, corre dry-run y respalda. Para UNA persona usa el panel admin.
+
+Flujo: `inspect` -> `detectar-lugares` (investiga y crea lugares nuevos con
+ubicación real + `source`; no inventa) -> `ingest` / `ingest-refugios` en
+dry-run -> revisa conteos/pendientes/conflictos y **pide OK a un maintainer** ->
+`--confirm` (idempotente; respaldo + rollback por `admitted_at` del lote).
+
+Reglas: dry-run siempre; OK explícito antes de prod; dedup por cédula (global) +
+nombre orden-insensible por lugar (no auto-fusiona conflictos de edad/cédula);
+no inventar lugares ni ubicaciones; **PII** (nombres, cédulas, diagnósticos)
+nunca a repos/issues/PRs/gists; la cédula va en `notes` como `CI: <dígitos>`.
+
+> Corre desde la raíz del repo con las deps del backend instaladas
+> (`cd backend && npm install`): la skill resuelve `pg` desde `backend/` y lee
+> `DATABASE_URL` de `.env.local`. Apunta a la base que cargues (local, Neon o el
+> Postgres de Hetzner); para prod (Hetzner) hace falta acceso de red al Postgres
+> privado (túnel SSH o Job en k3s), no basta la URL.
+
 ## Documentación
 
 - Escribe documentación en español.
@@ -249,6 +293,7 @@ frontend/               Next.js UI/SSR, hooks, componentes, assets publicos
 backend/src/            Express API, servicios, middleware, acceso Drizzle
 backend/src/modules/    Integraciones como modulos DDD (dominio/aplicacion/infra/http)
 backend/worker/         BullMQ workers, sync, migraciones y backfills
+admin/                  Panel admin standalone (Next.js: BFF app/api/* + RBAC)
 infra/db/               Esquema Drizzle + migraciones
 infra/k8s/              Deployments, Services, HPA, Jobs y Secrets ejemplo
 infra/tofu/             OpenTofu para Hetzner (red, k3s, Postgres, Valkey)

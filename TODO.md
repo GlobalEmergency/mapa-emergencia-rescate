@@ -27,17 +27,19 @@ prod, and verify the node-template/labels match the pool exactly.
       needs the secret). The provision run prints the reminder.
 - [ ] **New GitHub secrets** required by the tofu-native cluster:
       `K3S_TOKEN` (openssl rand -hex 32) — upload via `upload-github-secrets.sh`.
-- [ ] **DNS** — there are now TWO LoadBalancer Services (`infra/k8s/service.yaml`):
-      `web` → LB `mapa-lb` (public domain) and `api` → LB `mapa-api-lb` (3rd
-      parties, `api.` host). Point each A-record at its LB IP. Prod uses a
-      Hetzner managed cert (DNS-only, no Cloudflare proxy); staging is
-      Cloudflare-proxied with a cf-origin cert.
+- [ ] **DNS** — there are now THREE LoadBalancer Services (`infra/k8s/service.yaml`):
+      `web` → LB `mapa-lb` (public domain), `api` → LB `mapa-api-lb` (3rd
+      parties, `api.` host) and `admin` → LB `admin-lb` (`admin.` host, RFC 0005).
+      Point each record at its LB. Cloudflare is proxied (Full) in both
+      environments; prod's LBs serve a Hetzner **managed** Let's Encrypt cert
+      (`PROD_HOST` must list all three hostnames), staging serves the cf-origin
+      cert. See `docs/deploy/dominio-y-dns.md`.
 - [ ] **PGDATA on the volume** — `mapa-pgdata` (40GB) is attached but Postgres
       still writes to the boot disk. Move PGDATA onto the volume before real data.
 - [ ] **Rotate secrets** — `HCLOUD_TOKEN` + Hetzner S3 keys were exposed during
       setup; regenerate and re-upload.
 - [x] **Drizzle migrations** — done. `infra/db/schema.ts` is the source of
-      truth; migrations `0000`..`0006` live in `infra/db/migrations/` and the
+      truth; migrations `0000`..`0011` live in `infra/db/migrations/` and the
       gated migrate Job applies them via `worker/migrate.ts` (drizzle-orm
       `migrate()` at runtime, NOT the drizzle-kit CLI). Idempotent and
       re-runnable (tracked in `__drizzle_migrations`).
@@ -46,5 +48,3 @@ prod, and verify the node-template/labels match the pool exactly.
       static assets to R2 (see infra/README.md).
 - [ ] **Tighten firewall** — SSH currently open to `0.0.0.0/0`; restrict to your
       admin IP for prod (infra/tofu/firewall.tf).
-- [ ] **`lib/db.ts`** — `DB_DRIVER=tcp` pins Hetzner Postgres; confirm Vercel
-      prod has `DB_DRIVER=neon` set (default is neon, so safe if unset).

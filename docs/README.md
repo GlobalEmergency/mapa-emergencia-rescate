@@ -82,7 +82,7 @@ acción.
 - [0002 — Federación con el hub central (ingesta async)](rfcs/0002-federacion-hub-venezuela-ayuda.md)
   · _propuesta_ · integración con el hub "Venezuela Ayuda".
 - [0003 — Refactor async: request-path no bloqueante + colas](rfcs/0003-refactor-async-http-y-colas.md)
-  · _propuesta_.
+  · _implementada_ (PR #108).
 - [0004 — Nodos efímeros (cluster-autoscaler) + split web/api](rfcs/0004-autoscaling-y-split-web-api.md)
   · _propuesta_.
 - [0005 — Panel admin standalone (3er tier)](rfcs/0005-panel-admin-standalone.md)
@@ -102,6 +102,10 @@ acción.
 ### Base de datos
 
 - [Modelo de datos (esquema + relaciones + diagrama)](db/modelo-de-datos.md)
+
+### Diseño
+
+- [Sistema visual y tokens de diseño](design/DESIGN.md)
 
 ### Arquitectura
 
@@ -133,7 +137,7 @@ acción.
 
 ### Guías
 
-- [Desplegar la sincronización con Vercel Cron](guides/sincronizacion-cron-vercel.md)
+- [Disparar la sincronización (scheduler del worker)](guides/sincronizacion-cron-vercel.md)
 - [Rendimiento, capacidad y pruebas de carga](guides/rendimiento-y-pruebas-de-carga.md)
 - [Documentar endpoints (OpenAPI / Swagger)](guides/documentar-endpoints-openapi.md)
 </content>

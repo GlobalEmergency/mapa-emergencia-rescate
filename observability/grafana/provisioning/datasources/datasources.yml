@@ -1,0 +1,22 @@
+# Datasources auto-provisionados al arrancar Grafana. Apuntan a los servicios
+# por nombre en la red docker compartida (sin puertos publicados al host).
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    jsonData:
+      httpMethod: POST
+      timeInterval: 15s
+
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    jsonData:
+      maxLines: 1000
+      # Correlación logs<->métricas: enlaza una traza/etiqueta a Prometheus.
+      # (Se afina cuando definamos las labels reales que manda Alloy.)

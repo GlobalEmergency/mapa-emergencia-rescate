@@ -1,0 +1,96 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "title": "Mapa · Cluster (nodes & pods)",
+  "uid": "mapa-cluster",
+  "tags": ["mapa", "cluster", "use", "saturation"],
+  "time": { "from": "now-6h", "to": "now" },
+  "refresh": "30s",
+  "templating": {
+    "list": [
+      { "name": "ds", "label": "Prometheus", "type": "datasource", "query": "prometheus", "current": { "text": "Prometheus", "value": "Prometheus" } }
+    ]
+  },
+  "panels": [
+    {
+      "type": "stat", "title": "Nodes Ready", "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "${ds}" },
+      "targets": [ { "expr": "sum(kube_node_status_condition{condition=\"Ready\",status=\"true\"})", "legendFormat": "ready" } ]
+    },
+    {
+      "type": "stat", "title": "Pods Running", "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "${ds}" },
+      "targets": [ { "expr": "sum(kube_pod_status_phase{phase=\"Running\"})", "legendFormat": "running" } ]
+    },
+    {
+      "type": "stat", "title": "Pods Pending", "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "${ds}" },
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "orange", "value": 1 } ] } } },
+      "targets": [ { "expr": "sum(kube_pod_status_phase{phase=\"Pending\"})", "legendFormat": "pending" } ]
+    },
+    {
+      "type": "stat", "title": "Container restarts (1h)", "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "${ds}" },
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "orange", "value": 1 }, { "color": "red", "value": 5 } ] } } },
+      "targets": [ { "expr": "sum(increase(kube_pod_container_status_restarts_total[1h]))", "legendFormat": "restarts" } ]
+    },
+    {
+      "type": "stat", "title": "OOMKilled / CrashLoop", "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "${ds}" },
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 1 } ] } } },
+      "targets": [
+        { "expr": "sum(kube_pod_container_status_terminated_reason{reason=\"OOMKilled\"}) + sum(kube_pod_container_status_waiting_reason{reason=\"CrashLoopBackOff\"})", "legendFormat": "bad" }
+      ]
+    },
+    {
+      "type": "timeseries", "title": "Node CPU usage % (per node)", "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "datasource": { "type": "prometheus", "uid": "${ds}" },
+      "fieldConfig": { "defaults": { "unit": "percent", "max": 100 } },
+      "targets": [
+        { "expr": "100 * (1 - avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])))", "legendFormat": "{{instance}}" }
+      ]
+    },
+    {
+      "type": "timeseries", "title": "Node memory used % (per node)", "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "datasource": { "type": "prometheus", "uid": "${ds}" },
+      "fieldConfig": { "defaults": { "unit": "percent", "max": 100 } },
+      "targets": [
+        { "expr": "100 * (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes))", "legendFormat": "{{instance}}" }
+      ]
+    },
+    {
+      "type": "timeseries", "title": "Node disk used % (root fs)", "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "datasource": { "type": "prometheus", "uid": "${ds}" },
+      "fieldConfig": { "defaults": { "unit": "percent", "max": 100 } },
+      "targets": [
+        { "expr": "100 * (1 - (node_filesystem_avail_bytes{mountpoint=\"/host/root\"} / node_filesystem_size_bytes{mountpoint=\"/host/root\"}))", "legendFormat": "{{instance}}" }
+      ]
+    },
+    {
+      "type": "timeseries", "title": "Node network I/O (bytes/s)", "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "datasource": { "type": "prometheus", "uid": "${ds}" },
+      "fieldConfig": { "defaults": { "unit": "Bps" } },
+      "targets": [
+        { "expr": "sum by (instance) (rate(node_network_receive_bytes_total{device!~\"lo|veth.*|cni.*|flannel.*\"}[5m]))", "legendFormat": "{{instance}} rx" },
+        { "expr": "sum by (instance) (rate(node_network_transmit_bytes_total{device!~\"lo|veth.*|cni.*|flannel.*\"}[5m]))", "legendFormat": "{{instance}} tx" }
+      ]
+    },
+    {
+      "type": "timeseries", "title": "Pods by tier (running)", "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
+      "datasource": { "type": "prometheus", "uid": "${ds}" },
+      "targets": [
+        { "expr": "count by (created_by_name) (kube_pod_info{namespace=\"mapa\"})", "legendFormat": "{{created_by_name}}" }
+      ]
+    },
+    {
+      "type": "timeseries", "title": "HPA: current vs desired replicas", "gridPos": { "h": 8, "w": 12, "x": 12, "y": 20 },
+      "datasource": { "type": "prometheus", "uid": "${ds}" },
+      "targets": [
+        { "expr": "kube_horizontalpodautoscaler_status_current_replicas{namespace=\"mapa\"}", "legendFormat": "{{horizontalpodautoscaler}} current" },
+        { "expr": "kube_horizontalpodautoscaler_status_desired_replicas{namespace=\"mapa\"}", "legendFormat": "{{horizontalpodautoscaler}} desired" }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "version": 1
+}

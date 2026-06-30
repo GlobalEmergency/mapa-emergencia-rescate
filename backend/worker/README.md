@@ -8,7 +8,7 @@ IS NULL`, deterministic jobIds).
 > **Scope:** this `worker/` system is the **one-time backlog migration** (old
 > base64-in-DB photos + external image URLs → R2). NEW photos uploaded through
 > the live API no longer go through here — the app uploads them to R2 at ingest
-> time via `lib/r2.ts` (stores the CDN URL in the `photo` column, stamps
+> time via `backend/src/lib/r2.ts` (stores the CDN URL in the `photo` column, stamps
 > `photo_migrated_at`). See "App-side R2 (new uploads)" below.
 
 ## What it does
@@ -37,8 +37,9 @@ IS NULL`, deterministic jobIds).
 
 ## Run
 
-Deployed as a separate **worker image** (`Dockerfile` `worker` target →
-`ghcr.io/<repo>-worker`) and a `migrate-worker` Deployment. To run the migration:
+Deployed as a **`migrate-worker` Deployment** reusing the same `*-backend`
+image (no separate Dockerfile target — web/worker/migrate are the same artifact,
+distinguished only by `command`). To run the migration:
 
 ```bash
 # workers are already running (the Deployment). Kick off the producer Job:
@@ -62,21 +63,21 @@ deterministic jobIds + the `photo_migrated_at` stamp make it safe & resumable.
 ## Local
 
 ```bash
-npm run worker          # run workers against your .env
-npm run migrate:enqueue # run the producer
+npm run worker            # run workers against your .env (tsx worker/index.ts)
+npx tsx worker/enqueue.ts # run the producer
 ```
 
 ## App-side R2 (new uploads — not this worker)
 
-`lib/r2.ts` is the **request-path** R2 helper, the app equivalent of
+`backend/src/lib/r2.ts` is the **request-path** R2 helper, the app equivalent of
 `worker/r2.ts` (same env, same `images/<table>/<id>.<ext>` key scheme). The
 public POST endpoints use it so new photos never land as base64 in Postgres:
 
 | Write path | Uploads via | Stores |
 |---|---|---|
-| `POST /api/missing` (`lib/missing.ts addMissing`) | `uploadPhotoDataUrl(_, "missing_persons", id)` | CDN URL in `photo` + `photo_migrated_at` |
-| `POST /api/reports` (`lib/store.ts addReport`) | `uploadPhotoDataUrl(_, "reports", id)` | CDN URL in `photo` + `photo_migrated_at` |
-| `POST /api/missing/[id]/found` (`markMissingFound`) | `uploadPhotoDataUrl(_, "resolution", id)` | CDN URL in `resolution_photo` |
+| `POST /api/missing` (`services/missing.ts addMissing`) | `uploadPhotoDataUrl(_, "missing_persons", id)` | CDN URL in `photo` + `photo_migrated_at` |
+| `POST /api/reports` (`services/reports.ts addReport`) | `uploadPhotoDataUrl(_, "reports", id)` | CDN URL in `photo` + `photo_migrated_at` |
+| `POST /api/missing/:id/found` (`services/missing.ts markMissingFound`) | `uploadPhotoDataUrl(_, "resolution", id)` | CDN URL in `resolution_photo` |
 
 - **Policy:** if R2 is configured (`isR2Configured()` — all 5 `R2_*` vars set),
   uploads MUST succeed; a failure **throws** and the endpoint does not confirm

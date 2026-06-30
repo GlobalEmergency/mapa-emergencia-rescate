@@ -1,63 +1,81 @@
 # Documentar endpoints (OpenAPI / Swagger)
 
-Toda la API se documenta sola en **Swagger UI** a partir de bloques JSDoc
-`@swagger` en cada route. Esta guía explica cómo registrar un endpoint nuevo y
-cómo funciona por dentro.
+La API del backend (Express) se documenta sola en **Swagger UI** a partir de
+bloques JSDoc `@swagger` en cada route. Esta guía explica cómo registrar un
+endpoint nuevo y cómo funciona por dentro.
 
 ## Dónde se ve
 
 - **Swagger UI:** `/api/docs` (interactivo).
-- **Spec JSON:** `/api/openapi` (OpenAPI 3.0).
+- **Spec JSON:** `/api/openapi.json` (OpenAPI 3.0.3).
 
-## Cómo funciona (build-time, seguro para `output: standalone`)
+Ambos los sirve el backend (`backend/src/server.ts`, vía `swagger-ui-express`).
+
+## Cómo funciona (runtime, al arrancar el servidor)
 
 ```
-app/api/**/route.ts  --(@swagger JSDoc)-->  next-swagger-doc
-   scripts/gen-openapi.mts (prebuild)  -->  public/openapi.json
-   /api/openapi  sirve el JSON   ·   /api/docs  carga Swagger UI apuntando a él
+backend/src/routes/*.ts             --(@swagger JSDoc)--┐
+backend/src/modules/**/interface/http/*  --(@swagger)--┤
+backend/src/public-api/resources/*  --(config zod)-----┤--> buildOpenApiSpec()
+                                                       └--> /api/openapi.json + /api/docs
 ```
 
-> **Enforcement automático:** `prebuild` corre primero `npm run endpoints:check`
-> (`scripts/check-endpoints.mjs`), que FALLA el build/CI si cualquier `route.ts`
-> bajo `app/api/**` rompe las reglas duras: falta `@swagger`, handler no `async`,
-> uso de `maxDuration` (I/O largo inline → debe ir a cola), o llamadas síncronas
-> bloqueantes. También avisa (sin romper) de mutaciones sin auth/rate-limit y GET
-> sin cache. Reglas completas en AGENTS.md ("Crear un endpoint"). Si un endpoint
-> SIRVE la doc (`/api/openapi`, `/api/docs`), está exento del `@swagger` vía
-> `SWAGGER_EXEMPT`; para silenciar un AVISO heurístico legítimo usa el comentario
-> `// endpoint-check: ok`.
+- La spec se construye **una vez al arrancar** (`buildOpenApiSpec()` en
+  `backend/src/lib/swagger.ts`), uniendo dos orígenes:
+  1. los bloques `@swagger` escaneados por **`swagger-jsdoc`** en TRES globs:
+     `routes/**` (routes a mano: `auth`, `sync`, `admin`, etc.),
+     `public-api/**` y `modules/**` (los módulos DDD, cuyo `@swagger` vive en su
+     capa `interface/http`);
+  2. los paths CRUD derivados de la config de cada recurso de
+     `backend/src/public-api/*` — la **misma** definición zod que valida la
+     request (single source of truth), generados por `crud-factory.ts`.
+- `swagger-jsdoc` escanea los `.ts` en dev (tsx) y los `.js` compilados en prod
+  (`dist/`), así que el glob cubre ambas extensiones — no hay paso de build
+  aparte ni `public/openapi.json` que mantener.
 
-- La spec se genera en **build** (`prebuild` corre `scripts/gen-openapi.mts`),
-  no en runtime, porque con `output: standalone` los fuentes de `app/api/**` no
-  están en el contenedor. El resultado (`public/openapi.json`) sí se empaqueta.
-- Config central: `lib/swagger.ts` (`buildOpenApiSpec` + los modelos en
-  `components.schemas`).
+> **Enforcement automático (ESLint, gate en CI).** Las reglas de endpoints viven
+> en `backend/eslint-rules/` y corren en `npm run lint` + CI; romperlas falla el
+> PR. Resumen (detalle en `AGENTS.md`, "Endpoints del backend"):
+> - `require-rate-limit`: TODA ruta declara `rateLimit({ scope, limit })`.
+> - `user-facing-mutation-needs-guard`: toda mutación de `src/routes/*` lleva
+>   `requireHuman` (Turnstile) o un gate (`requireAdmin` / `requireCapability` /
+>   `requireCron` / `requireSupplyWrite`); la excepción anónima se documenta con
+>   `// eslint-disable-next-line local/user-facing-mutation-needs-guard -- razón`.
+> - `no-turnstile-in-public-api`: `src/public-api/*` no usa Turnstile (no es
+>   navegador; va por capacidades).
 
 ## Registrar un endpoint nuevo
 
-1. Crea tu route como siempre: `app/api/mi-endpoint/route.ts` con
-   `export async function GET/POST/...`.
-2. **Agrega un bloque `@swagger`** justo encima del primer handler exportado.
+### Caso A — route escrito a mano (`backend/src/routes/`)
+
+1. Crea/edita el router como siempre: `Router()` + `asyncHandler` + `validate()`
+   + middlewares (`rateLimit`, `requireHuman`/`requireAdmin`, …).
+2. **Agrega un bloque `@swagger`** justo encima del primer handler del path.
    Documenta todos los métodos del archivo bajo su path.
 3. Referencia modelos compartidos con `$ref`. Si devuelves un DTO nuevo,
-   agrégalo a `SCHEMAS` en `lib/swagger.ts`.
-4. Verifica local:
+   agrégalo a los `components.schemas` en `backend/src/lib/swagger.ts`.
+4. Verifica local: `cd backend && npm run dev` y abre `/api/docs`; tu ruta debe
+   aparecer.
 
-   ```bash
-   npm run openapi        # regenera public/openapi.json
-   # revisa el conteo de paths que imprime; tu ruta debe aparecer
-   ```
+### Caso B — recurso CRUD autenticado (`backend/src/public-api/`)
 
-   En cada `npm run build` se regenera solo (paso `prebuild`).
+No escribas el router a mano: añade un `resources/<modelo>.resource.ts` (config +
+esquema zod) y la **fábrica** (`crud-factory.ts`) monta router, validación,
+auditoría y **doc OpenAPI** desde esa config. La doc se deriva sola del esquema
+zod; no necesitas `@swagger`.
 
-> Un endpoint **sin** bloque `@swagger` NO aparece en la doc. La anotación es
-> obligatoria (convención del repo, ver `AGENTS.md`).
+> Un endpoint de `src/routes/*` **sin** bloque `@swagger` NO aparece en la doc.
+> La anotación es obligatoria (convención del repo, ver `AGENTS.md`).
 
-## Ejemplo
+## Ejemplo (route a mano, Express)
 
 ```ts
-import { NextResponse } from "next/server";
-import { listReports, addReport } from "@/lib/store";
+import { Router } from "express";
+import { asyncHandler, rateLimit } from "@/middleware";
+import { jsonWithEtag } from "@/lib/http";
+import * as service from "@/services/reports";
+
+export const reportsRouter = Router();
 
 /**
  * @swagger
@@ -105,8 +123,10 @@ import { listReports, addReport } from "@/lib/store";
  *       400: { description: Datos inválidos, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
  *       429: { description: Rate limit }
  */
-export async function GET() { /* ... */ }
-export async function POST() { /* ... */ }
+reportsRouter.get("/", rateLimit({ scope: "reports:list", limit: 120 }),
+  asyncHandler(async (req, res) => { /* ... */ }));
+reportsRouter.post("/", /* ...middlewares... */
+  asyncHandler(async (req, res) => { /* ... */ }));
 ```
 
 ### Path params, fotos, errores
@@ -117,24 +137,11 @@ export async function POST() { /* ... */ }
   `302` (redirección al CDN R2) y `404`.
 - **Errores**: usa el modelo `Error` (`{ error: string }`) en respuestas 4xx/5xx.
 
-## Modelos disponibles (`components.schemas`)
+## Modelos (`components.schemas`)
 
-Definidos en `lib/swagger.ts`, espejo de los DTO públicos del backend.
-Actualmente hay **27 modelos** (la lista completa y vigente está en `SCHEMAS`
-dentro de `lib/swagger.ts`):
-
-- Generales: `Error`, `EmergencyReport`, `ChatMessage`.
-- Desaparecidos: `MissingPerson`, `MissingMapMarker`, `MissingStats`.
-- Hospitales (base): `Hospital`, `HospitalPatient`, `HospitalPocAssignment`.
-- Donaciones: `Donation`, `DonationStats`.
-- Insumos de hospital: `HospitalSupplyFreshness`, `HospitalSupplyCategory`,
-  `HospitalSupplySemaphore`, `HospitalSupplyUrgencySemaphore`,
-  `HospitalSupplyCategoryStatus`, `HospitalSupplyStatus`,
-  `HospitalSupplyNeed`, `HospitalSupplyNeedRestricted`,
-  `HospitalSupplySummary`, `HospitalSupplyStatusUpdateInput`,
-  `HospitalSupplyNeedInput`, `HospitalSupplyNeedPatchInput`,
-  `HospitalSupplyHelpRequest`, `HospitalSupplyHelpRequestInput`,
-  `HospitalSupplyHelpPatchInput`, `AdminHospitalSupplyRow`.
-
-Para un DTO nuevo, agrégalo a `SCHEMAS` en `lib/swagger.ts` reflejando el tipo
-TS público que devuelve el endpoint, y referencialo con `$ref`.
+Los modelos compartidos se definen en `backend/src/lib/swagger.ts`
+(`components.schemas` del bloque base) y se complementan con los esquemas que la
+fábrica CRUD deriva de cada recurso de `backend/src/public-api/*`. Para un DTO
+nuevo de un route a mano, agrégalo a `schemas` en `backend/src/lib/swagger.ts`
+reflejando el tipo TS público que devuelve el endpoint, y referencialo con
+`$ref`. La lista vigente es la que aparece en `/api/openapi.json`.

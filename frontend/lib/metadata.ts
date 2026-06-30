@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { SITE_NAME } from "@/lib/site";
 
-const OG_IMAGE = "/opengraph-image.png";
-const TWITTER_IMAGE = "/twitter-image.png";
+const OG_IMAGE = "/opengraph-image.jpg";
+const TWITTER_IMAGE = "/twitter-image.jpg";
 
 interface PageMetadataInput {
   title: string;

@@ -4,13 +4,19 @@ Esquema de la base de datos (Neon Postgres / Hetzner `app`) del proyecto
 **Mapa de Emergencia y Rescate**.
 
 > **Fuente de verdad:** [`infra/db/schema.ts`](../../infra/db/schema.ts) (Drizzle)
-> define las **27 tablas** que existen en prod: canónicas activas (reportes,
+> define las **38 tablas** que existen en prod: canónicas activas (reportes,
 > personas, hospitales y su acopio `hospital_supply_*` / `hospital_poc_*`,
 > donaciones, contadores, sync) + `contact_messages` (ya en Drizzle) +
+> `earthquakes` (sismos USGS que ingiere el worker) +
 > `analytics_events`, `damage_candidates`, `unidentified_persons` (legado/externas
 > sin código de app, pero presentes en la base) + la federación `hub_*` con el
-> hub central (espejo read-only, ver RFC 0002). Si cambias el esquema, edita
-> `schema.ts`, corre `npm run db:generate` y luego actualiza este doc.
+> hub central (espejo read-only, ver RFC 0002) + el tier **RBAC/auth** del panel
+> admin (`capabilities`, `roles`, `role_capabilities`, `users`,
+> `permission_grants`, `invitations`, `password_resets`, `audit_log`; ver RFC
+> 0005) + `api_keys` (llaves por usuario para `api/public/*`, #171) +
+> `hub_credentials` (libro mayor de consumidores SQL de la réplica pública, RFC
+> 0006). Si cambias el esquema, edita `schema.ts`, corre `npm run db:generate` y
+> luego actualiza este doc.
 
 ## Convenciones
 
@@ -49,12 +55,23 @@ Tomadas del código (ver cabecera de `schema.ts`):
 | `analytics_events` | legado/externa | `id` | Eventos de analítica (sin código de app) |
 | `damage_candidates` | legado/externa | `id` | Candidatos de daño estructural (sin código) |
 | `unidentified_persons` | legado/externa | `id` | Personas no identificadas (sin código) |
+| `earthquakes` | canónica | `id` | Sismos USGS (ingesta del worker; id natural USGS) |
 | `hub_missing_persons` | federación | `id` | Espejo read-only de desaparecidos del hub |
 | `hub_checkins` | federación | `id` | Espejo read-only de check-ins del hub |
 | `hub_help_requests` | federación | `id` | Espejo read-only de pedidos de ayuda del hub |
 | `hub_help_offers` | federación | `id` | Espejo read-only de ofertas de ayuda del hub |
 | `hub_damaged_buildings` | federación | `id` | Espejo read-only de edificios dañados del hub |
 | `hub_sync_state` | federación | `type` | Cursor de paginación por tipo del hub |
+| `capabilities` | RBAC/auth | `key` | Catálogo fijo de capacidades (`recurso:verbo`) |
+| `roles` | RBAC/auth | `id` | Roles creados por admins (filas, no enum) |
+| `role_capabilities` | RBAC/auth | `(role_id, capability_key)` | M:N rol↔capacidad |
+| `users` | RBAC/auth | `id` | Usuarios autenticados del panel admin |
+| `permission_grants` | RBAC/auth | `id` | Capacidad individual encima del rol |
+| `invitations` | RBAC/auth | `id` | Alta por invitación (token de un solo uso) |
+| `password_resets` | RBAC/auth | `id` | Recuperación de contraseña por OTP |
+| `audit_log` | RBAC/auth | `id` | Bitácora de mutaciones sensibles |
+| `api_keys` | RBAC/auth | `id` | Llaves por usuario para `api/public/*` (`scopes` ⊆ caps del usuario) |
+| `hub_credentials` | RBAC/auth | `id` | Libro mayor de consumidores SQL de la réplica pública (RFC 0006) |
 
 ---
 
@@ -407,8 +424,8 @@ Bitácora de ejecuciones de sync (append-only).
 ### `contact_messages`
 
 Bandeja de contacto del panel admin. Definida en `infra/db/schema.ts` y
-consumida por [`lib/contact-inbox.ts`](../../lib/contact-inbox.ts) vía Drizzle
-(ya no usa `CREATE TABLE IF NOT EXISTS` en runtime).
+consumida por [`backend/src/services/contact.ts`](../../backend/src/services/contact.ts)
+vía Drizzle (ya no usa `CREATE TABLE IF NOT EXISTS` en runtime).
 
 | Columna | Tipo | Nulo | Default | Notas |
 | --- | --- | --- | --- | --- |
@@ -517,6 +534,155 @@ federación).
 
 ---
 
+## RBAC / auth (panel admin)
+
+Tier de control de acceso del panel admin standalone (ver
+[`docs/rfcs/0005-panel-admin-standalone.md`](../rfcs/0005-panel-admin-standalone.md)).
+Motor RBAC: un usuario tiene un **rol base** (bundle de capacidades) más posibles
+**grants individuales** con expiración/revocación. El catálogo de capacidades es
+fijo y se siembra por migración (`backend/src/auth/capabilities.ts`). Las
+columnas `org_id` viajan en `roles`/`users`/`grants`/`invitations` pero hoy
+quedan `NULL` (global); son el gancho para multi-tenancy en fase 2. Las
+relaciones entre estas tablas son **lógicas** (FK app-side, sin DDL de FK).
+
+### `capabilities`
+
+Catálogo fijo de capacidades (`recurso:verbo`). No lo crean usuarios.
+
+| Columna | Tipo | Nulo | Default | Notas |
+| --- | --- | --- | --- | --- |
+| `key` | TEXT | no | — | PK (`"report:create"`, `"user:invite"`, …) |
+| `description` | TEXT | no | `''` | |
+| `category` | TEXT | no | `''` | Agrupa para la UI de admin |
+
+### `roles`
+
+Roles creados por admins (filas, no enum).
+
+| Columna | Tipo | Nulo | Default | Notas |
+| --- | --- | --- | --- | --- |
+| `id` | TEXT | no | — | PK |
+| `name` | TEXT | no | — | |
+| `description` | TEXT | no | `''` | |
+| `is_system` | BOOLEAN | no | `false` | Rol semilla `admin` inmutable |
+| `org_id` | TEXT | sí | — | `NULL` = global (fase 2) |
+| `created_by` | TEXT | sí | — | *lógico* → `users.id` (NULL para el semilla) |
+| `created_at` | BIGINT | no | — | epoch-ms |
+| `updated_at` | BIGINT | sí | — | epoch-ms |
+
+Índices: `idx_roles_name_global (name) UNIQUE WHERE org_id IS NULL`;
+`idx_roles_name_org (org_id, name) UNIQUE WHERE org_id IS NOT NULL`.
+
+### `role_capabilities`
+
+M:N rol↔capacidades.
+
+| Columna | Tipo | Nulo | Default | Notas |
+| --- | --- | --- | --- | --- |
+| `role_id` | TEXT | no | — | PK compuesta · *lógico* → `roles.id` |
+| `capability_key` | TEXT | no | — | PK compuesta · *lógico* → `capabilities.key` |
+
+PK: `(role_id, capability_key)`. Índice: `idx_role_caps_role (role_id)`.
+
+### `users`
+
+Usuarios autenticados (≠ ciudadanos anónimos del sitio público).
+
+| Columna | Tipo | Nulo | Default | Notas |
+| --- | --- | --- | --- | --- |
+| `id` | TEXT | no | — | PK |
+| `email` | TEXT | no | — | único (case-insensitive) |
+| `name` | TEXT | no | `''` | |
+| `password_hash` | TEXT | sí | — | bcrypt; `NULL` hasta aceptar invitación |
+| `role_id` | TEXT | sí | — | rol base · *lógico* → `roles.id` |
+| `org_id` | TEXT | sí | — | fase 2 |
+| `status` | TEXT | no | `'invited'` | `invited` / `active` / `disabled` |
+| `created_at` | BIGINT | no | — | epoch-ms |
+| `last_login_at` | BIGINT | sí | — | epoch-ms |
+
+Índices: `idx_users_email (lower(email)) UNIQUE`; `idx_users_role (role_id)`.
+
+### `permission_grants`
+
+Capacidad individual encima del rol. Sujeto = user **o** role (XOR app-side).
+Activo = `revoked_at` NULL y (`expires_at` NULL o futura).
+
+| Columna | Tipo | Nulo | Default | Notas |
+| --- | --- | --- | --- | --- |
+| `id` | TEXT | no | — | PK |
+| `capability_key` | TEXT | no | — | *lógico* → `capabilities.key` |
+| `subject_type` | TEXT | no | — | `"user"` / `"role"` |
+| `subject_user_id` | TEXT | sí | — | set si `subject_type=user` |
+| `subject_role_id` | TEXT | sí | — | set si `subject_type=role` |
+| `org_id` | TEXT | sí | — | fase 2 |
+| `granted_by` | TEXT | no | — | *lógico* → `users.id` |
+| `granted_at` | BIGINT | no | — | epoch-ms |
+| `expires_at` | BIGINT | sí | — | `NULL` = sin expiración |
+| `revoked_at` | BIGINT | sí | — | `NULL` = activo |
+| `revoked_by` | TEXT | sí | — | |
+| `reason` | TEXT | no | `''` | |
+
+Índices: `idx_grants_cap_subject (capability_key, subject_type, revoked_at)`;
+`idx_grants_user (subject_user_id)`; `idx_grants_role (subject_role_id)`.
+
+### `invitations`
+
+Alta por invitación. `token_hash` = sha256 del token enviado por email (nunca se
+guarda en claro). Un solo uso; caduca.
+
+| Columna | Tipo | Nulo | Default | Notas |
+| --- | --- | --- | --- | --- |
+| `id` | TEXT | no | — | PK |
+| `email` | TEXT | no | — | |
+| `role_id` | TEXT | sí | — | rol al aceptar · *lógico* → `roles.id` |
+| `org_id` | TEXT | sí | — | fase 2 |
+| `token_hash` | TEXT | no | — | sha256 |
+| `invited_by` | TEXT | no | — | *lógico* → `users.id` |
+| `created_at` | BIGINT | no | — | epoch-ms |
+| `expires_at` | BIGINT | no | — | epoch-ms |
+| `accepted_at` | BIGINT | sí | — | `NULL` = pendiente |
+
+Índices: `idx_invitations_token (token_hash) UNIQUE`;
+`idx_invitations_email (lower(email))`.
+
+### `password_resets`
+
+Recuperación de contraseña por OTP (código de 6 dígitos al email). Solo se guarda
+el **hash** del código (sha256). Un solo uso, caduca en minutos; `attempts`
+limita el fuerza-bruta.
+
+| Columna | Tipo | Nulo | Default | Notas |
+| --- | --- | --- | --- | --- |
+| `id` | TEXT | no | — | PK |
+| `user_id` | TEXT | no | — | *lógico* → `users.id` |
+| `code_hash` | TEXT | no | — | sha256 del OTP |
+| `created_at` | BIGINT | no | — | epoch-ms |
+| `expires_at` | BIGINT | no | — | epoch-ms |
+| `consumed_at` | BIGINT | sí | — | `NULL` = sin usar |
+| `attempts` | INTEGER | no | `0` | |
+
+Índices: `idx_pwreset_user (user_id)`; `idx_pwreset_expires (expires_at)`.
+
+### `audit_log`
+
+Bitácora de TODA mutación sensible (auth + escrituras de `api/public/*`).
+
+| Columna | Tipo | Nulo | Default | Notas |
+| --- | --- | --- | --- | --- |
+| `id` | BIGSERIAL | no | seq | PK |
+| `actor_user_id` | TEXT | sí | — | `NULL` = sistema/anónimo |
+| `action` | TEXT | no | — | `"role.create"`, `"report.delete"`, … |
+| `target_type` | TEXT | sí | — | `"report"`, `"user"`, `"role"`, … |
+| `target_id` | TEXT | sí | — | |
+| `metadata` | JSONB | sí | — | contexto (antes/después, ids afectados) |
+| `ip_hash` | TEXT | sí | — | IP hasheada, nunca cruda |
+| `created_at` | BIGINT | no | — | epoch-ms |
+
+Índices: `idx_audit_created (created_at DESC)`; `idx_audit_actor (actor_user_id)`;
+`idx_audit_target (target_type, target_id)`.
+
+---
+
 ## Relaciones
 
 - **FK reales (6, todas → `hospitals.id` con `ON DELETE CASCADE`):**
@@ -529,6 +695,10 @@ federación).
   - `chat_messages.reply_to` / `thread_root_id` → `chat_messages.id` (auto-ref)
   - `sync_state.source` / `sync_runs.source` comparten el espacio de "fuentes",
     sin clave foránea entre sí.
+  - **RBAC/auth** (todas app-side, sin DDL de FK): `role_capabilities` →
+    `roles` / `capabilities`; `users.role_id` → `roles`; `permission_grants` →
+    `capabilities` + (`users` o `roles`); `invitations.role_id` → `roles`;
+    `password_resets.user_id` → `users`; `audit_log.actor_user_id` → `users`.
 
 El resto de las tablas son independientes (sin relaciones).
 
@@ -620,8 +790,9 @@ erDiagram
     }
 ```
 
-> El diagrama muestra solo las tablas **con relaciones**. Las demás
+> El diagrama muestra solo las tablas **con relaciones de FK real**. Las demás
 > (`donations`, `geocode_cache`, `sync_state`, `sync_runs`, `contact_messages`,
-> `analytics_events`, `damage_candidates`, `unidentified_persons` y la familia
-> `hub_*` de federación) son independientes a nivel de FK; sus columnas están en
-> las secciones de arriba.
+> `analytics_events`, `damage_candidates`, `unidentified_persons`, la familia
+> `hub_*` de federación y el tier RBAC/auth) son independientes a nivel de FK; el
+> tier RBAC tiene relaciones **lógicas** (ver arriba) y sus columnas están en las
+> secciones de arriba.

@@ -392,6 +392,24 @@ jobs:
             --from-literal=cluster-config="$CLUSTER_CONFIG_B64" \
             --dry-run=client -o yaml | kubectl apply -f -
 
+      # Secret para Grafana Alloy: el bearer token con el que EMPUJA métricas/logs
+      # al command center (debe coincidir con el OBS_PUSH_TOKEN del VPS de
+      # observability). Tambien es el token con el que el backend protege /metrics.
+      # Sin él, no se despliega Alloy (el apply de abajo se salta).
+      - name: Ensure alloy-push secret
+        env:
+          OBS_PUSH_TOKEN: ${{ secrets.OBS_PUSH_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${OBS_PUSH_TOKEN:-}" ]; then
+            echo "OBS_PUSH_TOKEN unset — skipping alloy-push secret (no se desplegará Alloy)."
+            exit 0
+          fi
+          kubectl create namespace mapa --dry-run=client -o yaml | kubectl apply -f -
+          kubectl -n mapa create secret generic alloy-push \
+            --from-literal=token="$OBS_PUSH_TOKEN" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
       # Server-side runtime secrets (NO NEXT_PUBLIC_*): OpenPanel proxy,
       # contraseña admin, CORS cross-origin y Turnstile server-side.
       # app-env tiene TODAS las vars de runtime (DATABASE_URL, VALKEY_URL, R2_*,
@@ -433,6 +451,10 @@ jobs:
           HUB_DB_NAME: ${{ secrets.HUB_DB_NAME }}
           HUB_FIREWALL_ID: ${{ secrets.HUB_FIREWALL_ID }}
           HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
+          # METRICS_TOKEN: protege GET /metrics del backend (defensa en profundidad;
+          # /metrics ya vive en un puerto que el LB no enruta). DEBE ser el MISMO
+          # que OBS_PUSH_TOKEN para que Alloy pueda scrapear con ese bearer.
+          METRICS_TOKEN: ${{ secrets.OBS_PUSH_TOKEN }}
         run: |
           set -euo pipefail
           if ! kubectl -n mapa get secret app-env >/dev/null 2>&1; then
@@ -441,7 +463,7 @@ jobs:
           fi
           # Construimos el patch JSON solo con las claves que SÍ tienen valor
           # (omitimos las vacías para no pisar con "" lo que ya esté en el secret).
-          patch=$(KEYS="OPENPANEL_CLIENT_SECRET ADMIN_PASSWORD CORS_ORIGINS TURNSTILE_SECRET_KEY JWT_SECRET COOKIE_SECURE APP_BASE_URL SEED_ADMIN_EMAIL SEED_ADMIN_PASSWORD SMTP_HOST SMTP_PORT SMTP_USERNAME SMTP_PASSWORD SMTP_FROM HUB_ADMIN_DATABASE_URL HUB_PUBLIC_HOST HUB_DB_NAME HUB_FIREWALL_ID HCLOUD_TOKEN" \
+          patch=$(KEYS="OPENPANEL_CLIENT_SECRET ADMIN_PASSWORD CORS_ORIGINS TURNSTILE_SECRET_KEY JWT_SECRET COOKIE_SECURE APP_BASE_URL SEED_ADMIN_EMAIL SEED_ADMIN_PASSWORD SMTP_HOST SMTP_PORT SMTP_USERNAME SMTP_PASSWORD SMTP_FROM HUB_ADMIN_DATABASE_URL HUB_PUBLIC_HOST HUB_DB_NAME HUB_FIREWALL_ID HCLOUD_TOKEN METRICS_TOKEN" \
             python3 -c 'import json,os; ks=os.environ["KEYS"].split(); print(json.dumps({k:os.environ[k] for k in ks if os.environ.get(k)}))')
           if [ "$patch" = '{}' ]; then
             echo "No runtime secrets to patch."
@@ -551,6 +573,19 @@ jobs:
           kubectl apply -f infra/k8s/deployment.yaml
           # HPA por tier (web + api). metrics-server ya está en el clúster.
           kubectl apply -f infra/k8s/hpa.yaml
+          # Grafana Alloy (DaemonSet que empuja métricas+logs al command center) —
+          # solo si su secret existe (OBS_PUSH_TOKEN seteado). Ver observability/.
+          if kubectl -n mapa get secret alloy-push >/dev/null 2>&1; then
+            # Exporters de cluster (node-exporter + kube-state-metrics): nodos
+            # (CPU/RAM/disco) + objetos k8s (pods/réplicas/HPA/restarts). Alloy los
+            # scrapea por annotations, igual que el api tier.
+            kubectl apply -f infra/k8s/cluster-metrics.yaml
+            kubectl apply -f infra/k8s/alloy.yaml
+            kubectl -n mapa rollout status daemonset/alloy --timeout=120s || \
+              echo "::warning::alloy daemonset no convergió en 120s — revisa kubectl -n mapa get pods -l app=alloy"
+          else
+            echo "alloy-push secret ausente — se omite Alloy/exporters (observability OFF)."
+          fi
           # Cluster Autoscaler (nodos efímeros) — solo si su secret existe.
           if kubectl -n kube-system get secret cluster-autoscaler-hcloud >/dev/null 2>&1; then
             kubectl apply -f infra/k8s/cluster-autoscaler.yaml
@@ -631,10 +666,35 @@ jobs:
               echo "::warning::migrate-worker roll lagging — check kubectl -n mapa get pods"
           fi
 
+      # ---------------------------------------------------------------
+      # 4. Smoke post-deploy: el rollout puede converger (pods Ready) y aun así
+      #    servir 500s en rutas reales. Verificamos el edge público con GETs
+      #    (NUNCA crea datos) mirando SOLO el status code (sin volcar cuerpos ->
+      #    no filtra datos de reportes ni secretos).
+      #
+      #    INFORMATIVO POR AHORA (continue-on-error): WEB_BASE/API_BASE salen de
+      #    `vars` de repo que traen valores de PROD; en un deploy de staging el
+      #    smoke pegaría a prod. Hasta separar las bases por entorno (GitHub
+      #    Environments) NO disparamos rollback automático: un fallo aquí es un
+      #    ::warning::, no tumba el deploy. Ver docs/deploy/proceso-de-deploy.md.
+      # ---------------------------------------------------------------
+      - name: Post-deploy smoke (informativo)
+        continue-on-error: true
+        env:
+          # Mismas fuentes que el build del frontend: web = host público,
+          # api = NEXT_PUBLIC_API_URL. Overrideables por repo vars.
+          WEB_BASE: https://${{ vars.NEXT_PUBLIC_OPENPANEL_PRODUCTION_HOST || 'terremotovenezuela.app' }}
+          API_BASE: ${{ vars.NEXT_PUBLIC_API_URL || 'https://api.terremotovenezuela.app' }}
+        run: bash scripts/smoke.sh
+
+      # Pista de rollback manual si el deploy falla (el roll en sí ya gatea con
+      # rollout status). NO revertimos automáticamente todavía: ver la nota de
+      # arriba sobre las bases de smoke por entorno.
       - name: Rollback hint on failure
         if: ${{ failure() }}
         run: |
-          echo "::warning::Deploy failed. To revert: kubectl -n mapa rollout undo deployment/web && kubectl -n mapa rollout undo deployment/api && kubectl -n mapa rollout undo deployment/admin"
+          echo "::error::Deploy falló. Para revertir a la versión anterior:"
+          echo "::error::  for t in web api admin; do kubectl -n mapa rollout undo deployment/\$t; done"
 
       - name: Done
         run: echo "✅ deploy ($TARGET) finished."

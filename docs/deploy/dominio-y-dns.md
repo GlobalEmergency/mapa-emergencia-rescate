@@ -29,11 +29,13 @@ api: navegador / tercero → Cloudflare → Hetzner LB "mapa-api-lb"
 | A | `@` | `65.109.41.170` (LB) | 🟠 Proxied |
 | A | `www` | `65.109.41.170` (LB) | 🟠 Proxied |
 | A | `api` | IP pública del `mapa-api-lb` | 🟠 Proxied |
+| CNAME | `admin` | `lb-admin.terremotovenezuela.app` (`admin-lb`) | 🟠 Proxied |
 
 `65.109.41.170` es el IP público del Hetzner Load Balancer web (`mapa-lb`),
 creado y gestionado por el Hetzner CCM a partir del `Service` tipo
-LoadBalancer. El IP de `api` lo da el Service `api` (`mapa-api-lb`); verifícalo
-con `kubectl -n mapa get svc api`.
+LoadBalancer. El IP de `api` lo da el Service `api` (`mapa-api-lb`); el del panel
+lo da el Service `admin` (`admin-lb`, RFC 0005). Verifícalos con
+`kubectl -n mapa get svc api admin`.
 
 ## TLS
 

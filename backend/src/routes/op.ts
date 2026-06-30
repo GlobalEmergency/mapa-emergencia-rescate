@@ -34,6 +34,12 @@ function forwardHeaders(req: import("express").Request): Record<string, string> 
     origin: requestOrigin(req),
     "User-Agent": (req.headers["user-agent"] as string) ?? "",
   };
+  // El SDK identifica su tipo/versión con estos headers; OpenPanel los usa para
+  // atribuir el evento. Reenviarlos tal cual (no son secretos).
+  for (const h of ["openpanel-sdk-name", "openpanel-sdk-version"] as const) {
+    const value = req.headers[h];
+    if (typeof value === "string" && value) headers[h] = value;
+  }
   if (env.OPENPANEL_CLIENT_SECRET) {
     headers["openpanel-client-secret"] = env.OPENPANEL_CLIENT_SECRET;
   }

@@ -1,0 +1,33 @@
+# Prometheus del command center. Dos fuentes de datos:
+#   1. PUSH (principal): el clúster k3s de prod empuja sus métricas vía Alloy a
+#      /api/v1/write (habilitado con --web.enable-remote-write-receiver en el
+#      compose). NO se configura como scrape: las series llegan empujadas, ya
+#      etiquetadas por Alloy (job, namespace, pod, tier, etc.).
+#   2. SCRAPE (self): Prometheus se mide a sí mismo para vigilar el propio stack.
+#
+# No scrapeamos el clúster directamente: los nodos k3s son efímeros (sin IP
+# estable) y están en otra red. El modelo es push-only desde el cluster.
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: mapa-observability
+
+scrape_configs:
+  # Self-monitoring del propio Prometheus.
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # (Opcional) self-scrape de Grafana y Loki, que exponen /metrics propios.
+  # Útil para vigilar la salud del command center mismo.
+  - job_name: grafana
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["grafana:3000"]
+
+  - job_name: loki
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["loki:3100"]

@@ -16,14 +16,16 @@ separados (`frontend` y `backend`), workers BullMQ, y **Cloudflare** delante
 - **Cómputo:** k3s con 1 master fijo y workers efímeros manejados por
   cluster-autoscaler. `k3s_worker_count` tiene default `0`; el pool del CA es
   `--nodes=2:5`.
-- **Apps:** dos imágenes y dos Deployments:
+- **Apps:** tres imágenes y tres Deployments:
   - `web`: imagen `*-frontend:<sha>`, Next standalone en `:3000`.
   - `api`: imagen `*-backend:<sha>`, Express en `:8080`.
+  - `admin`: imagen `*-admin:<sha>`, panel Next standalone en `:3000` (3er tier,
+    RFC 0005; BFF que reenvía al backend por la red interna).
 - **Workers:** `migrate-worker` y el Job `migrate` reutilizan la imagen backend
   con comandos distintos.
 - **Estado:** Postgres y Valkey viven en VPS dedicados dentro de la red privada.
-- **Ingreso:** dos Services `LoadBalancer`: `web` -> `mapa-lb` y `api` ->
-  `mapa-api-lb`.
+- **Ingreso:** tres Services `LoadBalancer`: `web` -> `mapa-lb`, `api` ->
+  `mapa-api-lb` y `admin` -> `admin-lb`.
 - **Borde:** Cloudflare proxied; R2 sirve fotos y assets estáticos de Next
   cuando `NEXT_PUBLIC_ASSET_PREFIX` está configurado.
 
@@ -66,9 +68,9 @@ El master corre k3s con Hetzner CCM externo:
 
 | Manifiesto | Rol |
 | --- | --- |
-| `service.yaml` | Namespace `mapa` + Services `web` y `api` con TLS por target |
-| `deployment.yaml` | Deployments `web` (frontend) y `api` (backend) |
-| `hpa.yaml` | HPA separado por tier (`web` y `api`) |
+| `service.yaml` | Namespace `mapa` + Services `web`, `api` y `admin` con TLS por target |
+| `deployment.yaml` | Deployments `web` (frontend), `api` (backend) y `admin` (panel) |
+| `hpa.yaml` | HPA separado por tier (`web`, `api` y `admin`) |
 | `cluster-autoscaler.yaml` | Autoscaler de nodos Hetzner |
 | `worker-deployment.yaml` | Workers BullMQ con imagen backend |
 | `migrate-job.yaml` | Migraciones Drizzle gateadas antes del rollout |
@@ -76,17 +78,23 @@ El master corre k3s con Hetzner CCM externo:
 | `hub-backfill-job.yaml` | Backfill del hub federado |
 | `secret.example.yaml` | Plantilla de runtime secrets |
 
-## Tiers `web` y `api`
+## Tiers `web`, `api` y `admin`
 
-`web` y `api` están separados a propósito:
+Los tres tiers están separados a propósito:
 
 - `web` corre el frontend Next en `:3000`. No sirve la API ni accede a Postgres.
   El navegador usa `NEXT_PUBLIC_API_URL`; server components pueden usar
   `INTERNAL_API_URL`.
 - `api` corre Express en `:8080`. Sirve toda la superficie `/api`, CORS,
   Turnstile, rate-limit, OpenPanel proxy y acceso Drizzle.
+- `admin` corre el panel Next standalone en `:3000` (imagen propia `*-admin`,
+  réplicas bajas, HPA 2–6). El navegador habla same-origin con su BFF
+  (`app/api/*`), que reenvía al backend por la red interna
+  (`EMERGENCY_API_URL=http://api.mapa.svc.cluster.local`) con el JWT leído de una
+  cookie httpOnly. Probes a `/api/health` (su BFF, desacoplado de upstreams).
+  Ver [RFC 0005](../rfcs/0005-panel-admin-standalone.md).
 - Cada tier tiene su propio Service LoadBalancer, HPA, probes y recursos. Un
-  pico de API no debe ahogar el render del frontend.
+  pico de API no debe ahogar el render del frontend ni el panel de rescate.
 - El rollout usa `maxUnavailable: 0`, `maxSurge: 1`, probes de readiness y
   `preStop` para drenar pods viejos.
 
@@ -106,8 +114,9 @@ El master corre k3s con Hetzner CCM externo:
 - El workflow renderiza las anotaciones TLS de `service.yaml` con `envsubst`:
   `staging` usa el cert Origin de Cloudflare; `prod` usa cert gestionado de
   Hetzner para los hosts públicos declarados en `PROD_HOST`.
-- El Service `api` replica el perfil TLS del Service `web`; en prod,
-  `PROD_HOST` debe cubrir web y `api.terremotovenezuela.app`.
+- Los Services `api` y `admin` replican el perfil TLS del Service `web`; en prod,
+  `PROD_HOST` debe cubrir `terremotovenezuela.app`, `api.terremotovenezuela.app`
+  y `admin.terremotovenezuela.app`.
 - R2 sirve fotos subidas por backend/worker y los assets `/_next/static`
   cargados antes del rollout. La sincronización es aditiva, sin `--delete`, para
   no romper sesiones que aún referencian chunks antiguos.
@@ -117,14 +126,16 @@ El master corre k3s con Hetzner CCM externo:
 `.github/workflows/deploy-hetzner.yml` es deploy-only:
 
 1. `verify`: instala dependencias en `backend/` y `frontend/`, typecheck de API y
-   worker, lint de frontend.
-2. Construye y pushea a GHCR dos imágenes: `*-frontend:<sha>` y
-   `*-backend:<sha>`.
+   worker, lint de frontend. El job `verify-admin` corre `lint` + `typecheck` +
+   `test` del panel (`admin/`); `deploy` depende de ambos.
+2. Construye y pushea a GHCR tres imágenes: `*-frontend:<sha>`, `*-backend:<sha>`
+   y `*-admin:<sha>`.
 3. Configura `kubectl`, secrets de pull/runtime y, si existen secretos, el CA.
-4. Sube estáticos de Next a R2.
+4. Sube estáticos de Next a R2 (frontend en la raíz; panel bajo `/admin`).
 5. Aplica Services, Deployments, HPA, CA y worker.
 6. Corre el Job de migraciones Drizzle antes del rollout.
-7. Rota `deployment/web`, `deployment/api` y, si existe, `migrate-worker`.
+7. Rota `deployment/web`, `deployment/api`, `deployment/admin` y, si existe,
+   `migrate-worker`.
 
 Triggers:
 
@@ -142,12 +153,14 @@ flowchart TB
     r2["Cloudflare R2<br/>fotos + _next/static"]
     lbweb["Hetzner LB mapa-lb<br/>Service web"]
     lbapi["Hetzner LB mapa-api-lb<br/>Service api"]
+    lbadmin["Hetzner LB admin-lb<br/>Service admin"]
 
     user --> cf
     user -.fetch API.-> cf
     thirdparty --> cf
     cf --> lbweb
     cf --> lbapi
+    cf --> lbadmin
     cf -.assets / fotos.-> r2
 
     subgraph net["Red privada 10.0.0.0/16 - hel1"]
@@ -156,6 +169,7 @@ flowchart TB
             nodes["workers efimeros<br/>pool CA 2:5"]
             web["Deployment web<br/>Next :3000"]
             api["Deployment api<br/>Express :8080"]
+            admin["Deployment admin<br/>panel Next :3000"]
             worker["Deployment migrate-worker<br/>BullMQ"]
             migrate["Job migrate<br/>Drizzle"]
         end
@@ -165,8 +179,10 @@ flowchart TB
 
     lbweb --> web
     lbapi --> api
+    lbadmin --> admin
     master -.crea/destruye.-> nodes
     web -.SSR INTERNAL_API_URL.-> api
+    admin -.BFF EMERGENCY_API_URL.-> api
     api --> pg
     api --> vk
     api --> r2

@@ -2116,14 +2116,6 @@ body.mobile-sheet-open [data-sticky-help-root] {
 	color: rgba(255, 255, 255, 0.38);
 }
 
-.e-donate-fab-btn {
-	background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-}
-
-.e-donate-fab-btn:hover {
-	background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-}
-
 #mobile-section-sheet {
 	touch-action: pan-y;
 }

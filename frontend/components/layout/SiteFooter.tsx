@@ -50,7 +50,7 @@ export default function SiteFooter() {
               pull request: cada aporte ayuda a salvar vidas.
             </p>
             <a
-              href="https://github.com/ArturoRiosMock/mapa-emergencia-rescate"
+              href="https://github.com/terremotovenezuela/mapa-emergencia-rescate"
               target="_blank"
               rel="noopener noreferrer"
               className="e-btn e-btn-secondary mt-3 self-start px-4 py-2 text-sm"

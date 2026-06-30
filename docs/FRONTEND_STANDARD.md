@@ -24,7 +24,7 @@ components/
   ui/                         # primitivas SIN dominio (solo props): Button, Modal,
                               # SearchInput, Pagination, ChipFilter, TabNav, ErrorBox,
                               # SuccessBox, Spinner, Lightbox, LinkText…
-  layout/                     # chrome global de la app: SiteNav, SiteFooter, HeroSection,
+  layout/                     # chrome global de la app: SectionNav, SiteFooter, HeroSection,
                               # AlertTicker, SubPageShell, Providers (theme/analytics/PWA).
   features/<dominio>/         # módulos de feature. Un dominio = una carpeta.
     index.tsx                 # contenedor: compone hooks + subcomponentes.

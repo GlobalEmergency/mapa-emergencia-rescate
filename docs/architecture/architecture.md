@@ -16,6 +16,10 @@ infraestructura compartida:
   worker y el Job de migraciones.
 - `backend/worker/`: BullMQ sobre Valkey para sync, geocode, deduplicación,
   federación hub y backfills/migraciones.
+- `admin/`: panel de administración como microservicio Next.js standalone (3er
+  tier, RBAC con JWT en cookie httpOnly). Su BFF (`app/api/*`) reenvía al backend
+  por la red interna del clúster. Ver
+  [RFC 0005](../rfcs/0005-panel-admin-standalone.md).
 - `infra/db/`: esquema Drizzle y migraciones SQL.
 - `infra/k8s/` + `infra/tofu/`: despliegue en Hetzner Cloud con k3s,
   Postgres/Valkey privados, dos Load Balancers y workers efímeros.
@@ -28,8 +32,10 @@ flowchart LR
     cf["Cloudflare"]
     webLb["LB web<br/>terremotovenezuela.app"]
     apiLb["LB api<br/>api.terremotovenezuela.app"]
+    adminLb["LB admin<br/>admin.terremotovenezuela.app"]
     frontend["frontend<br/>Next.js :3000"]
     backend["backend<br/>Express :8080"]
+    admin["admin<br/>panel Next.js :3000"]
     pg["Postgres<br/>app DB"]
     valkey["Valkey<br/>BullMQ + rate-limit"]
     r2["Cloudflare R2<br/>fotos + _next/static"]
@@ -37,7 +43,9 @@ flowchart LR
     user --> cf --> webLb --> frontend
     user -.fetch API<br/>NEXT_PUBLIC_API_URL.-> cf
     cf --> apiLb --> backend
+    cf --> adminLb --> admin
     frontend -.SSR<br/>INTERNAL_API_URL.-> backend
+    admin -.BFF<br/>EMERGENCY_API_URL.-> backend
     backend --> pg
     backend --> valkey
     backend --> r2
@@ -64,7 +72,10 @@ con `mediaUrl()`.
 - Express monta los routers en `backend/src/routes/` y delega lógica a
   `backend/src/services/`.
 - `backend/src/config/env.ts` valida entorno de forma fail-fast.
-- La API escucha en `:8080` y expone `/api/readyz` para health/readiness.
+- La API escucha en `:8080` y expone dos health checks: `/api/healthz`
+  (liveness, sin I/O) y `/api/readyz` (readiness, chequea la DB con `select 1` y
+  timeout corto → 503 si no responde). Las probes de k8s y el smoke post-deploy
+  los usan; ver [docs/deploy/proceso-de-deploy.md](../deploy/proceso-de-deploy.md).
 - CORS usa allowlist (`CORS_ORIGINS`), porque el frontend y la API son dominios
   separados.
 - Las mutaciones públicas combinan Zod, rate-limit y `requireHuman`
@@ -169,9 +180,10 @@ como superficie de abuso (la protección efectiva sigue siendo Turnstile + rate-
 - El despliegue canónico es Hetzner Cloud + k3s + Cloudflare.
 - El workflow `.github/workflows/deploy-hetzner.yml` es deploy-only:
   PR mergeado a `main` despliega staging; prod requiere `workflow_dispatch`.
-- CI construye dos imágenes: `*-frontend:<sha>` y `*-backend:<sha>`.
-- Kubernetes corre dos Deployments principales: `web` (frontend) y `api`
-  (backend), cada uno con su Service LoadBalancer y HPA.
+- CI construye tres imágenes: `*-frontend:<sha>`, `*-backend:<sha>` y
+  `*-admin:<sha>`.
+- Kubernetes corre tres Deployments de aplicación: `web` (frontend), `api`
+  (backend) y `admin` (panel), cada uno con su Service LoadBalancer y HPA.
 - El worker y el Job de migraciones reutilizan la imagen backend.
 - R2 sirve fotos y, cuando se configura `NEXT_PUBLIC_ASSET_PREFIX`, assets
   estáticos de Next.

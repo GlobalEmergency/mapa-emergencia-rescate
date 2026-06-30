@@ -122,7 +122,7 @@ The tracking should answer:
 
 ## Implementation Notes
 
-- Keep using `trackEvent` from `app/components/openpanel.ts`.
+- Keep using `trackEvent` from `frontend/lib/openpanel.ts`.
 - Add a small wrapper of named functions to avoid typo-heavy event calls.
 - Keep events production-gated.
 - Add `variant` once proposal repos exist, using a constant per repo.

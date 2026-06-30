@@ -1,0 +1,228 @@
+# Grafana Alloy — DaemonSet que EMPUJA telemetría del cluster al command center.
+#
+# Un pod por nodo (sigue a los nodos efímeros del autoscaler). Hace dos cosas:
+#   1. Scrapea /metrics de los pods anotados (prometheus.io/scrape=true) — en mapa
+#      es el api tier, en su puerto AISLADO 9090 (no el :8080 público).
+#   2. Tail-ea los logs de los pods del nodo (/var/log/pods).
+# Y empuja AMBOS al VPS de observability vía HTTPS + bearer token:
+#   - métricas -> prometheus.remote_write -> prom-observability.terremotovenezuela.app
+#   - logs     -> loki.write             -> loki-observability.terremotovenezuela.app
+#
+# Solo EGRESS (push): no abre nada en el cluster, no necesita firewall nuevo.
+# El token sale del Secret `alloy-push` (lo crea el workflow de deploy desde el
+# secret OBS_PUSH_TOKEN, igual que cluster-autoscaler-hcloud). NO se commitea.
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: alloy
+  namespace: mapa
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: alloy
+rules:
+  # Descubrir pods/endpoints para el scrape de métricas.
+  - apiGroups: [""]
+    resources: ["nodes", "nodes/proxy", "nodes/metrics", "services", "endpoints", "pods"]
+    verbs: ["get", "list", "watch"]
+  # Leer logs de pods (tail para Loki).
+  - apiGroups: [""]
+    resources: ["pods/log"]
+    verbs: ["get", "list", "watch"]
+  - nonResourceURLs: ["/metrics"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: alloy
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: alloy
+subjects:
+  - kind: ServiceAccount
+    name: alloy
+    namespace: mapa
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alloy-config
+  namespace: mapa
+data:
+  config.alloy: |
+    // --- Token de push (del Secret alloy-push, montado como env) ---
+    // Se lee con sys.env: Alloy expande la env del contenedor.
+
+    // ====================== MÉTRICAS ======================
+    // Descubre pods del cluster.
+    discovery.kubernetes "pods" {
+      role = "pod"
+    }
+
+    // Solo los pods con annotation prometheus.io/scrape=true; usa el puerto y
+    // path de las annotations (en mapa: api tier, 9090, /metrics).
+    discovery.relabel "annotated_pods" {
+      targets = discovery.kubernetes.pods.targets
+
+      rule {
+        source_labels = ["__meta_kubernetes_pod_annotation_prometheus_io_scrape"]
+        regex         = "true"
+        action        = "keep"
+      }
+      // Reescribe el address al puerto de la annotation prometheus.io/port.
+      rule {
+        source_labels = ["__address__", "__meta_kubernetes_pod_annotation_prometheus_io_port"]
+        regex         = "([^:]+)(?::\\d+)?;(\\d+)"
+        replacement   = "$1:$2"
+        target_label  = "__address__"
+      }
+      rule {
+        source_labels = ["__meta_kubernetes_pod_annotation_prometheus_io_path"]
+        regex         = "(.+)"
+        target_label  = "__metrics_path__"
+      }
+      // Labels útiles para los dashboards (tier, pod, namespace).
+      rule {
+        source_labels = ["__meta_kubernetes_pod_label_tier"]
+        target_label  = "tier"
+      }
+      rule {
+        source_labels = ["__meta_kubernetes_namespace"]
+        target_label  = "namespace"
+      }
+      rule {
+        source_labels = ["__meta_kubernetes_pod_name"]
+        target_label  = "pod"
+      }
+    }
+
+    prometheus.scrape "annotated" {
+      targets         = discovery.relabel.annotated_pods.output
+      forward_to      = [prometheus.remote_write.obs.receiver]
+      scrape_interval = "15s"
+      // El /metrics del backend exige bearer token (defensa en profundidad).
+      authorization {
+        type        = "Bearer"
+        credentials = sys.env("OBS_PUSH_TOKEN")
+      }
+    }
+
+    prometheus.remote_write "obs" {
+      endpoint {
+        url = "https://prom-observability.terremotovenezuela.app/api/v1/write"
+        authorization {
+          type        = "Bearer"
+          credentials = sys.env("OBS_PUSH_TOKEN")
+        }
+      }
+    }
+
+    // ======================== LOGS ========================
+    discovery.kubernetes "log_pods" {
+      role = "pod"
+    }
+
+    discovery.relabel "log_targets" {
+      targets = discovery.kubernetes.log_pods.targets
+      rule {
+        source_labels = ["__meta_kubernetes_namespace"]
+        target_label  = "namespace"
+      }
+      rule {
+        source_labels = ["__meta_kubernetes_pod_name"]
+        target_label  = "pod"
+      }
+      rule {
+        source_labels = ["__meta_kubernetes_pod_container_name"]
+        target_label  = "container"
+      }
+      rule {
+        source_labels = ["__meta_kubernetes_pod_label_tier"]
+        target_label  = "tier"
+      }
+    }
+
+    loki.source.kubernetes "pods" {
+      targets    = discovery.relabel.log_targets.output
+      forward_to = [loki.write.obs.receiver]
+    }
+
+    loki.write "obs" {
+      endpoint {
+        url = "https://loki-observability.terremotovenezuela.app/loki/api/v1/push"
+        authorization {
+          type        = "Bearer"
+          credentials = sys.env("OBS_PUSH_TOKEN")
+        }
+      }
+    }
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: alloy
+  namespace: mapa
+  labels:
+    app: alloy
+spec:
+  selector:
+    matchLabels:
+      app: alloy
+  template:
+    metadata:
+      labels:
+        app: alloy
+    spec:
+      serviceAccountName: alloy
+      # Corre en TODOS los nodos, incluido el master (por si algún día sirve algo).
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: alloy
+          image: grafana/alloy:v1.5.1
+          args:
+            - run
+            - /etc/alloy/config.alloy
+            - --storage.path=/var/lib/alloy/data
+          env:
+            - name: OBS_PUSH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: alloy-push
+                  key: token
+          ports:
+            - containerPort: 12345
+              name: http
+          volumeMounts:
+            - name: config
+              mountPath: /etc/alloy
+            - name: data
+              mountPath: /var/lib/alloy/data
+            # Logs de los pods del nodo (read-only) para el tail de Loki.
+            - name: varlog
+              mountPath: /var/log
+              readOnly: true
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "128Mi"
+            limits:
+              memory: "256Mi"
+      volumes:
+        - name: config
+          configMap:
+            name: alloy-config
+        - name: data
+          emptyDir: {}
+        - name: varlog
+          hostPath:
+            path: /var/log

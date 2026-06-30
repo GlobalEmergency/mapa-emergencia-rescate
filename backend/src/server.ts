@@ -1,8 +1,11 @@
 import express from "express";
 import cookieParser from "cookie-parser";
 import swaggerUi from "swagger-ui-express";
+import { sql } from "drizzle-orm";
+import { getDb } from "@/db";
 import { env, corsOrigins } from "@/config/env";
 import { errorHandler } from "@/middleware";
+import { metricsMiddleware, startMetricsServer } from "@/lib/metrics";
 import { mountPublicApi } from "@/public-api";
 import { buildOpenApiSpec } from "@/lib/swagger";
 import { missingRouter } from "@/routes/missing";
@@ -43,10 +46,14 @@ app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Methods", "GET,POST,PATCH,DELETE,OPTIONS");
     res.setHeader(
       "Access-Control-Allow-Headers",
-      // openpanel-client-id: el SDK de OpenPanel lo manda en cada POST /api/op/track.
-      // Sin él en la allowlist, el preflight no autoriza el POST y el browser lo
-      // bloquea (TypeError: Failed to fetch) → analítica sin eventos. Ver routes/op.ts.
-      "Content-Type, If-None-Match, x-admin-token, cf-turnstile-token, authorization, openpanel-client-id",
+      // Headers openpanel-*: el SDK de OpenPanel los manda en CADA POST /api/op/track.
+      // El browser exige que TODOS los headers no-safelisted estén en esta allowlist
+      // o el preflight no autoriza el POST y lo bloquea (TypeError: Failed to fetch)
+      // → analítica sin eventos. El SDK envía siempre client-id + sdk-name +
+      // sdk-version (y opcionalmente client-secret/pending-revenues). Ver routes/op.ts.
+      "Content-Type, If-None-Match, x-admin-token, cf-turnstile-token, authorization, " +
+        "openpanel-client-id, openpanel-client-secret, openpanel-sdk-name, " +
+        "openpanel-sdk-version, openpanel-pending-revenues",
     );
   }
   if (req.method === "OPTIONS") {
@@ -76,8 +83,48 @@ app.use((req, res, next) => {
 // Lee cookies (sesión httpOnly de api/public/*). Antes de las rutas.
 app.use(cookieParser());
 
-// Healthcheck para el LB de k8s (readinessProbe).
-app.get("/api/readyz", (_req, res) => res.json({ ok: true }));
+// Instrumentación HTTP (Prometheus). Va ANTES de las rutas para medir TODAS
+// (incluidas 404). Mide al `finish` de la respuesta; no toca el body. Ver
+// lib/metrics.ts. El endpoint /metrics NO vive aquí: se sirve en un servidor
+// aparte en otro puerto (startMetricsServer), que el LB público NO enruta, así
+// /metrics nunca es accesible desde internet. Alloy (k3s) lo scrapea pod-a-pod.
+app.use(metricsMiddleware);
+
+// --- Health checks (probes de k8s + smoke post-deploy) ---
+// DOS endpoints separados a propósito (ver infra/k8s/deployment.yaml):
+//   - /api/healthz = LIVENESS: ¿el proceso responde? SIN I/O. Un fallo aquí
+//     significa "proceso colgado" -> kubelet reinicia el pod.
+//   - /api/readyz  = READINESS: ¿puede servir tráfico? Chequea la DB. Un fallo
+//     aquí saca el pod de rotación (LB/readinessProbe) pero NO lo reinicia, así
+//     un blip de DB drena en vez de entrar en restart-loop.
+// Ningún endpoint declara rate-limit: los pollean las probes y el LB cada pocos
+// segundos (la regla local/require-rate-limit solo aplica a routes/ + public-api/).
+app.get("/api/healthz", (_req, res) => res.json({ ok: true }));
+
+// READINESS: SELECT 1 con timeout corto. 200 si la DB responde, 503 si no.
+// Nunca expone el error real (podría filtrar DATABASE_URL); loguea genérico.
+const READYZ_DB_TIMEOUT_MS = 2_000;
+app.get("/api/readyz", async (_req, res) => {
+  // getDb() es síncrono (crea el Pool sin I/O; la conexión es perezosa).
+  const db = getDb();
+  // Timeout con clearTimeout en finally: si el query gana la carrera, no dejamos
+  // un timer vivo ~2s por request.
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([
+      db.execute(sql`select 1`),
+      new Promise((_resolve, reject) => {
+        timer = setTimeout(() => reject(new Error("readyz: db timeout")), READYZ_DB_TIMEOUT_MS);
+      }),
+    ]);
+    res.json({ ok: true });
+  } catch {
+    console.warn("readyz: db unreachable");
+    res.status(503).json({ ok: false });
+  } finally {
+    clearTimeout(timer);
+  }
+});
 
 // --- Documentación OpenAPI (Swagger) ---
 // Generada de los bloques @swagger de cada route. /api/openapi.json = spec cruda,
@@ -127,4 +174,6 @@ if (isEntrypoint) {
   app.listen(env.PORT, () => {
     console.log(`mapa-backend escuchando en :${env.PORT}`);
   });
+  // Servidor de métricas APARTE, en otro puerto que el LB público no enruta.
+  startMetricsServer();
 }

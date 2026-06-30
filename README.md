@@ -36,8 +36,7 @@ pública.
 - **Sondeo pausado** automáticamente cuando la pestaña está en segundo plano.
 
 > `docker compose` inyecta `DATABASE_URL`, `VALKEY_URL` y las URLs locales entre
-> frontend/backend. Si levantas paquetes a mano, define esas variables en el
-> entorno correspondiente.
+> frontend/backend.
 
 ## Arquitectura actual
 
@@ -51,10 +50,12 @@ flowchart TB
     subgraph hetzner["Hetzner Cloud"]
         lbweb["Balanceador web<br/>terremotovenezuela.app"]
         lbapi["Balanceador API<br/>api.terremotovenezuela.app"]
+        lbadmin["Balanceador admin<br/>admin.terremotovenezuela.app"]
 
         subgraph k3s["Cluster k3s"]
             web["Deployment web<br/>frontend Next.js :3000"]
             api["Deployment api<br/>backend Express :8080"]
+            admin["Deployment admin<br/>panel Next.js :3000"]
             worker["Deployment worker<br/>trabajos BullMQ"]
             migrate["Job migrate<br/>migraciones Drizzle"]
         end
@@ -65,10 +66,13 @@ flowchart TB
 
     usuario -->|sitio web| cloudflare
     usuario -->|API pública| cloudflare
+    usuario -->|panel admin| cloudflare
     terceros -->|API pública| cloudflare
     cloudflare -->|terremotovenezuela.app| lbweb --> web
     cloudflare -->|api.terremotovenezuela.app| lbapi --> api
+    cloudflare -->|admin.terremotovenezuela.app| lbadmin --> admin
     web -->|SSR interno| api
+    admin -->|BFF interno| api
     api --> postgres
     api --> valkey
     api --> r2
@@ -94,20 +98,18 @@ fotos a R2.
 docker compose up --build
 ```
 
-Abre http://localhost:3000. El backend queda en http://localhost:8080 y Postgres
-+ Valkey corren dentro de Docker.
+Puertos expuestos en el host:
 
-También puedes levantar cada paquete por separado:
+| Servicio | Puerto host | URL / acceso          |
+| -------- | ----------- | --------------------- |
+| frontend | 3000        | http://localhost:3000 |
+| admin    | 3001        | http://localhost:3001 |
+| backend  | 8080        | http://localhost:8080 |
+| postgres | 5432        | postgres://localhost:5432 |
+| valkey   | 6379        | redis://localhost:6379 |
 
-```bash
-cd backend
-npm install
-npm run dev
-
-cd ../frontend
-npm install
-npm run dev
-```
+Docker Compose es la vía preferida para correr el proyecto localmente; Postgres
+y Valkey corren dentro de Docker.
 
 ## Contribuir
 
@@ -127,13 +129,16 @@ imágenes, las publica en GHCR y aplica los manifiestos por entorno (`staging` |
 
 Componentes principales del clúster:
 
-- Dos `Deployment` de aplicación: `web` corre la imagen `frontend` (Next en
-  `:3000`) y `api` corre la imagen `backend` (Express en `:8080`), cada uno con
-  3 réplicas base y autoescalado por HPA (`web` 3–20, `api` 3–30, CPU 60%).
-- Dos `Service` `LoadBalancer`: `web` → LB público (dominio del sitio) y `api` →
-  LB para terceros. El perfil TLS se inyecta por entorno con `envsubst` (staging
-  = certificado Origin tras Cloudflare; prod = certificado gestionado por
-  Hetzner).
+- Tres `Deployment` de aplicación: `web` corre la imagen `frontend` (Next en
+  `:3000`), `api` corre la imagen `backend` (Express en `:8080`) y `admin` corre
+  la imagen `admin` (panel Next standalone en `:3000`). `web` y `api` arrancan
+  con 3 réplicas base y autoescalado por HPA (`web` 3–20, `api` 3–30, CPU 60%);
+  `admin` es un tercer tier de bajo tráfico (HPA 2–6). Ver el RFC
+  `docs/rfcs/0005-panel-admin-standalone.md`.
+- Tres `Service` `LoadBalancer`: `web` → LB público (dominio del sitio), `api` →
+  LB para terceros y `admin` → LB del panel (`admin-lb`). El perfil TLS se
+  inyecta por entorno con `envsubst` (staging = certificado Origin tras
+  Cloudflare; prod = certificado gestionado por Hetzner).
 - Workers BullMQ (`worker-deployment.yaml`) para sincronización,
   geocodificación, deduplicación, realojamiento de imágenes y tareas
   programadas; el Job `migrate` aplica las migraciones de Drizzle
@@ -149,15 +154,8 @@ se generan con `cd backend && npm run db:generate` (migraciones en
 `infra/db/migrations/`) y el Job `migrate` los aplica de forma idempotente en
 cada despliegue.
 
-> Vercel/Neon pueden seguir presentes como alternativa o despliegue legado
-> (`frontend/vercel.json` existe como legado), pero el camino soportado y
-> descrito arriba es Hetzner + k3s.
-
-Para desarrollo local completo usa Docker Compose:
-
-```bash
-docker compose up --build
-```
+> Neon queda como origen legado para backfills (`NEON_DATABASE_URL`), no como
+> base viva de la app. El camino soportado y descrito arriba es Hetzner + k3s.
 
 ## Estructura
 
@@ -176,9 +174,10 @@ backend/
   src/middleware/ # validación, auth, límite de tasa, Turnstile
   src/db/         # acceso Drizzle a Postgres
   worker/         # BullMQ, sincronización, hub, migraciones/rellenos
+admin/            # panel admin standalone (Next.js: BFF app/api/* + RBAC)
 infra/
   db/             # schema.ts + migraciones SQL de Drizzle
-  k8s/            # manifiestos: web/api, servicios, HPA, workers, migración
+  k8s/            # manifiestos: web/api/admin, servicios, HPA, workers, migración
   tofu/           # OpenTofu: red, k3s, postgres, valkey, firewall
 docs/             # RFCs, ADRs, arquitectura y guías
 ```

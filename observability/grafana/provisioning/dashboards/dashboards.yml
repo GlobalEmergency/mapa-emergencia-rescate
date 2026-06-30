@@ -1,0 +1,17 @@
+# Carga automática de dashboards desde /var/lib/grafana/dashboards (montado
+# read-only desde ./grafana/dashboards). Edítalos como JSON en el repo (GitOps);
+# los cambios desde la UI no persisten salvo que se exporten al JSON.
+apiVersion: 1
+
+providers:
+  - name: mapa-dashboards
+    orgId: 1
+    folder: "Mapa"
+    type: file
+    disableDeletion: false
+    editable: true
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: true

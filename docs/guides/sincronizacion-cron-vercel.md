@@ -1,9 +1,13 @@
-# Guía: disparar la sincronización (scheduler del worker / Vercel Cron)
+# Guía: disparar la sincronización (scheduler del worker)
 
 Cómo dejar corriendo la sincronización automática de fuentes. Tras el refactor
 async, el trabajo pesado YA NO corre en el request: los endpoints solo **encolan**
 jobs BullMQ y devuelven `202`; el procesamiento ocurre en el worker.
 Ver el diseño en [RFC 0001](../rfcs/0001-sincronizacion-fuentes.md).
+
+> En prod los schedulers vienen **apagados** por defecto
+> (`SYNC_SCHEDULERS=0`, `HUB_SCHEDULERS=0` en `worker-deployment.yaml`) para
+> evitar scraping automático. Reactivar = quitar esas vars o ponerlas a `"1"`.
 
 ## Modelo actual (async/colas)
 
@@ -12,34 +16,30 @@ El scheduler **canónico** vive en el worker (BullMQ, equivalente a Celery-Beat)
 (`upsertJobScheduler`, cada `SYNC_EVERY_MS`, default 10 min, modo `chunk`) y
 `registerMaintenanceSchedulers()` hace lo propio con el geocode
 (`GEOCODE_EVERY_MS`, default 5 min). Estos schedulers se registran al arrancar el
-worker
-(`worker/index.ts`) y son idempotentes (upsert en cada arranque).
+worker (`backend/worker/index.ts`) y son idempotentes (upsert en cada arranque).
 
-**Vercel Cron es ahora fallback/legacy**: en Hetzner el camino primario es el
-scheduler del worker. Los crons de `vercel.json` (y el disparo manual) solo
-ENCOLAN; sirven como trigger externo si no hay worker corriendo el scheduler.
+En Hetzner el camino primario es el scheduler del worker. Los endpoints
+`/api/sync/*` siguen existiendo como **trigger externo opcional** (GitHub
+Actions, QStash, cron-job.org, Vercel Cron, etc.): solo ENCOLAN y vuelven `202`;
+el worker procesa. No hay `vercel.json` en el repo.
 
 ## Qué hace
 
-`vercel.json` define dos crons (triggers externos, encolan y vuelven enseguida):
+El worker registra dos jobs repetibles; los mismos endpoints aceptan un trigger
+externo (encolan y vuelven enseguida):
 
-| Cron | Endpoint | Frecuencia | Qué hace |
+| Job repetible | Endpoint externo | Frecuencia | Qué hace |
 | --- | --- | --- | --- |
-| Sync | `/api/sync/cron` | `*/10 * * * *` | Encola un job chunked por fuente y vuelve `202`. El worker procesa un chunk de páginas (reanuda vía cursor en `sync_state`). |
-| Geocode | `/api/sync/geocode` | `*/5 * * * *` | Encola un job de geocode y vuelve `202`. El worker geocodifica un lote sin coordenadas. |
+| Sync | `/api/sync/cron` | `SYNC_EVERY_MS` (10 min) | Encola un job chunked por fuente y vuelve `202`. El worker procesa un chunk de páginas (reanuda vía cursor en `sync_state`). |
+| Geocode | `/api/sync/geocode` | `GEOCODE_EVERY_MS` (5 min) | Encola un job de geocode y vuelve `202`. El worker geocodifica un lote sin coordenadas. |
 
 Ambos son **idempotentes**: el `jobId` es determinístico por (fuente, modo), así
 que re-disparar mientras hay uno pendiente es no-op (BullMQ ignora ids
 existentes); reintentar no duplica.
 
-## Requisitos de plan
-
-Los crons sub-diarios (`*/5`, `*/10`) requieren un plan **Vercel Pro o superior**.
-El plan Hobby solo permite **un cron diario**. Confirma el plan antes de desplegar.
-
-> Los endpoints YA NO usan `maxDuration` (no existe en `app/`): encolan y vuelven
-> en milisegundos, así que el límite de duración de Vercel deja de ser relevante
-> para el sync. El trabajo largo (~50 páginas por corrida) corre en el worker.
+> Los endpoints encolan y vuelven en milisegundos (no hacen I/O largo inline), así
+> que cualquier límite de duración del disparador externo es irrelevante. El
+> trabajo largo (~50 páginas por corrida) corre en el worker.
 
 ## Variables de entorno (Project → Settings → Environment Variables)
 
@@ -47,7 +47,7 @@ El plan Hobby solo permite **un cron diario**. Confirma el plan antes de despleg
 | --- | --- | --- |
 | `DATABASE_URL` | ✅ | Postgres (Neon o el `app` DB en Hetzner). |
 | `VALKEY_URL` | ✅ | Redis/Valkey para BullMQ (productor y worker). Sin él no se puede encolar. |
-| `CRON_SECRET` | ✅ (para el cron) | **Vercel manda `Authorization: Bearer $CRON_SECRET` a los crons SOLO si esta variable existe.** Sin ella, el cron llama sin auth → el endpoint responde 401 y no encola. Pon un valor aleatorio largo. |
+| `CRON_SECRET` | ✅ (para el trigger externo) | El endpoint exige `Authorization: Bearer $CRON_SECRET` (middleware `requireCron`). Un trigger externo que no lo mande recibe 401 y no encola. Pon un valor aleatorio largo. (Solo el scheduler interno del worker no lo necesita.) |
 | `ADMIN_PASSWORD` | ✅ (para el panel) | Disparo manual (`/api/sync/run`) y panel admin. |
 | `SYNC_EVERY_MS` | opcional | Cadencia del scheduler del worker (default 600000 = 10 min). |
 | `GEOCODE_EVERY_MS` | opcional | Cadencia del geocode en el worker (default 300000 = 5 min). |
@@ -56,21 +56,29 @@ El plan Hobby solo permite **un cron diario**. Confirma el plan antes de despleg
 | `SOURCE_DESAPARECIDOS_URL` | opcional | Override del endpoint de la fuente. |
 | `SOURCE_DESAPARECIDOS_IMPORT_CONTACT` | opcional | `true` para importar teléfonos (default `false`, ver RFC §6). |
 
-> ⚠️ `CRON_SECRET` es el error #1 al usar Vercel Cron. Si los crons devuelven 401
-> en los logs, casi siempre es que falta esa variable.
+> ⚠️ `CRON_SECRET` es el error #1 de los triggers de cron. `requireCron` valida
+> `Authorization: Bearer $CRON_SECRET` venga de donde venga (GitHub Actions,
+> QStash, Vercel Cron, etc.): si los crons devuelven 401 en los logs, casi
+> siempre es que falta esa variable.
 
-## Pasos (Vercel Cron, fallback)
+## Pasos (camino primario: worker en Hetzner)
 
-1. Conecta **Neon** al proyecto (Storage → Neon) → inyecta `DATABASE_URL`, o
-   apunta `DATABASE_URL`/`VALKEY_URL` a la infra de Hetzner.
-2. Define `CRON_SECRET` y `ADMIN_PASSWORD` en Environment Variables.
-3. Despliega (`vercel --prod` o push a la rama de producción). Vercel detecta
-   `vercel.json` y registra los crons.
-4. Verifica en **Project → Crons**: deben aparecer los dos, con su próxima
-   ejecución.
+1. Asegura que el worker esté corriendo (`worker-deployment.yaml`); registra los
+   schedulers al arrancar. `DATABASE_URL` y `VALKEY_URL` ya vienen de `app-env`.
+2. Pon `SYNC_SCHEDULERS` y `HUB_SCHEDULERS` a `"1"` (o quítalas) en el Deployment
+   para activar el crawl automático; quedan en `"0"` por defecto.
+3. Verifica con el status-poll / el panel admin (ver abajo).
 
-> En Hetzner no hace falta esto: basta con que el worker esté corriendo
-> (`worker-deployment.yaml`); registra los schedulers al arrancar.
+### Trigger externo opcional (sin worker scheduler)
+
+Si quieres disparar desde fuera (GitHub Actions `on: schedule`, QStash,
+cron-job.org, Vercel Cron, cron del sistema):
+
+1. Define `CRON_SECRET` (y `ADMIN_PASSWORD` para el disparo manual).
+2. Programa una llamada periódica:
+   `curl -H "Authorization: Bearer $CRON_SECRET" https://api.terremotovenezuela.app/api/sync/cron`
+   y otra a `/api/sync/geocode`.
+3. El endpoint solo encola y vuelve `202`; el worker procesa.
 
 ## Verificar que funciona
 

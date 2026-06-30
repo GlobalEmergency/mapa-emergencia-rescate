@@ -21,6 +21,56 @@ process.env.VALKEY_URL = process.env.VALKEY_URL ?? "redis://localhost:6379";
 process.env.RATE_LIMIT_DISABLED = "1";
 // Sin SMTP en test → invite devuelve el link, reset loguea el OTP (no se manda).
 
+/**
+ * PNG transparente de 1x1 como data-URL — imagen SINTÉTICA válida (pasa la
+ * allowlist jpeg/png/webp de lib/image.ts). Sirve para subir una foto REAL en
+ * los tests y luego verificar que la respuesta pública expone solo `photoUrl`,
+ * nunca la columna `photo` cruda (base64).
+ */
+export const SYNTHETIC_PNG_DATA_URL =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+
+/**
+ * Claves que NUNCA deben aparecer en un cuerpo de respuesta pública (contexto
+ * humanitario): la columna `photo` cruda (base64), el hash/IP del remitente, el
+ * user-agent y el correo. Las rutas exponen solo DTOs con allowlist (p.ej.
+ * `photoUrl` derivada en vez de `photo`). Complementa el issue #35 (redacción).
+ */
+const FORBIDDEN_PUBLIC_KEYS = [
+  "photo",
+  "ip_hash",
+  "ipHash",
+  "user_agent",
+  "userAgent",
+  "email",
+  "passwordHash",
+  "password_hash",
+] as const;
+
+/**
+ * Asierta que `value` (y todo objeto anidado) no expone ninguna CLAVE sensible.
+ * Veta por NOMBRE de clave: un DTO público puede tener `contact` (público por
+ * diseño en la ficha de desaparecido) sin disparar nada, porque no es una clave
+ * `email`/`ip_hash`/etc. de la lista.
+ */
+export function expectNoSensitiveFields(value: unknown): void {
+  const walk = (node: unknown): void => {
+    if (Array.isArray(node)) {
+      node.forEach(walk);
+      return;
+    }
+    if (node && typeof node === "object") {
+      for (const [key, child] of Object.entries(node as Record<string, unknown>)) {
+        if (FORBIDDEN_PUBLIC_KEYS.includes(key as (typeof FORBIDDEN_PUBLIC_KEYS)[number])) {
+          throw new Error(`La respuesta pública filtró el campo sensible "${key}".`);
+        }
+        walk(child);
+      }
+    }
+  };
+  walk(value);
+}
+
 /** Token JWT para un userId (firma con el mismo JWT_SECRET de la app). */
 export async function tokenFor(userId: string): Promise<string> {
   const { signToken } = await import("@/auth/jwt");

@@ -51,7 +51,8 @@ formato npm 10 de CI; ver más abajo).
 - **turbo-stream <3.0.0 (alta, GHSA-rxv8-25v2-qmq8 — DoS en single-fetch de
   React Router).** NO aplica: no ejecutamos un servidor React Router. Solo usamos
   `decode()` como CLIENTE para parsear el feed de una fuente externa
-  (`lib/sync/sources/venezuela-te-busca.ts`). Además **v3 NO es compatible** con
+  (`backend/worker/sync/sources/venezuela-te-busca.ts`). Además **v3 NO es
+  compatible** con
   el formato turbo-stream **v2** que emite esa fuente (v3 devuelve un array
   plano), así que actualizar rompería ese sync. Se mantiene en v2 a propósito.
 - **esbuild <=0.24.2 (moderada, GHSA-67mh-4wv8-2f99 — el dev-server acepta

@@ -20,9 +20,9 @@ infra/
 │   ├── variables.tf / outputs.tf
 │   └── cloud-init/*.tftpl  Bootstrap de cada servidor (k3s/CCM, PG, Valkey)
 ├── k8s/                  Manifiestos del clúster
-│   ├── service.yaml      Namespace + DOS Services LoadBalancer (TEMPLATE, TLS por target)
-│   ├── deployment.yaml   DOS Deployments: web=frontend, api=backend (3 réplicas c/u)
-│   ├── hpa.yaml          HPA por tier (web 3→20, api 3→30, CPU 60%)
+│   ├── service.yaml      Namespace + TRES Services LoadBalancer (TEMPLATE, TLS por target)
+│   ├── deployment.yaml   TRES Deployments: web=frontend, api=backend, admin=panel
+│   ├── hpa.yaml          HPA por tier (web 3→20, api 3→30, admin 2→6, CPU 60%)
 │   ├── cluster-autoscaler.yaml  CA de Hetzner (escala NODOS, pool --nodes=2:5)
 │   ├── worker-deployment.yaml   Workers BullMQ de migración
 │   ├── hub-backfill-job.yaml    Job productor del backfill del hub (RFC 0002)
@@ -41,32 +41,37 @@ infra/
 | --- | --- | --- |
 | Frontend Next.js | Deployment `web` en k3s (tier=web, 3 pods, HPA 3→20) | UI/SSR en `:3000`; llama al backend por URL absoluta |
 | Backend Express API | Deployment `api` en k3s (tier=api, 3 pods, HPA 3→30) | Toda la superficie `/api` en `:8080` |
+| Panel admin | Deployment `admin` en k3s (tier=admin, 2 pods, HPA 2→6) | Panel Next standalone en `:3000`; BFF reenvía al backend por la red interna (RFC 0005) |
 | Workers | Deployment `migrate-worker` | migración datos/fotos + schedulers (BullMQ), misma imagen backend |
 | Postgres | VPS `mapa-postgres` 10.0.1.10 | BD `app` (prod) + `imported` |
 | Valkey | VPS `mapa-valkey` 10.0.1.11 | colas BullMQ |
 | LB web | `mapa-lb` (creado por el CCM) | ingreso público (dominio terremoto…) |
 | LB api | `mapa-api-lb` (creado por el CCM) | ingreso de terceros (api.terremoto…) |
+| LB admin | `admin-lb` (creado por el CCM) | ingreso del panel (admin.terremoto…) |
 | Cluster-autoscaler | pod en k3s (sobre el master) | escala NODOS efímeros (pool 2→5) |
 | R2 (Cloudflare) | `bucket-vzla-terremoto.dreamit.software` | imágenes + assets estáticos Next |
 | Cloudflare | borde | TLS, caché, bot-fight, WAF, DNS |
 | Estado OpenTofu | Hetzner Object Storage `terremoto-vzla-bucket` | tfstate (NO en R2) |
 
-## web + api: dos tiers, dos imágenes
+## web + api + admin: tres tiers, tres imágenes
 
-`deployment.yaml` despliega dos imágenes construidas en el workflow:
+`deployment.yaml` despliega tres imágenes construidas en el workflow:
 
 - `web` (tier=web): imagen `*-frontend:<sha>`, Next standalone en `:3000`; lo
   enruta el LB `mapa-lb`.
 - `api` (tier=api): imagen `*-backend:<sha>`, Express en `:8080`; sirve la
   superficie `/api` para el frontend y consumidores externos; lo enruta el LB
   `mapa-api-lb`.
+- `admin` (tier=admin): imagen `*-admin:<sha>`, panel Next standalone en `:3000`;
+  su BFF (`app/api/*`) reenvía al backend por la red interna
+  (`EMERGENCY_API_URL`); lo enruta el LB `admin-lb` (RFC 0005).
 
 Cada tier tiene su propio HPA (`hpa.yaml`) para escalar de forma independiente y
-aislar el blast-radius. `service.yaml` declara el Namespace y los **dos** Services
-LoadBalancer; el CCM de Hetzner aprovisiona un LB real por cada uno. Las
+aislar el blast-radius. `service.yaml` declara el Namespace y los **tres**
+Services LoadBalancer; el CCM de Hetzner aprovisiona un LB real por cada uno. Las
 anotaciones de TLS se inyectan por target con `envsubst`
-(`WEB_TLS_ANNOTATIONS` / `API_TLS_ANNOTATIONS`): `staging` = cert Origin de
-Cloudflare, `prod` = cert managed de Hetzner en el LB.
+(`WEB_TLS_ANNOTATIONS` / `API_TLS_ANNOTATIONS` / `ADMIN_TLS_ANNOTATIONS`):
+`staging` = cert Origin de Cloudflare, `prod` = cert managed de Hetzner en el LB.
 
 ## Nodos efímeros (modelo configurado)
 

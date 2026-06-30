@@ -12,6 +12,10 @@
 #       gh secret set STAGING_USER --env staging --body <usuario-ssh>
 #       gh secret set STAGING_PROJECT_PATH --env staging --body <ruta-en-el-vps>
 #       gh secret set STAGING_SSH_KEY --env staging < ~/.ssh/<clave-privada-staging>
+#   observability       -> COMMAND CENTER (deploy-observability.yml, VPS dedicado
+#       167.233.197.13). Sube .observability.env (per-key) + la clave SSH:
+#       ./upload-github-secrets.sh -f .observability.env -e observability
+#       gh secret set OBS_SSH_KEY --env observability < ~/.ssh/<clave-privada-mapa>
 #
 # Supports two value forms:
 #   KEY=value          -> single-line value uploaded as-is
@@ -25,6 +29,7 @@ REPO="terremotovenezuela/mapa-emergencia-rescate"
 # Empty => REPO-LEVEL secrets. Para los deploys reales pasa -e con el entorno:
 #   -e production-hetzner  (prod, deploy-hetzner.yml)
 #   -e staging             (staging, deploy-staging.yml)
+#   -e observability       (command center, deploy-observability.yml)
 ENVIRONMENT=""
 
 usage() {
