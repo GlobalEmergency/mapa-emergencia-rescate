@@ -1,5 +1,54 @@
 import type { NextConfig } from "next";
 
+// Cabeceras de seguridad aplicadas a todas las rutas.
+//
+// Las de abajo (sin CSP) son hardening sin riesgo de romper la app:
+//   - nosniff: evita MIME-sniffing (defensa ante respuestas servidas como tipo
+//     equivocado).
+//   - X-Frame-Options + frame-ancestors: anti-clickjacking (la app no se embebe
+//     en iframes de terceros).
+//   - Referrer-Policy: no filtrar la URL completa a destinos cross-origin.
+//   - Permissions-Policy: apaga APIs potentes que la app no usa.
+//   - HSTS: fuerza HTTPS en navegadores que ya visitaron el sitio.
+const securityHeaders = [
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "X-Frame-Options", value: "SAMEORIGIN" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  {
+    key: "Permissions-Policy",
+    value: "microphone=(), payment=(), usb=(), interest-cohort=()",
+  },
+  {
+    key: "Strict-Transport-Security",
+    value: "max-age=31536000; includeSubDomains",
+  },
+];
+
+// CSP en modo SOLO-REPORTE a propósito: el sitio carga scripts/recursos de
+// terceros (Google Analytics, Google Translate), tiles de OpenStreetMap y fotos
+// desde el CDN de R2, además de los redirects de foto a orígenes externos de las
+// fuentes de sync. Empezar en `Report-Only` permite recopilar violaciones reales
+// en consola del navegador SIN bloquear nada en una app humanitaria en vivo;
+// cuando la política esté afinada, los maintainers pueden moverla a enforcing
+// (renombrar la cabecera a `Content-Security-Policy` y, opcionalmente, añadir un
+// `report-uri`/`report-to`). `img-src https:` se mantiene amplio por los tiles y
+// los redirects de foto; el resto ya está acotado por origen.
+const cspReportOnly = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "object-src 'none'",
+  "frame-ancestors 'self'",
+  "form-action 'self'",
+  "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://translate.google.com https://translate.googleapis.com",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://translate.googleapis.com",
+  "img-src 'self' data: blob: https:",
+  "font-src 'self' data: https://fonts.gstatic.com",
+  "connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://nominatim.openstreetmap.org",
+  "frame-src 'self' https://translate.google.com",
+  "worker-src 'self' blob:",
+  "upgrade-insecure-requests",
+].join("; ");
+
 const nextConfig: NextConfig = {
   // `output: "standalone"` empaqueta solo lo necesario (incluido un server.js
   // mínimo) en `.next/standalone`, para correr en Docker sin instalar todo
@@ -17,6 +66,21 @@ const nextConfig: NextConfig = {
   // por lockfiles en carpetas superiores (p. ej. un pnpm-lock.yaml en el home).
   turbopack: {
     root: import.meta.dirname,
+  },
+  // Cabeceras de seguridad para toda la app (ver constantes arriba).
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          ...securityHeaders,
+          {
+            key: "Content-Security-Policy-Report-Only",
+            value: cspReportOnly,
+          },
+        ],
+      },
+    ];
   },
   // Protección anti version-skew para el roll multi-pod en Hetzner. `next build`
   // estampa un build-id ALEATORIO por defecto, así que los 2 pods de un mismo
