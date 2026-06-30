@@ -39,12 +39,21 @@ const cspReportOnly = [
   "object-src 'none'",
   "frame-ancestors 'self'",
   "form-action 'self'",
-  "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://translate.google.com https://translate.googleapis.com",
+  // script-src: GA (gaId G-… en app/layout.tsx), Google Translate, y Cloudflare
+  // Turnstile (useTurnstile.tsx carga challenges.cloudflare.com/turnstile/v0). El
+  // script de OpenPanel se sirve por NUESTRO backend (/api/op/op1.js), así que
+  // entra por `connect-src` al API, no por un origen de openpanel.dev.
+  "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://translate.google.com https://translate.googleapis.com https://challenges.cloudflare.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://translate.googleapis.com",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data: https://fonts.gstatic.com",
-  "connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://nominatim.openstreetmap.org",
-  "frame-src 'self' https://translate.google.com",
+  // connect-src: GA, y la API propia (api.terremotovenezuela.app) — el navegador
+  // habla con el backend por NEXT_PUBLIC_API_URL (no same-origin tras el split
+  // web/api), incluido el proxy de OpenPanel /api/op. Nominatim lo llama el
+  // backend, no el navegador, pero se deja por si algún fetch directo aparece.
+  "connect-src 'self' https://*.terremotovenezuela.app https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://nominatim.openstreetmap.org",
+  // frame-src: Translate y el widget de Turnstile (se renderiza en un iframe).
+  "frame-src 'self' https://translate.google.com https://challenges.cloudflare.com",
   "worker-src 'self' blob:",
   "upgrade-insecure-requests",
 ].join("; ");
