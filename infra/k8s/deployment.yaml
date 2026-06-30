@@ -167,6 +167,29 @@ spec:
             # La API no hace render React, así que necesita menos heap que web.
             - name: NODE_OPTIONS
               value: "--max-old-space-size=512"
+            # --- PgBouncer (ADR 0007) ---
+            # SOLO el tier API se enruta por el pooler. Este DATABASE_URL explícito
+            # GANA sobre el de app-env (envFrom de arriba). Se compone con las
+            # credenciales del secret pgbouncer-auth + el Service del pooler. Los
+            # carve-outs (migrate Job, migrate-worker, hub-credentials) NO definen
+            # este override, así que siguen usando el DATABASE_URL directo de app-env.
+            #
+            # IMPORTANTE: si el secret pgbouncer-auth no existe, este pod NO arranca
+            # (env con secretKeyRef faltante = CreateContainerConfigError). El deploy
+            # crea pgbouncer-auth antes de rodar; en clústeres sin pooler, quita este
+            # bloque o crea el secret. Rollback del pooler = borrar este bloque env.
+            - name: DB_USER_PB
+              valueFrom:
+                secretKeyRef:
+                  name: pgbouncer-auth
+                  key: DB_USER
+            - name: DB_PASSWORD_PB
+              valueFrom:
+                secretKeyRef:
+                  name: pgbouncer-auth
+                  key: DB_PASSWORD
+            - name: DATABASE_URL
+              value: "postgres://$(DB_USER_PB):$(DB_PASSWORD_PB)@pgbouncer.mapa.svc.cluster.local:6432/app"
           # liveness = solo proceso vivo (sin I/O): un fallo reinicia el pod, así
           # que NO debe depender de la DB. readiness = chequea DB: un fallo saca
           # el pod de rotación pero no lo reinicia (un blip de DB drena, no loopea).

@@ -34,6 +34,35 @@ services:
       timeout: 5s
       retries: 10
 
+  # PgBouncer LOCAL para probar el pooler (espeja infra/k8s/pgbouncer.yaml).
+  # Opt-in por profile: `docker compose --profile pgbouncer up --build`.
+  # Sin el profile no arranca y el backend va directo a `db` como siempre.
+  # Modo transacción, mismas credenciales que la app. Ver docs/guides/plan-pgbouncer.md.
+  pgbouncer:
+    image: edoburu/pgbouncer:v1.23.1-p3
+    profiles: ["pgbouncer"]
+    environment:
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_USER: mapa_app
+      DB_PASSWORD: localdev
+      DB_NAME: app
+      LISTEN_PORT: "6432"
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: "1000"
+      DEFAULT_POOL_SIZE: "25"
+      AUTH_TYPE: scram-sha-256
+    ports:
+      - "6432:6432"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 6432 -U mapa_app || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   valkey:
     image: valkey/valkey:8-alpine
     command: ["valkey-server", "--appendonly", "yes"]
@@ -80,7 +109,11 @@ services:
       # production por defecto; aquí lo sobreescribimos para el entorno local.
       NODE_ENV: development
       PORT: "8080"
-      DATABASE_URL: postgres://mapa_app:localdev@db:5432/app
+      # Por defecto va directo a `db`. Para probar el pooler, levanta con el
+      # profile pgbouncer Y exporta DB_TARGET=pgbouncer:6432, p.ej.:
+      #   DB_TARGET=pgbouncer:6432 docker compose --profile pgbouncer up --build
+      # (el migrate-seed SIEMPRE va directo a db:5432 — carve-out, igual que prod.)
+      DATABASE_URL: postgres://mapa_app:localdev@${DB_TARGET:-db:5432}/app
       VALKEY_URL: redis://valkey:6379
       # CORS: el frontend (browser en localhost:3000) llama cross-origin al backend.
       CORS_ORIGINS: http://localhost:3000

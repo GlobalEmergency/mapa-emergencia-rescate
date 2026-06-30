@@ -98,6 +98,7 @@ acción.
 - [0004 — Escrituras atómicas con CTE](adr/0004-escrituras-atomicas-cte.md) · _aceptada_
 - [0005 — Endurecimiento de la superficie HTTP ante el pico mediático](adr/0005-endurecimiento-superficie-http.md) · _aceptada_
 - [0006 — Estrategia de búsqueda (trigram + mínimo, conteo acotado y caché)](adr/0006-estrategia-de-busqueda.md) · _aceptada_
+- [0007 — Pooler de conexiones a Postgres: PgBouncer cuando haga falta](adr/0007-pooler-de-conexiones-postgres.md) · _aceptada_
 
 ### Base de datos
 
@@ -140,4 +141,5 @@ acción.
 - [Disparar la sincronización (scheduler del worker)](guides/sincronizacion-cron-vercel.md)
 - [Rendimiento, capacidad y pruebas de carga](guides/rendimiento-y-pruebas-de-carga.md)
 - [Documentar endpoints (OpenAPI / Swagger)](guides/documentar-endpoints-openapi.md)
+- [Plan: adoptar PgBouncer (pooler de conexiones)](guides/plan-pgbouncer.md)
 </content>

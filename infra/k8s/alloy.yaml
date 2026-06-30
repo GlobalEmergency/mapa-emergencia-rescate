@@ -68,6 +68,16 @@ data:
     discovery.relabel "annotated_pods" {
       targets = discovery.kubernetes.pods.targets
 
+      // Este Alloy es un DaemonSet (1 pod por nodo). Cada uno scrapea SOLO los
+      // pods de SU PROPIO nodo, así los 3 reparten el trabajo en vez de scrapear
+      // todos los mismos targets (eso causaba "out of order sample" en Prometheus
+      // por escrituras duplicadas de la misma serie). NODE_NAME viene del
+      // downward API en el DaemonSet.
+      rule {
+        source_labels = ["__meta_kubernetes_pod_node_name"]
+        regex         = sys.env("NODE_NAME")
+        action        = "keep"
+      }
       rule {
         source_labels = ["__meta_kubernetes_pod_annotation_prometheus_io_scrape"]
         regex         = "true"
@@ -128,6 +138,13 @@ data:
 
     discovery.relabel "log_targets" {
       targets = discovery.kubernetes.log_pods.targets
+      // Igual que en métricas: cada Alloy tail-ea solo los logs de su propio nodo
+      // (los lee de /var/log montado por hostPath, que solo tiene los de ESE nodo).
+      rule {
+        source_labels = ["__meta_kubernetes_pod_node_name"]
+        regex         = sys.env("NODE_NAME")
+        action        = "keep"
+      }
       rule {
         source_labels = ["__meta_kubernetes_namespace"]
         target_label  = "namespace"
@@ -199,6 +216,12 @@ spec:
                 secretKeyRef:
                   name: alloy-push
                   key: token
+            # Nombre del nodo donde corre este pod (downward API). Lo usan los
+            # relabel `keep` para que cada Alloy scrapee/tail-ee solo SU nodo.
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
           ports:
             - containerPort: 12345
               name: http

@@ -1,0 +1,143 @@
+# PgBouncer — pooler de conexiones a Postgres (tier central compartido).
+#
+# Por qué y cuándo: ver docs/adr/0007-pooler-de-conexiones-postgres.md.
+# Cómo desplegar/cortar tráfico: ver docs/guides/plan-pgbouncer.md.
+#
+# Patrón "central service" (NO sidecar): un Deployment de 2 réplicas + un Service
+# estable. Todos los pods de app apuntan su DATABASE_URL al Service de PgBouncer;
+# PgBouncer multiplexa (modo transacción) muchas conexiones de app sobre un set
+# pequeño de conexiones reales a Postgres, respetando max_connections=100.
+#
+# IMPORTANTE — carve-outs que NO pasan por aquí (necesitan sesión, van DIRECTO a
+# Postgres): el migrate Job (migrate-job.yaml) y hub-credentials.ts (ya usa
+# HUB_ADMIN_DATABASE_URL, otra BD). NO cambiar esos DATABASE_URL.
+#
+# Estado: manifiesto listo, NO aplicado por el deploy todavía. Aplicar a mano
+# (kubectl apply -f) cuando se cumpla el disparador del ADR.
+#
+# Config TODO por env (validado en local con docker-compose, profile pgbouncer):
+# modo transacción, default_pool_size=25 × 2 réplicas = ~50 conns reales < 100.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pgbouncer
+  namespace: mapa
+  labels:
+    app: pgbouncer
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: pgbouncer
+  template:
+    metadata:
+      labels:
+        app: pgbouncer
+    spec:
+      # Anti-afinidad dura: cada réplica en un nodo distinto. Con 2 workers base,
+      # 2 réplicas = 1 por worker → sobrevive a la caída/scale-down de un nodo.
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app: pgbouncer
+              topologyKey: kubernetes.io/hostname
+      containers:
+        - name: pgbouncer
+          # edoburu/pgbouncer genera userlist.txt desde DB_USER/DB_PASSWORD del
+          # secret y arranca pgbouncer con el .ini montado. Pinear versión real.
+          image: edoburu/pgbouncer:v1.23.1-p3
+          ports:
+            - containerPort: 6432
+              name: pgbouncer
+          # El entrypoint de edoburu genera el .ini y el userlist.txt desde estas
+          # env. Validado en local (docker-compose, profile pgbouncer): conviene
+          # configurar TODO por env y NO montar un .ini propio, porque el
+          # entrypoint regenera el .ini al arrancar (montarlo encima da
+          # comportamientos raros con el puerto). Mantener paridad con compose.
+          env:
+            - name: DB_HOST
+              value: "10.0.1.10"
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_NAME
+              value: "app"
+            # Credenciales para autenticarse contra Postgres. Mismas que la app
+            # (secret aparte, no app-env, least-privilege).
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: pgbouncer-auth
+                  key: DB_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: pgbouncer-auth
+                  key: DB_PASSWORD
+            - name: LISTEN_PORT
+              value: "6432"
+            - name: POOL_MODE
+              value: transaction
+            - name: MAX_CLIENT_CONN
+              value: "1000"
+            - name: DEFAULT_POOL_SIZE
+              value: "25"
+            - name: AUTH_TYPE
+              value: scram-sha-256
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              memory: "128Mi"
+          readinessProbe:
+            tcpSocket:
+              port: 6432
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 6432
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          # Apagado elegante (patrón del ejemplo oficial edoburu): al recibir el
+          # término (p.ej. scale-down de nodo o rollout), manda SIGINT a pgbouncer
+          # —que deja de aceptar nuevos clientes pero termina las transacciones en
+          # vuelo— y espera. Junto con el PDB (minAvailable:1) y la anti-afinidad,
+          # esto hace seguro el scale-down de nodos: sin cortar queries a medias.
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "killall -INT pgbouncer && sleep 30"]
+      # Debe ser >= el sleep del preStop para que k8s no mate el pod antes.
+      terminationGracePeriodSeconds: 40
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pgbouncer
+  namespace: mapa
+  labels:
+    app: pgbouncer
+spec:
+  type: ClusterIP
+  selector:
+    app: pgbouncer
+  ports:
+    - name: pgbouncer
+      port: 6432
+      targetPort: 6432
+---
+# El autoscaler/drenaje nunca deja el pool en 0 durante scale-down de nodos.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: pgbouncer
+  namespace: mapa
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: pgbouncer
