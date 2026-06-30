@@ -147,8 +147,12 @@ spec:
             - --stderrthreshold=info
             - --v=2
             # Pool de workers EFÍMEROS: min:max:tipo:región:nombre.
-            # min=2 -> piso siempre vivo. max=5 -> techo de ráfaga (cx23 = 2vCPU/4GB).
-            - --nodes=2:5:cx23:hel1:mapa-pool
+            # min=2 -> piso siempre vivo. max=15 -> techo de ráfaga para picos
+            # mediáticos worldwide (cx23 = 2vCPU/4GB). Subido de 5 a 15: a max-HPA
+            # (api 30 + web 20 + admin 6 pods) hacen falta más de 5 nodos. OJO: cada
+            # nodo cuesta € y cuenta contra la cuota de servidores de Hetzner —
+            # verifica el límite del proyecto antes de un evento grande.
+            - --nodes=2:15:cx23:hel1:mapa-pool
             # IMPRESCINDIBLE para el modelo SIN workers fijos. El default del CA es
             # REACTIVO: solo crea nodos cuando hay pods Pending; un `min` en --nodes
             # NO se materializa solo (verificado en flags.go: el flag default=false,

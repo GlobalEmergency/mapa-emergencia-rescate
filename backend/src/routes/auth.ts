@@ -281,6 +281,10 @@ authRouter.get(
   asyncHandler(async (req, res) => {
     const user = req.user!;
     const capabilities = await effectiveCapabilities(user);
+    // Defensa en profundidad: respuesta POR-USUARIO (email, rol, capacidades).
+    // NUNCA debe cachearse en un proxy/CDN compartido. No-store hace que ningún
+    // intermediario la guarde, independiente de la config de Cloudflare.
+    res.set("Cache-Control", "no-store");
     res.json({
       user: {
         id: user.id,
