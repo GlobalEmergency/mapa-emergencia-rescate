@@ -21,6 +21,7 @@ import { jsonWithEtag } from "@/lib/http";
 import { hashIp } from "@/lib/client-ip";
 import { badRequest, notFound, payloadTooLarge, serviceUnavailable } from "@/lib/errors";
 import * as service from "@/services/reports";
+import { publishNeedAtLocation } from "@/modules/needs";
 
 export const reportsRouter = Router();
 
@@ -49,6 +50,35 @@ const idParam = z.object({ id: z.string().min(1, "Falta el id") });
 // Parser de JSON con límite ampliado para la foto base64 (~1.4 MB). El parser
 // global del server es de 256kb; los reportes con foto necesitan más.
 const jsonPhoto = express.json({ limit: "2mb" });
+
+/**
+ * Espeja un reporte de suministros como necesidad pública en ResponseGrid. El
+ * reporte ya trae coordenadas (no se geocodifica). El texto libre `needs` va como
+ * un único artículo de categoría "other". Best-effort: no afecta al reporte.
+ */
+function mirrorSuppliesReportToNeed(body: z.infer<typeof createBody>): void {
+  const needsText = (typeof body.needs === "string" ? body.needs : "").trim();
+  const affected = Number(body.affected) || 0;
+  void publishNeedAtLocation({
+    title: (needsText || `Suministros en ${body.place}`).slice(0, 140),
+    priority: "high",
+    address: body.place,
+    latitude: body.lat,
+    longitude: body.lng,
+    items: [
+      {
+        name: (needsText || "Suministros varios").slice(0, 120),
+        quantity: 1,
+        unit: null,
+        category: "other",
+      },
+    ],
+    description:
+      affected > 0
+        ? `Reporte ciudadano del mapa. Personas afectadas (estimado): ${affected}.`
+        : "Reporte ciudadano del mapa.",
+  });
+}
 
 // ---- GET /api/reports : lista pública (cacheada, con ETag) ------------------
 reportsRouter.get(
@@ -88,6 +118,8 @@ reportsRouter.post(
         photo: body.photo ?? null,
       });
       res.status(201).json({ report }); // report ya es DTO
+      // Espejo fire-and-forget tras responder: no bloquea ni afecta al reporte.
+      if (body.type === "supplies") mirrorSuppliesReportToNeed(body);
     } catch {
       // Falla visible: nunca confirmamos un reporte que no se guardó en la base.
       throw serviceUnavailable(

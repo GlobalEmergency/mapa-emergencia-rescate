@@ -110,6 +110,19 @@ puerto, cableado en el composition root; el dominio y la capa HTTP no cambian.
 Las reglas ESLint de endpoints (`require-rate-limit`, guard de mutaciones)
 también cubren `src/modules/**`.
 
+Segundo módulo: **needs** (`modules/needs/`), lado de ESCRITURA: publica una
+necesidad de insumos en ResponseGrid vía `POST /api/needs` (mutación pública con
+Turnstile + rate-limit). El caso de uso geocodifica la dirección con un puerto
+`Geocoder` (adaptador sobre `services/geocode` → Nominatim) y delega en el puerto
+`NeedPublisher`. La escritura autentica con la **api-key** de service account
+(`x-api-key`, `RESPONSEGRID_API_KEY`) y envía un campo opcional **`author`**
+(contacto del solicitante, `verified: false` fijado por el servidor) para atribuir
+la necesidad sin que la persona se registre en ResponseGrid. Sin api-key, se cablea
+un publisher deshabilitado y el endpoint responde 503. A diferencia del resto de
+routes, este endpoint **no lleva bloque `@swagger`** a propósito: es un proxy de
+escritura con credencial de servicio y no publicamos su contrato en `/api/docs`
+como superficie de abuso (la protección efectiva sigue siendo Turnstile + rate-limit).
+
 ## Datos y migraciones
 
 - Postgres es la base de producción actual en el VPS privado de Hetzner.

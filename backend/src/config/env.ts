@@ -77,6 +77,11 @@ const schema = z.object({
   // apuntan a la API pública y a la emergencia del terremoto de Venezuela.
   RESPONSEGRID_API_URL: z.string().default("https://api.responsegrid.app"),
   RESPONSEGRID_EMERGENCY_SLUG: z.string().default("terremoto-venezuela-2026"),
+  // api-key de service account de ResponseGrid para PUBLICAR (escritura:
+  // necesidades, /api/needs). Se envía como cabecera `x-api-key` junto al campo
+  // `author` (atribución a la persona real). Las lecturas (acopio) no la necesitan.
+  // Ausente => publicar queda deshabilitado y el endpoint responde 503.
+  RESPONSEGRID_API_KEY: z.string().optional(),
 
   // --- Réplica pública (hub SQL, RFC 0006). Todo OPCIONAL: si falta, la gestión
   // de la réplica queda desactivada (el endpoint responde 503), igual que

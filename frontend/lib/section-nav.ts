@@ -57,6 +57,12 @@ export const SECTION_LINKS: SectionLink[] = [
     tone: "emerald",
   },
   {
+    href: "/publicar-necesidad",
+    label: "Publicar una necesidad",
+    shortLabel: "Necesidad",
+    icon: "🆘",
+  },
+  {
     href: "/apoyo-global",
     label: "Ayuda internacional",
     shortLabel: "Apoyo global",

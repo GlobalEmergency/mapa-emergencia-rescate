@@ -104,7 +104,9 @@ const requireCapabilityInPublicApi = {
         const rc = routeCall(node);
         if (!rc) return;
         const mw = middlewareNames(rc.args);
-        if (!mw.includes("requireCapability")) {
+        // requireAnyCapability(...) es un gate legítimo (OR de capacidades) para
+        // recursos compartidos por varias funciones; cuenta como deny-by-default.
+        if (!mw.includes("requireCapability") && !mw.includes("requireAnyCapability")) {
           context.report({ node, messageId: "missing" });
         }
       },

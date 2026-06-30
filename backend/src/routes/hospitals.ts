@@ -26,7 +26,17 @@ import { jsonWithEtag } from "@/lib/http";
 import { cached, invalidate } from "@/lib/cache";
 import { badRequest, notFound, serviceUnavailable } from "@/lib/errors";
 import * as service from "@/services/hospitals";
-import type { Hospital } from "@/services/hospitals";
+import type {
+  Hospital,
+  PublicHospitalSupplyNeed,
+  HospitalSupplyCategory,
+  HospitalSupplyStatus,
+} from "@/services/hospitals";
+import {
+  publishNeedByAddress,
+  type NeedCategory,
+  type Priority,
+} from "@/modules/needs";
 
 export const hospitalsRouter = Router();
 
@@ -265,6 +275,56 @@ function locHospital(res: { locals: Record<string, unknown> }): Hospital {
   return res.locals.hospital as Hospital;
 }
 
+// Mapeo de categorías/urgencia de insumos de hospital → modelo de ResponseGrid.
+const HOSPITAL_CATEGORY_TO_NEED: Record<HospitalSupplyCategory, NeedCategory> = {
+  medications: "medicines",
+  iv_fluids: "medical_supplies",
+  medical_supplies: "medical_supplies",
+  soft_foods: "food",
+  water: "water",
+  beds_capacity: "medical_equipment",
+  lab_diagnostics: "medical_supplies",
+  transport: "other",
+  other: "other",
+};
+const HOSPITAL_URGENCY_TO_PRIORITY: Record<HospitalSupplyStatus, Priority> = {
+  red: "urgent",
+  yellow: "high",
+  unknown: "medium",
+  green: "low",
+};
+
+/**
+ * Espeja una necesidad de insumos del hospital como necesidad pública en
+ * ResponseGrid. El hospital no guarda coordenadas, así que el backend geocodifica
+ * su dirección. Best-effort: no afecta al flujo del hospital.
+ */
+function mirrorHospitalNeed(
+  hospital: Hospital,
+  need: PublicHospitalSupplyNeed,
+): void {
+  const address = [hospital.address, hospital.municipality, hospital.state]
+    .filter(Boolean)
+    .join(", ");
+  if (!address) return; // sin dirección no se puede geocodificar
+  void publishNeedByAddress({
+    title: `${hospital.name}: ${need.itemType}`.slice(0, 140),
+    priority: HOSPITAL_URGENCY_TO_PRIORITY[need.urgency],
+    address,
+    items: [
+      {
+        name: need.itemType.slice(0, 120),
+        quantity: Math.max(1, need.quantity ?? 1),
+        unit: need.unit.trim() || null,
+        category: HOSPITAL_CATEGORY_TO_NEED[need.category],
+      },
+    ],
+    description:
+      need.publicNote.trim() ||
+      `Necesidad de insumos del hospital ${hospital.name} (${hospital.state}).`,
+  });
+}
+
 // ===========================================================================
 // POST /api/hospitals/:id/supplies  — upsert semáforo (admin o POC)
 // ===========================================================================
@@ -305,6 +365,8 @@ hospitalsRouter.post(
       invalidate();
       const supply = await service.getPublicHospitalSupplySummary(hospital.id);
       res.status(201).json({ need: result.value, supply });
+      // Espejo fire-and-forget a ResponseGrid (no afecta la respuesta del hospital).
+      mirrorHospitalNeed(hospital, result.value);
     } catch (err) {
       if (err instanceof Error && "status" in err) throw err;
       const message = err instanceof Error ? err.message : "Error desconocido";

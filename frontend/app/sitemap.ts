@@ -19,6 +19,7 @@ const STATIC_PATHS = [
   { path: "/telefonos", changeFrequency: "weekly" as const, priority: 0.8 },
   { path: "/guia", changeFrequency: "weekly" as const, priority: 0.8 },
   { path: "/acopio", changeFrequency: "daily" as const, priority: 0.7 },
+  { path: "/publicar-necesidad", changeFrequency: "weekly" as const, priority: 0.7 },
   { path: "/apoyo-global", changeFrequency: "weekly" as const, priority: 0.7 },
   { path: "/riesgo-sismico", changeFrequency: "monthly" as const, priority: 0.6 },
   { path: "/metodologia", changeFrequency: "weekly" as const, priority: 0.6 },

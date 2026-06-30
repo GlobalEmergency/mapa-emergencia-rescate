@@ -118,3 +118,27 @@ export function requireCapability(capability: string): RequestHandler {
     });
   };
 }
+
+/**
+ * Como requireCapability pero pasa si el usuario tiene CUALQUIERA de las
+ * capacidades dadas (OR). Para recursos compartidos por varias funciones —p.ej.
+ * el catálogo de capacidades, que necesitan tanto quien gestiona roles
+ * (role:read) como quien crea API keys (apikey:manage) para elegir scopes.
+ * Mantiene "requireCapability" en el nombre para la regla ESLint deny-by-default.
+ */
+export function requireAnyCapability(...capabilities: string[]): RequestHandler {
+  return (req, res, next) => {
+    requireAuth(req, res, (err?: unknown) => {
+      if (err) return next(err);
+      const user = req.user!;
+      Promise.all(capabilities.map((c) => userHasCapability(user, c, req.capCache)))
+        .then((results) => {
+          if (!results.some(Boolean)) {
+            return next(forbidden("No tienes permiso para esta acción."));
+          }
+          next();
+        })
+        .catch(next);
+    });
+  };
+}
