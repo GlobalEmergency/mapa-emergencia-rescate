@@ -54,6 +54,15 @@ const schema = z.object({
   // sin TURNSTILE_SECRET_KEY el middleware requireHuman se desactiva (dev local).
   TURNSTILE_SECRET_KEY: z.string().optional(),
 
+  // Bearer token que protege GET /metrics (Prometheus). OPCIONAL: sin él el
+  // endpoint queda abierto (dev local). Defensa en profundidad: la defensa
+  // PRIMARIA es que /metrics vive en METRICS_PORT, que el LB público NO enruta.
+  METRICS_TOKEN: z.string().optional(),
+  // Puerto del servidor de métricas separado (aislado del LB público). El api
+  // tier expone este containerPort para que Alloy lo scrapee, pero el Service NO
+  // lo publica. Default 9090.
+  METRICS_PORT: z.coerce.number().default(9090),
+
   // CORS: orígenes permitidos del frontend (coma-separados). En dev, localhost.
   CORS_ORIGINS: z.string().default("http://localhost:3000"),
 

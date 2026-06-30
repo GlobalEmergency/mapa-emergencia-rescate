@@ -41,6 +41,9 @@ yarn-error.log*
 # `.env*` NO captura `.staging.env` (el punto va antes de "env"): ignorar explícito.
 .staging.env
 *.staging.env
+# Env del stack de observability (mismo motivo): el real es secreto.
+.observability.env
+*.observability.env
 
 # vercel
 .vercel

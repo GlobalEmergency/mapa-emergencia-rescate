@@ -30,6 +30,7 @@
     "jsonwebtoken": "^9.0.3",
     "nodemailer": "^9.0.1",
     "pg": "*",
+    "prom-client": "^15.1.3",
     "swagger-jsdoc": "^6.3.0",
     "swagger-ui-express": "^5.0.1",
     "turbo-stream": "^2.4.0",

@@ -1,0 +1,81 @@
+# Deploy del stack de OBSERVABILIDAD (Prometheus + Loki + Grafana + Caddy) a su
+# VPS DEDICADO (167.233.197.13), aislado del cluster y de staging.
+#
+# Espeja deploy-staging.yml pero con auth SSH por CLAVE (mapa-key) en vez de
+# password: arma .observability.env desde secrets per-key del environment
+# `observability`, lo rsyncea al VPS y corre docker compose.
+#
+# Secrets de conexión (environment `observability`):
+#   OBS_HOST, OBS_USER, OBS_PROJECT_PATH, OBS_SSH_KEY (clave privada mapa-key).
+# Runtime: GRAFANA_ADMIN_USER, GRAFANA_ADMIN_PASSWORD, GRAFANA_ROOT_URL,
+#   GRAFANA_DOMAIN, OBS_PUSH_TOKEN.
+name: deploy-observability
+
+on:
+  push:
+    branches: [observability]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-observability
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: observability
+    steps:
+      - uses: actions/checkout@v4
+
+      # Arma .observability.env (en la raíz) desde secrets per-key. Los OBS_* de
+      # conexión NO se incluyen: son para el workflow, no para los contenedores.
+      - name: Armar .observability.env desde secrets
+        env:
+          GRAFANA_ADMIN_USER: ${{ secrets.GRAFANA_ADMIN_USER }}
+          GRAFANA_ADMIN_PASSWORD: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
+          GRAFANA_ROOT_URL: ${{ secrets.GRAFANA_ROOT_URL }}
+          GRAFANA_DOMAIN: ${{ secrets.GRAFANA_DOMAIN }}
+          OBS_PUSH_TOKEN: ${{ secrets.OBS_PUSH_TOKEN }}
+        run: |
+          : > .observability.env
+          for k in GRAFANA_ADMIN_USER GRAFANA_ADMIN_PASSWORD GRAFANA_ROOT_URL \
+                   GRAFANA_DOMAIN OBS_PUSH_TOKEN; do
+            v="${!k}"
+            printf "%s='%s'\n" "$k" "${v//\'/\'\\\'\'}" >> .observability.env
+          done
+          for req in GRAFANA_ADMIN_PASSWORD OBS_PUSH_TOKEN; do
+            grep -qE "^$req='.+'" .observability.env || { echo "::error::$req vacío — ¿falta el secret en el environment observability?"; exit 1; }
+          done
+          echo "Escritas $(wc -l < .observability.env) vars en .observability.env"
+
+      # Auth SSH por clave (mapa-key). La clave privada va en el secret OBS_SSH_KEY.
+      - name: Configurar SSH (clave mapa-key)
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.OBS_SSH_KEY }}" > ~/.ssh/obs_key
+          chmod 600 ~/.ssh/obs_key
+          ssh-keyscan -H "${{ secrets.OBS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      # Copia SOLO el folder observability/ + el .observability.env (de la raíz) al
+      # VPS dedicado. --delete mantiene el dir limpio.
+      - name: Copiar observability/ al VPS (rsync)
+        run: |
+          rsync -az --delete \
+            --exclude='.git' --exclude='node_modules' \
+            -e "ssh -i ~/.ssh/obs_key -o StrictHostKeyChecking=no" \
+            ./observability/ "${{ secrets.OBS_USER }}@${{ secrets.OBS_HOST }}:${{ secrets.OBS_PROJECT_PATH }}/"
+          # El env vive en la raíz del repo; lo copiamos al dir del stack en el VPS.
+          rsync -az \
+            -e "ssh -i ~/.ssh/obs_key -o StrictHostKeyChecking=no" \
+            ./.observability.env "${{ secrets.OBS_USER }}@${{ secrets.OBS_HOST }}:${{ secrets.OBS_PROJECT_PATH }}/.observability.env"
+
+      - name: Levantar el stack en el VPS
+        run: |
+          ssh -i ~/.ssh/obs_key -o StrictHostKeyChecking=no \
+            "${{ secrets.OBS_USER }}@${{ secrets.OBS_HOST }}" <<'SSH'
+            set -euo pipefail
+            cd "${{ secrets.OBS_PROJECT_PATH }}"
+            docker compose --env-file .observability.env -f docker-compose.observability.yml pull || true
+            docker compose --env-file .observability.env -f docker-compose.observability.yml up -d
+            docker compose --env-file .observability.env -f docker-compose.observability.yml ps
+          SSH

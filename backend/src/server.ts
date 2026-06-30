@@ -5,6 +5,7 @@ import { sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { env, corsOrigins } from "@/config/env";
 import { errorHandler } from "@/middleware";
+import { metricsMiddleware, startMetricsServer } from "@/lib/metrics";
 import { mountPublicApi } from "@/public-api";
 import { buildOpenApiSpec } from "@/lib/swagger";
 import { missingRouter } from "@/routes/missing";
@@ -81,6 +82,13 @@ app.use((req, res, next) => {
 
 // Lee cookies (sesión httpOnly de api/public/*). Antes de las rutas.
 app.use(cookieParser());
+
+// Instrumentación HTTP (Prometheus). Va ANTES de las rutas para medir TODAS
+// (incluidas 404). Mide al `finish` de la respuesta; no toca el body. Ver
+// lib/metrics.ts. El endpoint /metrics NO vive aquí: se sirve en un servidor
+// aparte en otro puerto (startMetricsServer), que el LB público NO enruta, así
+// /metrics nunca es accesible desde internet. Alloy (k3s) lo scrapea pod-a-pod.
+app.use(metricsMiddleware);
 
 // --- Health checks (probes de k8s + smoke post-deploy) ---
 // DOS endpoints separados a propósito (ver infra/k8s/deployment.yaml):
@@ -166,4 +174,6 @@ if (isEntrypoint) {
   app.listen(env.PORT, () => {
     console.log(`mapa-backend escuchando en :${env.PORT}`);
   });
+  // Servidor de métricas APARTE, en otro puerto que el LB público no enruta.
+  startMetricsServer();
 }

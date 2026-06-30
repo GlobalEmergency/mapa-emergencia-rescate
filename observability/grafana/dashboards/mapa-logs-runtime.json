@@ -1,0 +1,88 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "title": "Mapa · Logs & Runtime",
+  "uid": "mapa-logs-runtime",
+  "tags": ["mapa", "logs", "runtime"],
+  "time": { "from": "now-6h", "to": "now" },
+  "refresh": "30s",
+  "templating": {
+    "list": [
+      {
+        "name": "ds",
+        "label": "Prometheus",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": { "text": "Prometheus", "value": "Prometheus" }
+      },
+      {
+        "name": "logds",
+        "label": "Loki",
+        "type": "datasource",
+        "query": "loki",
+        "current": { "text": "Loki", "value": "Loki" }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Log lines/s by container",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "loki", "uid": "${logds}" },
+      "targets": [
+        { "expr": "sum by (container) (rate({container=~\".+\"}[5m]))", "legendFormat": "{{container}}" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Error log rate (stderr / 'error')",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "loki", "uid": "${logds}" },
+      "targets": [
+        { "expr": "sum(rate({container=~\".+\"} |~ \"(?i)error\" [5m]))", "legendFormat": "errors/s" }
+      ]
+    },
+    {
+      "type": "logs",
+      "title": "Live error logs (all containers)",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 8 },
+      "datasource": { "type": "loki", "uid": "${logds}" },
+      "options": { "showTime": true, "wrapLogMessage": true, "sortOrder": "Descending" },
+      "targets": [
+        { "expr": "{container=~\".+\"} |~ \"(?i)error|exception|fatal|5[0-9][0-9]\"" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Node.js heap used (bytes)",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 18 },
+      "datasource": { "type": "prometheus", "uid": "${ds}" },
+      "fieldConfig": { "defaults": { "unit": "bytes" } },
+      "targets": [
+        { "expr": "sum by (tier) (nodejs_heap_size_used_bytes)", "legendFormat": "{{tier}}" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Event loop lag p99 (s)",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 18 },
+      "datasource": { "type": "prometheus", "uid": "${ds}" },
+      "fieldConfig": { "defaults": { "unit": "s" } },
+      "targets": [
+        { "expr": "max by (tier) (nodejs_eventloop_lag_p99_seconds)", "legendFormat": "{{tier}}" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Process CPU (cores)",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 18 },
+      "datasource": { "type": "prometheus", "uid": "${ds}" },
+      "targets": [
+        { "expr": "sum by (tier) (rate(process_cpu_seconds_total[5m]))", "legendFormat": "{{tier}}" }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "version": 1
+}

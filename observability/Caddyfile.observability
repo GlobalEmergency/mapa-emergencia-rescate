@@ -1,0 +1,51 @@
+# Caddy del stack de OBSERVABILIDAD (VPS dedicado). TLS automático
+# (Let's Encrypt) + enruta los 3 dominios a los servicios internos por la red
+# docker `obs_net`. Prometheus/Loki NO publican puertos: solo se llega por aquí.
+#
+# Apunta estos dominios (A/AAAA) al VPS de observability (167.233.197.13):
+#   grafana-observability.terremotovenezuela.app -> grafana (UI)
+#   prom-observability.terremotovenezuela.app    -> prometheus (remote_write IN)
+#   loki-observability.terremotovenezuela.app    -> loki (push IN)
+
+{
+	email anonymous-dev@globalemergency.online
+}
+
+# Grafana: UI pública (su propio login protege el acceso).
+grafana-observability.terremotovenezuela.app {
+	encode zstd gzip
+	reverse_proxy grafana:3000
+}
+
+# Prometheus remote_write RECEIVER. Solo lo escribe Alloy desde k3s, gateado por
+# bearer token (OBS_PUSH_TOKEN, del entorno del contenedor Caddy). Sin header
+# válido -> 401. Solo se expone /api/v1/write; las consultas las hace Grafana por
+# la red interna, no por aquí.
+prom-observability.terremotovenezuela.app {
+	encode zstd gzip
+
+	@authorized header Authorization "Bearer {$OBS_PUSH_TOKEN}"
+	handle @authorized {
+		@write path /api/v1/write
+		handle @write {
+			reverse_proxy prometheus:9090
+		}
+		respond "Not found" 404
+	}
+	respond "Unauthorized" 401
+}
+
+# Loki push RECEIVER. Mismo patrón: bearer token + solo /loki/api/v1/push.
+loki-observability.terremotovenezuela.app {
+	encode zstd gzip
+
+	@authorized header Authorization "Bearer {$OBS_PUSH_TOKEN}"
+	handle @authorized {
+		@push path /loki/api/v1/push
+		handle @push {
+			reverse_proxy loki:3100
+		}
+		respond "Not found" 404
+	}
+	respond "Unauthorized" 401
+}

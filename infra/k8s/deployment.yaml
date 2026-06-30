@@ -128,6 +128,13 @@ spec:
       labels:
         app: mapa
         tier: api
+      annotations:
+        # Descubrimiento de scrape para Grafana Alloy (DaemonSet). Alloy lee estas
+        # annotations y scrapea el puerto de métricas aislado (9090), NO el :8080
+        # público. Ver infra/k8s/alloy.yaml.
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: /metrics
     spec:
       imagePullSecrets:
         - name: ghcr-pull
@@ -148,6 +155,11 @@ spec:
           image: ghcr.io/OWNER/REPO-backend:latest
           ports:
             - containerPort: 8080
+            # Puerto de MÉTRICAS, aislado: el Service/LB NO lo publica (no está en
+            # service.yaml), así /metrics nunca sale a internet. Solo Alloy lo
+            # scrapea pod-a-pod (ver annotations prometheus.io/* abajo).
+            - name: metrics
+              containerPort: 9090
           envFrom:
             - secretRef:
                 name: app-env
