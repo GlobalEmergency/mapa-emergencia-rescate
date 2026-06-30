@@ -9,6 +9,17 @@ resource "hcloud_server" "postgres" {
   ssh_keys     = [hcloud_ssh_key.mapa.id]
   firewall_ids = [hcloud_firewall.db.id]
 
+  # Backups automáticos de Hetzner: snapshots diarios, retención 7 días, ~20% del
+  # costo del server. Es la red de seguridad de la BD (personas desaparecidas /
+  # hospitales): si el VPS muere o se corrompe, se restaura. Update in-place (no
+  # recrea el server). Para PITR fino, complementar con pg_dump/WAL a R2 aparte.
+  backups = true
+
+  # Protección de borrado: bloquea eliminar el server por accidente (consola/API).
+  # Complementa al prevent_destroy de Tofu (que solo cubre `tofu destroy`).
+  delete_protection  = true
+  rebuild_protection = true
+
   user_data = templatefile("${path.module}/cloud-init/postgres.yaml.tftpl", {
     postgres_user        = var.postgres_user
     postgres_password    = var.postgres_password
@@ -48,6 +59,11 @@ resource "hcloud_volume" "pgdata" {
   server_id = hcloud_server.postgres.id
   automount = true
   format    = "ext4"
+
+  # El volumen guarda (o guardará) PGDATA: protégelo de borrado accidental igual
+  # que el server. Update in-place. prevent_destroy cubre `tofu destroy`;
+  # delete_protection cubre consola/API.
+  delete_protection = true
 
   lifecycle {
     prevent_destroy = true

@@ -746,6 +746,39 @@ jobs:
           API_BASE: ${{ vars.NEXT_PUBLIC_API_URL || 'https://api.terremotovenezuela.app' }}
         run: bash scripts/smoke.sh
 
+      # Purga de Cloudflare tras un deploy EXITOSO. Solo las páginas HTML
+      # cacheables (shells SSR con s-maxage largo): /, /acopio, /hospitales. NO
+      # purgamos JS/CSS (content-hashed: build nuevo = URL nueva, nunca stale) ni
+      # fotos (immutable). Purga POR-URL (Free plan no tiene purge por hostname).
+      # Sin esto, un cambio de markup del home quedaría stale hasta el TTL (1 año).
+      # Gateado: si faltan los secrets de Cloudflare, se salta (no rompe el deploy).
+      # Solo en deploy a prod (el front público); en staging no aplica.
+      - name: Purge Cloudflare HTML cache
+        if: ${{ success() }}
+        env:
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CF_ZONE_ID: ${{ secrets.CF_ZONE_ID }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CF_API_TOKEN:-}" ] || [ -z "${CF_ZONE_ID:-}" ]; then
+            echo "CF_PURGE_TOKEN/CF_ZONE_ID ausentes — se omite purga de Cloudflare."
+            exit 0
+          fi
+          if [ "${TARGET:-staging}" != "prod" ]; then
+            echo "TARGET=$TARGET (no prod) — se omite purga del front público."
+            exit 0
+          fi
+          resp=$(curl -fsS -X POST \
+            "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/purge_cache" \
+            -H "Authorization: Bearer ${CF_API_TOKEN}" \
+            -H "Content-Type: application/json" \
+            --data '{"files":[
+              "https://terremotovenezuela.app/",
+              "https://terremotovenezuela.app/acopio",
+              "https://terremotovenezuela.app/hospitales"
+            ]}') || { echo "::warning::Purga de Cloudflare falló (no bloquea el deploy)."; exit 0; }
+          echo "Cloudflare purge: $(printf '%s' "$resp" | python3 -c 'import json,sys;print(json.load(sys.stdin).get("success"))' 2>/dev/null || echo "$resp")"
+
       # Pista de rollback manual si el deploy falla (el roll en sí ya gatea con
       # rollout status). NO revertimos automáticamente todavía: ver la nota de
       # arriba sobre las bases de smoke por entorno.
