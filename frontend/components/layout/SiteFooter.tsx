@@ -87,6 +87,21 @@ export default function SiteFooter() {
                     </span>
                   </a>
                 </li>
+                <li>
+                  <a
+                    href="https://sismovenezuela.org"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="e-card block px-3 py-2 text-sm transition hover:shadow-md"
+                  >
+                    <span className="font-semibold text-[var(--etext)]">
+                      Sismo Venezuela
+                    </span>
+                    <span className="block text-xs text-[var(--etext2)]">
+                      Reporte de mapas y daños + información de ayuda
+                    </span>
+                  </a>
+                </li>
               </ul>
             </div>
 
