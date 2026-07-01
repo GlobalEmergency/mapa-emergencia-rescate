@@ -19,6 +19,7 @@ import { env } from "@/config/env";
 const PREFIX = env.QUEUE_PREFIX;
 const SOURCES_SYNC_QUEUE = "sources-sync";
 const MAINTENANCE_QUEUE = "maintenance";
+const PATIENT_IMPORTS_QUEUE = "patient-imports";
 const REMOVE_ON_COMPLETE = env.QUEUE_REMOVE_ON_COMPLETE;
 const REMOVE_ON_FAIL = env.QUEUE_REMOVE_ON_FAIL;
 
@@ -125,6 +126,63 @@ export async function enqueueDuplicatesReport(
     },
   );
   return job.id!;
+}
+
+/**
+ * Modo del job de importación de pacientes:
+ *   - process: normaliza/valida/deduplica el staging ya materializado.
+ *   - apply:   escribe las filas válidas y únicas al final (idempotente).
+ *   - ocr:     extrae filas de una imagen (Minimax) y luego corre el process.
+ */
+export type PatientImportMode = "process" | "apply" | "ocr";
+
+export interface PatientImportJobData {
+  importId: string;
+  mode: PatientImportMode;
+  /** user.id que disparó el apply (auditoría/procedencia). Opcional. */
+  actorId?: string | null;
+  /**
+   * URL http/https de la imagen a extraer por OCR (modo "ocr"). Viaja SOLO en el
+   * payload del job (Redis), nunca se persiste en la DB de staging ni se expone en
+   * una respuesta de la API. Privacidad: el dato crudo no sale del worker.
+   */
+  imageUrl?: string;
+  /**
+   * Archivo CSV/XLSX en base64 (modo "process" de un lote de archivo) y su
+   * contentType. Viajan SOLO en el payload del job (Redis): el worker los parsea,
+   * materializa las filas en staging y corre el process. NUNCA se persisten en la
+   * DB de staging ni se exponen en una respuesta de la API. Ausentes para lotes
+   * JSON (cuyas filas ya se materializaron en la creación).
+   */
+  contentType?: string;
+  fileBase64?: string;
+}
+
+/**
+ * Encola el OCR, el procesado o el apply de un lote de pacientes. jobId
+ * determinístico por (modo, importId): un re-disparo con un job pendiente del
+ * mismo modo es no-op (idempotencia). El payload es minúsculo (id + url OCR
+ * opcional) — las filas viven en la DB de staging, no en el job. Devuelve el
+ * jobId para trazabilidad. Para CSV/XLSX, el archivo base64 viaja solo en el
+ * payload del job y el worker lo materializa en staging.
+ */
+export async function enqueuePatientImport(
+  data: PatientImportJobData,
+  opts?: JobsOptions,
+): Promise<string> {
+  const job = await queue(PATIENT_IMPORTS_QUEUE).add(`${data.mode}-${data.importId}`, data, {
+    jobId: `pimport-${data.mode}-${data.importId}`,
+    attempts: 3,
+    backoff: { type: "exponential", delay: 10_000 },
+    removeOnComplete: REMOVE_ON_COMPLETE,
+    removeOnFail: REMOVE_ON_FAIL,
+    ...opts,
+  });
+  return job.id!;
+}
+
+export function getPatientImportJobState(jobId: string): Promise<JobState | null> {
+  return jobState(PATIENT_IMPORTS_QUEUE, jobId);
 }
 
 async function jobState(queueName: string, jobId: string): Promise<JobState | null> {

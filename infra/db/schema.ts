@@ -180,6 +180,9 @@ export const hospitalPatients = pgTable(
     status: text("status").notNull().default("hospitalized"),
     notes: text("notes").notNull().default(""),
     contact: text("contact").notNull().default(""),
+    // HMAC del documento/cédula normalizado. Permite dedup exacta sin guardar el
+    // documento crudo en la tabla final.
+    documentHash: text("document_hash"),
     admittedAt: epochMs("admitted_at").notNull(),
     updatedAt: epochMs("updated_at").notNull(),
   },
@@ -189,6 +192,118 @@ export const hospitalPatients = pgTable(
       t.status,
       t.admittedAt.desc(),
     ),
+    index("idx_hospital_patients_document_hash")
+      .on(t.hospitalId, t.documentHash)
+      .where(sql`document_hash IS NOT NULL`),
+  ],
+);
+
+/* --------------------------------------------------------- patient_imports */
+// Staging para la importación autenticada de pacientes hospitalarios (#151).
+// Un `patient_imports` = un lote subido por una integración/admin; sus filas
+// (`patient_import_rows`) pasan por normalización → validación → deduplicación
+// en el worker ANTES de escribirse en `hospital_patients` (apply idempotente).
+// La cabecera lleva solo contadores + estado + procedencia (sin PII de paciente).
+export const patientImports = pgTable(
+  "patient_imports",
+  {
+    id: text("id").primaryKey(),
+    // pending → queued → processing → processed → applying → applied | failed
+    status: text("status").notNull().default("pending"),
+    // Etapa que produjo `failed` (process|apply). Permite reanudar solo fallos de
+    // apply parcial sin re-aplicar staging posiblemente incompleto de process.
+    failedStage: text("failed_stage"),
+    // Etiqueta DECLARADA del origen del lote (no es PII, no es confiable, no es
+    // autoría). La declara el cliente; la autoría verificada es `created_by`. No
+    // usar para auth/dedup. Ver docs/rfcs/0007-procedencia-ingesta-pacientes.md.
+    source: text("source").notNull().default("api"),
+    // Identificador del registro/lote en el sistema de origen declarado. No es
+    // autoridad de identidad: solo trazabilidad/provenance del lote.
+    sourceRecordId: text("source_record_id"),
+    // Integración/canal declarado por quien sube el lote (p.ej. api-key, hospital,
+    // telegram, csv-manual). No reemplaza `created_by` ni se usa para permisos.
+    integration: text("integration"),
+    // Formato del payload de entrada. JSON se materializa directo; CSV/XLSX se
+    // parsea en el worker; imagen OCR se extrae en el worker y queda en revisión.
+    contentType: text("content_type").notNull().default("application/json"),
+    // jobId de BullMQ del último job (process/apply) para trazabilidad.
+    jobId: text("job_id"),
+    // Hash SHA-256 del header Idempotency-Key. No guardamos la key cruda; el
+    // índice único scoped evita duplicar lotes por retry del mismo usuario.
+    idempotencyKeyHash: text("idempotency_key_hash"),
+    totalRows: integer("total_rows").notNull().default(0),
+    validRows: integer("valid_rows").notNull().default(0),
+    invalidRows: integer("invalid_rows").notNull().default(0),
+    duplicateRows: integer("duplicate_rows").notNull().default(0),
+    reviewRows: integer("review_rows").notNull().default(0),
+    appliedRows: integer("applied_rows").notNull().default(0),
+    // AUTORÍA VERIFICADA: user.id que creó el lote, derivado de req.user en el
+    // route (NO del body) → no spoofeable. (NULL = sistema). No es PII de paciente.
+    createdBy: text("created_by"),
+    // Resumen de error legible (NUNCA stack traces ni PII).
+    errorSummary: text("error_summary"),
+    createdAt: epochMs("created_at").notNull(),
+    processedAt: epochMs("processed_at"),
+    appliedAt: epochMs("applied_at"),
+    updatedAt: epochMs("updated_at").notNull(),
+  },
+  (t) => [
+    index("idx_patient_imports_status").on(t.status, t.createdAt.desc()),
+    uniqueIndex("idx_patient_imports_actor_idempotency")
+      .on(t.createdBy, t.idempotencyKeyHash)
+      .where(sql`idempotency_key_hash IS NOT NULL`),
+  ],
+);
+
+// Una fila staging por paciente del lote. Guarda el dato CRUDO (restringido, en
+// jsonb) + los campos normalizados + el resultado de validación/dedup. El dato
+// crudo y los campos sensibles (cédula/documento, notas, contacto) NUNCA se
+// exponen en respuestas públicas/de baja confianza — solo el estado y los
+// errores/avisos de revisión.
+export const patientImportRows = pgTable(
+  "patient_import_rows",
+  {
+    id: text("id").primaryKey(),
+    importId: text("import_id")
+      .notNull()
+      .references(() => patientImports.id, { onDelete: "cascade" }),
+    rowIndex: integer("row_index").notNull(),
+    // Texto crudo del hospital tal como vino en el input (para resolverlo).
+    sourceHospital: text("source_hospital").notNull().default(""),
+    // Hospital resuelto (FK lógica a hospitals.id; NULL = no resoluble todavía).
+    hospitalId: text("hospital_id"),
+    // Nombre normalizado (trim/colapso de espacios).
+    name: text("name").notNull().default(""),
+    // Clave de bloqueo para dedup: nombre en minúsculas, sin acentos ni signos.
+    normalizedKey: text("normalized_key").notNull().default(""),
+    age: integer("age"),
+    condition: text("condition"),
+    status: text("status"),
+    // Dato CRUDO de entrada + campos sensibles (documento/notas/contacto).
+    // RESTRINGIDO: no se serializa hacia respuestas públicas.
+    rawData: jsonb("raw_data").notNull().default({}),
+    // HMAC del documento/cédula normalizado. El crudo queda solo en raw_data.
+    documentHash: text("document_hash"),
+    validationErrors: jsonb("validation_errors").notNull().default([]),
+    validationWarnings: jsonb("validation_warnings").notNull().default([]),
+    // pending | unique | duplicate | needs_review
+    dedupStatus: text("dedup_status").notNull().default("pending"),
+    // Candidatos de duplicado (allowlist: patientId + name + reason). Sin PII extra.
+    dedupCandidates: jsonb("dedup_candidates").notNull().default([]),
+    confidence: doublePrecision("confidence").notNull().default(0),
+    // pending | valid | invalid | duplicate | needs_review | applied | skipped
+    rowStatus: text("row_status").notNull().default("pending"),
+    // hospital_patients.id final tras el apply (idempotencia: set = ya aplicada).
+    patientId: text("patient_id"),
+    createdAt: epochMs("created_at").notNull(),
+    updatedAt: epochMs("updated_at").notNull(),
+  },
+  (t) => [
+    index("idx_patient_import_rows_import").on(t.importId, t.rowIndex),
+    index("idx_patient_import_rows_status").on(t.importId, t.rowStatus),
+    // Nota: NO indexamos (import_id, document_hash). La dedup intra-lote por
+    // documento se resuelve en memoria durante `processImport` (no hay query por
+    // esta combinación), así que el índice sería peso muerto.
   ],
 );
 

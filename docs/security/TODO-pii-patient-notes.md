@@ -45,6 +45,19 @@ médico) sin auth. La ruta hermana de búsqueda pública ya limita a buscar solo
 nombre (no enumerable por cédula) y aplica rate-limit; esta ruta de listado aún
 devuelve `notes`.
 
+## Mitigación parcial aplicada (#160, ingesta de pacientes)
+
+El PR de ingesta de pacientes (#160) NO propaga las `notes` crudas del lote al
+paciente final: `applyImport` crea el paciente con `notes: ""`. Esto evita que la
+importación **agrave** esta fuga (una cédula/nota médica del input no llega al
+campo público). El dato crudo sigue confinado en `raw_data` (staging restringido).
+
+Es una **mitigación temporal**, no el fix de raíz: la lectura pública sigue
+devolviendo `notes` para pacientes creados por otras vías (formulario admin, etc.).
+La corrección de abajo sigue pendiente. Pendiente de decidir con el maintainer: si
+los pacientes importados deben conservar notas en un campo restringido (estilo
+`public_hospitalized_patients` de #71 en venezuela-ayuda) en vez de vaciarlas.
+
 ## La corrección
 
 - [ ] **Proyección pública sin `notes`.** En `listPatients`/`rowToPatient`,

@@ -119,6 +119,7 @@ services:
       CORS_ORIGINS: http://localhost:3000
       TRUSTED_IP_HEADER: "" # dev: cae a req.ip
       IP_SALT: localdev-salt
+      PATIENT_DOCUMENT_HASH_SECRET: local-dev-patient-document-hash-secret-0123456789
       ADMIN_PASSWORD: localadmin
       # Turnstile DESACTIVADO en local (sin secret → requireHuman deja pasar).
       # --- Auth api/public/* (JWT cookie + Bearer) ---
@@ -136,6 +137,15 @@ services:
       SMTP_USERNAME: "${SMTP_USERNAME:-}"
       SMTP_PASSWORD: "${SMTP_PASSWORD:-}"
       SMTP_FROM: "${SMTP_FROM:-Mapa Emergencia <noreply@dreamit.software>}"
+      # OCR/ICR (Minimax VL) DESACTIVADO en local si MINIMAX_API_KEY no existe.
+      # Docker Compose lee .env para interpolar estas variables, pero no las inyecta
+      # automáticamente al contenedor si no están listadas aquí.
+      MINIMAX_API_KEY: ${MINIMAX_API_KEY:-}
+      MINIMAX_OCR_BASE_URL: ${MINIMAX_OCR_BASE_URL:-https://api.minimax.io/v1}
+      MINIMAX_OCR_MODEL: ${MINIMAX_OCR_MODEL:-MiniMax-M3}
+      MINIMAX_OCR_MAX_TOKENS: ${MINIMAX_OCR_MAX_TOKENS:-2048}
+      MINIMAX_OCR_TIMEOUT_MS: ${MINIMAX_OCR_TIMEOUT_MS:-30000}
+      MINIMAX_OCR_PROMPT: ${MINIMAX_OCR_PROMPT:-}
     ports:
       - "8080:8080"
     depends_on:

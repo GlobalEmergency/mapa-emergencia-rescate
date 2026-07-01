@@ -38,6 +38,13 @@ export const MODELS: { key: string; category: string; label: string }[] = [
  * endpoints de administración de usuarios/roles/grants.
  */
 export const CROSS_CUTTING: { key: string; category: string; description: string }[] = [
+  // Importación de pacientes hospitalarios (staging + procesado + apply). No es
+  // un verbo CRUD estándar: gobierna toda la superficie de `patient-imports`.
+  {
+    key: "patient:import",
+    category: "hospitals",
+    description: "Importar pacientes hospitalarios (staging, validación y apply)",
+  },
   { key: "user:invite", category: "auth", description: "Invitar usuarios nuevos" },
   { key: "user:read", category: "auth", description: "Ver usuarios" },
   { key: "user:edit", category: "auth", description: "Editar usuarios (estado, rol)" },

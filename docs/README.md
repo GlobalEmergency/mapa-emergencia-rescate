@@ -89,6 +89,8 @@ acción.
   · _implementado_.
 - [0006 — Hub de datos públicos: réplica saneada con SQL crudo y API](rfcs/0006-hub-replica-sql-publico.md)
   · _propuesta_ · réplica lógica + TCP/TLS para consumidores externos.
+- [0007 — Procedencia en la ingesta de pacientes](rfcs/0007-procedencia-ingesta-pacientes.md)
+  · _propuesta_.
 
 ### ADRs
 

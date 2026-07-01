@@ -56,6 +56,16 @@ const CASES: Case[] = [
   { label: "chat list", method: "get", path: "/api/public/chat", cap: "chat:read" },
   { label: "contact list", method: "get", path: "/api/public/contact", cap: "contact:read" },
   { label: "invite (user:invite)", method: "post", path: "/api/public/auth/invite", cap: "user:invite", body: { email: "x@y.z" } },
+  {
+    label: "patient-import create",
+    method: "post",
+    path: "/api/public/patient-imports",
+    cap: "patient:import",
+    body: { rows: [{ name: "Demo Anon", hospital: "Hospital Demo" }] },
+  },
+  { label: "patient-import detail", method: "get", path: "/api/public/patient-imports/none", cap: "patient:import" },
+  { label: "patient-import rows", method: "get", path: "/api/public/patient-imports/none/rows", cap: "patient:import" },
+  { label: "patient-import apply", method: "post", path: "/api/public/patient-imports/none/apply", cap: "patient:import" },
   // --- RBAC admin (roles vía fábrica; users/grants/audit a mano) ---
   { label: "roles list", method: "get", path: "/api/public/roles", cap: "role:read" },
   {

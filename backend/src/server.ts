@@ -64,19 +64,20 @@ app.use((req, res, next) => {
 });
 
 // Parser JSON por defecto (256kb). CRÍTICO: NO debe correr en las rutas que
-// aceptan fotos base64 (~1.4MB) — esas montan su propio express.json(2mb) a nivel
+// aceptan bodies grandes — fotos base64 (~1.4MB) o lotes de ingesta de pacientes
+// (hasta 2000 filas). Esas montan su propio express.json con límite mayor a nivel
 // de ruta. Si el parser global corriera primero, consumiría el stream y cortaría
-// el body a 256kb antes de que el parser de 2mb lo viera (413 en POST con foto).
-// Por eso lo saltamos en los paths de creación con foto.
-const PHOTO_POST_PATHS = [
-  "/api/missing",
-  "/api/reports",
+// el body a 256kb antes de que el parser grande lo viera (413). Por eso lo saltamos.
+const LARGE_BODY_POST_PATHS = [
+  "/api/missing", // foto base64
+  "/api/reports", // foto base64
+  "/api/public/patient-imports", // lote de ingesta (hasta 2000 filas)
 ];
 const globalJson = express.json({ limit: "256kb" });
 app.use((req, res, next) => {
-  // Solo saltamos el POST exacto a esos paths (sus subrutas GET /:id/photo no
-  // tienen body). El parser de 2mb de la ruta se encarga.
-  if (req.method === "POST" && PHOTO_POST_PATHS.includes(req.path)) return next();
+  // Solo saltamos el POST exacto a esos paths. El parser ampliado de la ruta se
+  // encarga (las subrutas usan bodies pequeños o ninguno).
+  if (req.method === "POST" && LARGE_BODY_POST_PATHS.includes(req.path)) return next();
   return globalJson(req, res, next);
 });
 

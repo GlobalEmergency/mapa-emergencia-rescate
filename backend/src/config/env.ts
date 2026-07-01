@@ -44,6 +44,9 @@ const schema = z.object({
 
   // Privacidad: sal para hashear IPs antes de persistir. Sin esto, hashIp lanza.
   IP_SALT: z.string().optional(),
+  // Privacidad: secreto HMAC para documentos de pacientes importados. Permite
+  // dedup exacta sin guardar cédulas/documentos crudos fuera de staging.
+  PATIENT_DOCUMENT_HASH_SECRET: z.string().optional(),
 
   // Cabecera de IP de confianza. Detrás de Cloudflare debe ser cf-connecting-ip
   // (el cliente NO puede falsificarla). Default a cf-connecting-ip aquí porque el
@@ -79,6 +82,19 @@ const schema = z.object({
   // Proxy de analítica OpenPanel (route op/[...op]). Opcionales.
   OPENPANEL_API_URL: z.string().default("https://api.openpanel.dev"),
   OPENPANEL_CLIENT_SECRET: z.string().optional(),
+
+  // OCR/ICR de importación de pacientes (Minimax VL, OpenAI-compatible).
+  // DESACTIVADO por defecto: sin MINIMAX_API_KEY el proveedor no se construye y
+  // el ingest OCR/ICR sigue respondiendo 501 (sin habilitar auto-aplicación). El
+  // token es SOLO server-side: nunca se loguea ni se expone en respuestas. El
+  // endpoint, el modelo (VL), el prompt, el máximo de tokens y el timeout son
+  // parametrizables para cambiar de modelo sin redeploy.
+  MINIMAX_API_KEY: z.string().optional(),
+  MINIMAX_OCR_BASE_URL: z.string().default("https://api.minimax.io/v1"),
+  MINIMAX_OCR_MODEL: z.string().default("MiniMax-M3"),
+  MINIMAX_OCR_MAX_TOKENS: z.coerce.number().int().positive().default(2048),
+  MINIMAX_OCR_TIMEOUT_MS: z.coerce.number().int().positive().default(30000),
+  MINIMAX_OCR_PROMPT: z.string().optional(),
 
   // ResponseGrid: API externa de centros de acopio (logística humanitaria). El
   // backend la PROXEA en /api/acopio (cache + rate-limit + ETag); el navegador
@@ -122,6 +138,12 @@ export const env = parsed.data;
 if (env.NODE_ENV === "production") {
   if (!env.JWT_SECRET || env.JWT_SECRET.length < 32) {
     console.error("❌ JWT_SECRET es obligatorio y debe tener >=32 caracteres en producción.");
+    process.exit(1);
+  }
+  if (!env.PATIENT_DOCUMENT_HASH_SECRET || env.PATIENT_DOCUMENT_HASH_SECRET.length < 32) {
+    console.error(
+      "❌ PATIENT_DOCUMENT_HASH_SECRET es obligatorio y debe tener >=32 caracteres en producción.",
+    );
     process.exit(1);
   }
   if (!env.COOKIE_SECURE) {

@@ -163,6 +163,16 @@ como superficie de abuso (la protección efectiva sigue siendo Turnstile + rate-
   configuración del Deployment (`SYNC_SCHEDULERS=0`, `HUB_SCHEDULERS=0`).
 - El worker sigue disponible para jobs manuales como backfill de Neon,
   migración de fotos a R2 y trabajos encolados explícitamente.
+- La cola `patient-imports` procesa la importación autenticada de pacientes
+  hospitalarios (#151): la API `POST /api/public/patient-imports` (capacidad
+  `patient:import`) guarda el lote en staging (`patient_imports` +
+  `patient_import_rows`) y encola; el worker normaliza, valida y deduplica las
+  filas, y `POST .../{id}/apply` encola la escritura idempotente en
+  `hospital_patients` (solo filas válidas y únicas). El dato crudo y los campos
+  sensibles (documento, notas, contacto) viven en staging restringido y no se
+  exponen en las respuestas. La entrada OCR/ICR por imagen se habilita solo si
+  existe proveedor Minimax configurado; materializa filas en staging como
+  `needs_review` y nunca auto-aplica. Sin proveedor, o para PDF, responde 501.
 - **Sismos USGS** (`earthquakes.queue.ts`): el worker poll-ea el feed realtime
   del USGS (`2.5_week.geojson`, global) cada `EARTHQUAKES_EVERY_MS` (default 60s,
   la cadencia con la que USGS lo refresca), filtra al bounding box de Venezuela y

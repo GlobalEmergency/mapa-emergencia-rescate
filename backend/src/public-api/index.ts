@@ -12,6 +12,7 @@
 import type { Express } from "express";
 import { createCrudRouter, type CrudResource } from "@/public-api/crud-factory";
 import { authRouter } from "@/routes/auth";
+import { patientImportsRouter } from "@/public-api/patient-imports";
 import { reportsResource } from "@/public-api/resources/reports.resource";
 import { missingResource } from "@/public-api/resources/missing.resource";
 import { hospitalsResource } from "@/public-api/resources/hospitals.resource";
@@ -51,6 +52,9 @@ export const PUBLIC_RESOURCES: Record<string, AnyResource> = {
 export function mountPublicApi(app: Express): void {
   // Auth (no CRUD de modelo): login, invite, accept, me, logout, reset.
   app.use("/api/public/auth", authRouter);
+  // Importación de pacientes (#151): no es CRUD de modelo, router escrito a mano
+  // pero deny-by-default con patient:import en cada ruta.
+  app.use("/api/public/patient-imports", patientImportsRouter);
   // Recursos CRUD — un router generado por recurso desde su config.
   for (const [path, resource] of Object.entries(PUBLIC_RESOURCES)) {
     app.use(`/api/public/${path}`, createCrudRouter(resource));
