@@ -63,6 +63,7 @@ jobs:
           TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
           TURNSTILE_SITE_KEY: ${{ secrets.TURNSTILE_SITE_KEY }}
           IP_SALT: ${{ secrets.IP_SALT }}
+          PATIENT_DOCUMENT_HASH_SECRET: ${{ secrets.PATIENT_DOCUMENT_HASH_SECRET }}
           TRUSTED_IP_HEADER: ${{ secrets.TRUSTED_IP_HEADER }}
           APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
           ADMIN_BASE_URL: ${{ secrets.ADMIN_BASE_URL }}
@@ -85,6 +86,12 @@ jobs:
           NEXT_PUBLIC_OPENPANEL_PRODUCTION_HOST: ${{ secrets.NEXT_PUBLIC_OPENPANEL_PRODUCTION_HOST }}
           NEXT_PUBLIC_OPENPANEL_DASHBOARD_URL: ${{ secrets.NEXT_PUBLIC_OPENPANEL_DASHBOARD_URL }}
           OPENPANEL_CLIENT_SECRET: ${{ secrets.OPENPANEL_CLIENT_SECRET }}
+          MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
+          MINIMAX_OCR_BASE_URL: ${{ secrets.MINIMAX_OCR_BASE_URL }}
+          MINIMAX_OCR_MODEL: ${{ secrets.MINIMAX_OCR_MODEL }}
+          MINIMAX_OCR_MAX_TOKENS: ${{ secrets.MINIMAX_OCR_MAX_TOKENS }}
+          MINIMAX_OCR_TIMEOUT_MS: ${{ secrets.MINIMAX_OCR_TIMEOUT_MS }}
+          MINIMAX_OCR_PROMPT: ${{ secrets.MINIMAX_OCR_PROMPT }}
         run: |
           # Escribe cada var como KEY=value, con el valor entre comillas simples
           # (seguro para caracteres especiales en passwords/URLs).
@@ -95,7 +102,8 @@ jobs:
                    MIGRATIONS_DIR SKIP_SEED JWT_SECRET COOKIE_SECURE \
                    SESSION_MAX_AGE_SECONDS SEED_ADMIN_EMAIL SEED_ADMIN_PASSWORD \
                    ADMIN_PASSWORD CORS_ORIGINS TURNSTILE_SECRET_KEY \
-                   TURNSTILE_SITE_KEY IP_SALT TRUSTED_IP_HEADER APP_BASE_URL \
+                   TURNSTILE_SITE_KEY IP_SALT PATIENT_DOCUMENT_HASH_SECRET \
+                   TRUSTED_IP_HEADER APP_BASE_URL \
                    ADMIN_BASE_URL EMERGENCY_API_URL R2_KEY_PREFIX R2_ENDPOINT \
                    R2_STATIC_BUCKET R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY \
                    R2_PUBLIC_BASE SMTP_HOST SMTP_PORT SMTP_USERNAME \
@@ -103,13 +111,15 @@ jobs:
                    NEXT_PUBLIC_R2_PUBLIC_BASE NEXT_PUBLIC_ASSET_PREFIX \
                    NEXT_PUBLIC_OPENPANEL_CLIENT_ID \
                    NEXT_PUBLIC_OPENPANEL_PRODUCTION_HOST \
-                   NEXT_PUBLIC_OPENPANEL_DASHBOARD_URL OPENPANEL_CLIENT_SECRET; do
+                   NEXT_PUBLIC_OPENPANEL_DASHBOARD_URL OPENPANEL_CLIENT_SECRET \
+                   MINIMAX_API_KEY MINIMAX_OCR_BASE_URL MINIMAX_OCR_MODEL \
+                   MINIMAX_OCR_MAX_TOKENS MINIMAX_OCR_TIMEOUT_MS MINIMAX_OCR_PROMPT; do
             v="${!k}"
             # comillas simples + escape de comilla simple interna
             printf "%s='%s'\n" "$k" "${v//\'/\'\\\'\'}" >> .staging.env
           done
           # Guard: las vars críticas no pueden ir vacías.
-          for req in POSTGRES_PASSWORD DATABASE_URL JWT_SECRET; do
+          for req in POSTGRES_PASSWORD DATABASE_URL JWT_SECRET PATIENT_DOCUMENT_HASH_SECRET; do
             grep -qE "^$req='.+'" .staging.env || { echo "::error::$req vacío — ¿falta el secret en el environment staging?"; exit 1; }
           done
           echo "Escritas $(wc -l < .staging.env) vars en .staging.env"
