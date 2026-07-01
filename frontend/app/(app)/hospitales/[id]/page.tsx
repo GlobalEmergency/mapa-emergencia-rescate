@@ -12,6 +12,8 @@ import {
 } from "@/lib/hospitals-meta";
 import HospitalDetailView from "@/components/features/hospitals/HospitalDetailView";
 import { pageMetadata } from "@/lib/metadata";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { breadcrumbSchema, graph, ORG_ID } from "@/lib/jsonld";
 import { SITE_URL } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
@@ -64,11 +66,12 @@ export default async function HospitalPage({ params }: PageProps) {
   const zone = PRIORITY_ZONE_META[hospital.priorityZone];
   const facility = FACILITY_TYPE_META[hospital.facilityType];
 
+  const hospitalUrl = `${SITE_URL}/hospitales/${canonicalSlug}`;
   const hospitalJsonLd = {
-    "@context": "https://schema.org",
     "@type": "Hospital",
+    "@id": hospitalUrl,
     name: hospital.name,
-    url: `${SITE_URL}/hospitales/${canonicalSlug}`,
+    url: hospitalUrl,
     address: {
       "@type": "PostalAddress",
       ...(hospital.address ? { streetAddress: hospital.address } : {}),
@@ -76,16 +79,21 @@ export default async function HospitalPage({ params }: PageProps) {
       addressRegion: hospital.state,
       addressCountry: "VE",
     },
+    areaServed: { "@type": "Country", name: "Venezuela" },
+    provider: { "@id": ORG_ID },
   };
+  const hospitalGraph = graph(
+    hospitalJsonLd,
+    breadcrumbSchema([
+      { name: "Inicio", path: "/" },
+      { name: "Hospitales", path: "/hospitales" },
+      { name: hospital.name, path: `/hospitales/${canonicalSlug}` },
+    ]),
+  );
 
   return (
     <main className="flex-1 bg-slate-50">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(hospitalJsonLd).replace(/</g, "\\u003c"),
-        }}
-      />
+      <JsonLd data={hospitalGraph} />
       <div className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex w-full max-w-5xl items-center gap-2 px-4 py-3 text-sm text-slate-500">
           <Link href="/" className="hover:text-slate-700 hover:underline">

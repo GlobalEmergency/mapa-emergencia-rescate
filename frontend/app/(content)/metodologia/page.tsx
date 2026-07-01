@@ -153,7 +153,17 @@ function TableWrap({ children }: { children: React.ReactNode }) {
 
 export default function MetodologiaPage() {
   return (
-    <SubPageShell breadcrumb="Metodología">
+    <SubPageShell
+      breadcrumb="Metodología"
+      path="/metodologia"
+      article={{
+        headline:
+          "Metodología: unificación de reportes de personas desaparecidas",
+        description:
+          "Reporte técnico del pipeline de resolución de entidades (record linkage) y verificación biométrica facial que consolida reportes de personas desaparecidas del terremoto de Venezuela en identidades canónicas, con arbitraje humano y trazabilidad completa.",
+        dateModified: "2026-06-29",
+      }}
+    >
       {/* Hero */}
       <header className="relative overflow-hidden border-b border-[var(--eborder)]">
         <div

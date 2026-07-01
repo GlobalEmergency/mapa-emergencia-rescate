@@ -46,3 +46,77 @@ export function organizationSchema(): JsonLdNode {
 export function graph(...nodes: JsonLdNode[]): JsonLdNode {
   return { "@context": "https://schema.org", "@graph": nodes };
 }
+
+export interface BreadcrumbItem {
+  name: string;
+  /** Ruta absoluta o relativa al sitio. Si se omite, el item no lleva URL
+   *  (válido para el último nivel del breadcrumb). */
+  path?: string;
+}
+
+/** Migas de pan: ayudan a los agentes a entender la jerarquía de navegación. */
+export function breadcrumbSchema(items: BreadcrumbItem[]): JsonLdNode {
+  return {
+    "@type": "BreadcrumbList",
+    itemListElement: items.map((item, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name: item.name,
+      ...(item.path ? { item: absoluteUrl(item.path) } : {}),
+    })),
+  };
+}
+
+export interface ArticleInput {
+  title: string;
+  description: string;
+  path: string;
+  datePublished?: string;
+  dateModified?: string;
+}
+
+/** Artículo para páginas de contenido de referencia (guía, metodología, etc.).
+ *  author/publisher referencian la Organización por @id. */
+export function articleSchema({
+  title,
+  description,
+  path,
+  datePublished,
+  dateModified,
+}: ArticleInput): JsonLdNode {
+  const url = absoluteUrl(path);
+  return {
+    "@type": "Article",
+    headline: title,
+    description,
+    inLanguage: "es-VE",
+    url,
+    mainEntityOfPage: url,
+    ...(datePublished ? { datePublished } : {}),
+    ...(dateModified ? { dateModified } : {}),
+    author: { "@id": ORG_ID },
+    publisher: { "@id": ORG_ID },
+  };
+}
+
+export interface FaqEntry {
+  question: string;
+  answer: string;
+}
+
+/** Preguntas frecuentes: uno de los formatos con mayor tasa de cita por IA.
+ *  Debe emparejarse con el mismo contenido visible en la página. */
+export function faqSchema(entries: FaqEntry[]): JsonLdNode {
+  return {
+    "@type": "FAQPage",
+    mainEntity: entries.map((entry) => ({
+      "@type": "Question",
+      name: entry.question,
+      acceptedAnswer: { "@type": "Answer", text: entry.answer },
+    })),
+  };
+}
+
+function absoluteUrl(path: string): string {
+  return path.startsWith("http") ? path : `${SITE_URL}${path}`;
+}

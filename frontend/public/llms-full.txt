@@ -1,0 +1,90 @@
+# Mapa de Emergencia y Rescate — Venezuela (texto completo)
+
+> Plataforma ciudadana, independiente y no gubernamental que centraliza información útil durante el terremoto en Venezuela. No es un canal oficial de emergencia; en una emergencia llama a los números locales.
+
+Sitio: https://terremotovenezuela.app
+Idioma: español (es-VE). Cobertura: Venezuela.
+
+## Qué es y qué no es
+
+- Es: un mapa y directorio ciudadano que reúne hospitales, refugios y centros de acopio, teléfonos de emergencia, una guía de supervivencia y la coordinación de ayuda humanitaria.
+- No es: un organismo oficial ni un servicio de emergencia. No reemplaza a las autoridades.
+- Fuentes: datos abiertos verificables y reportes ciudadanos voluntarios. Pueden estar incompletos o no verificados; confírmalos con fuentes oficiales antes de decisiones críticas.
+
+## Teléfonos de emergencia (líneas directas)
+
+- Cantv (desde teléfono fijo): 171
+- Movilnet: *1
+- Digitel: 112
+- Movistar: 911
+
+Directorio completo (ambulancias y bomberos por municipio): https://terremotovenezuela.app/telefonos
+
+## Guía rápida de supervivencia
+
+### 1. Revisa a tus vecinos (primero lo más urgente)
+- ¿Alguien está herido o atrapado?
+- Revisa a los adultos mayores primero.
+- Confirma que ningún niño esté solo.
+- Habla en voz alta para que te escuchen si están atrapados.
+- Consejo: llama a los bomberos si alguien está atrapado; no muevas escombros grandes solo.
+
+### 2. Guarda agua y lo esencial (para los próximos días)
+- Guarda agua potable: 2 litros por persona por día.
+- Ten a mano tus medicamentos esenciales.
+- Linterna, radio y documentos en una bolsa lista.
+- Comida que no necesite cocción ni refrigeración.
+- Consejo: no uses el agua del grifo hasta confirmar que es segura.
+
+### 3. Si hay personas atrapadas (actúa con calma)
+- Habla con la persona: mantenerla consciente es vital.
+- NO muevas escombros grandes sin evaluar el riesgo.
+- Marca el lugar con tela o una señal visible para los rescatistas.
+- Llama al 911 o a los bomberos y no cuelgues.
+- Consejo: los rescatistas profesionales tienen el equipo necesario; tu trabajo es señalizar y mantener la calma.
+
+### 4. Punto de encuentro seguro (organización comunitaria)
+- Reúnete con tu familia en un espacio abierto, lejos de edificios.
+- Define un punto de encuentro que todos conozcan.
+- Ayuda a los más vulnerables a llegar al punto seguro.
+- No regreses a un edificio dañado hasta que sea declarado seguro.
+- Consejo: escoge un parque o una plaza y comparte la ubicación con tu familia.
+
+### 5. Mantente comunicado (información verificada)
+- Usa el radio si no hay señal de celular.
+- Comparte solo información verificada con tus vecinos.
+- Carga tu teléfono al mínimo posible para que dure más.
+- Envía un mensaje de texto si las llamadas fallan.
+- Consejo: no difundas rumores; confía en fuentes oficiales y en esta plataforma.
+
+## Cómo ayudar
+
+- Reportar en el mapa: https://terremotovenezuela.app/
+- Centros de acopio (donaciones físicas): https://terremotovenezuela.app/acopio
+- Donaciones a organizaciones: https://terremotovenezuela.app/donaciones
+- Voluntariado: https://terremotovenezuela.app/voluntario
+- Apoyo disponible (recursos activos): https://terremotovenezuela.app/apoyo-disponible
+- Apoyo desde el exterior: https://terremotovenezuela.app/apoyo-global
+
+## Hospitales y personas
+
+- Directorio de hospitales priorizados y búsqueda de pacientes: https://terremotovenezuela.app/hospitales
+- Metodología de unificación y verificación de reportes de personas desaparecidas: https://terremotovenezuela.app/metodologia
+- La información de personas (desaparecidos y pacientes) se trata como sensible; no se publican datos personales innecesarios.
+
+## Preguntas frecuentes
+
+- ¿Qué es Mapa de Emergencia y Rescate? Una plataforma ciudadana que centraliza, en un solo lugar, información útil durante el terremoto en Venezuela: hospitales, centros de acopio y refugios, teléfonos de emergencia, una guía de supervivencia y la coordinación de ayuda humanitaria.
+- ¿Es un canal oficial de emergencia? No. En una emergencia real llama de inmediato a los números de emergencia locales. La plataforma es un apoyo informativo y no reemplaza a las autoridades.
+- ¿De dónde provienen los datos? De fuentes abiertas verificables y de reportes ciudadanos voluntarios. Pueden estar incompletos o no verificados.
+- ¿Quién está detrás del proyecto? Una iniciativa ciudadana, independiente y no gubernamental, mantenida por voluntarios. No representa a ningún gobierno, partido ni empresa.
+- ¿Cómo cuidan los datos de las personas afectadas? La información de personas se trata como sensible; no se publican datos personales innecesarios y se aplican criterios de privacidad descritos en la metodología y la política de privacidad.
+- ¿Cómo puedo ayudar? Reportando información en el mapa, sumándote como voluntario o apoyando con donaciones a las organizaciones listadas.
+
+## Privacidad y uso
+
+- No es un canal oficial de emergencia: en una emergencia llama a los números locales.
+- Datos de fuentes abiertas y reportes voluntarios; verifícalos con fuentes oficiales.
+- Política de privacidad: https://terremotovenezuela.app/privacidad
+- Términos de uso: https://terremotovenezuela.app/terminos
+- Contacto: info@terremotovenezuela.app

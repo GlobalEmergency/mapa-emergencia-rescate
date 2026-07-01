@@ -35,7 +35,15 @@ const formatNumber = (value: number) => value.toLocaleString("es-VE");
 
 export default function RiesgoSismicoPage() {
   return (
-    <SubPageShell breadcrumb="Riesgo sísmico">
+    <SubPageShell
+      breadcrumb="Riesgo sísmico"
+      path="/riesgo-sismico"
+      article={{
+        headline: "Riesgo sísmico para inspección en Venezuela",
+        description:
+          "Vista de priorización para inspección sísmica basada en sacudida estimada por USGS, exposición poblacional y huellas de edificios de OpenStreetMap.",
+      }}
+    >
       <section className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-8 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="min-w-0 space-y-6">
           <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">

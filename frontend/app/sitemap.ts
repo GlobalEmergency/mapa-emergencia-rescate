@@ -26,6 +26,7 @@ const STATIC_PATHS = [
   { path: "/privacidad", changeFrequency: "yearly" as const, priority: 0.3 },
   { path: "/terminos", changeFrequency: "yearly" as const, priority: 0.3 },
   { path: "/contacto", changeFrequency: "monthly" as const, priority: 0.5 },
+  { path: "/quienes-somos", changeFrequency: "monthly" as const, priority: 0.5 },
   { path: "/donaciones", changeFrequency: "monthly" as const, priority: 0.6 },
   { path: "/voluntario", changeFrequency: "monthly" as const, priority: 0.6 },
   { path: "/apoyo-disponible", changeFrequency: "weekly" as const, priority: 0.7 },

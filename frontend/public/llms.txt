@@ -1,25 +1,33 @@
 # Mapa de Emergencia y Rescate
 
-> Plataforma ciudadana que centraliza información útil durante emergencias y desastres en Venezuela. No es un canal oficial de emergencia.
+> Plataforma ciudadana, independiente y no gubernamental que centraliza información útil durante el terremoto en Venezuela: hospitales, refugios y centros de acopio, teléfonos de emergencia, guía de supervivencia y coordinación de ayuda humanitaria. No es un canal oficial de emergencia.
 
 ## Páginas principales
 
-- Mapa interactivo: https://terremotovenezuela.app/
-- Directorio de hospitales: https://terremotovenezuela.app/hospitales
-- Guía de supervivencia: https://terremotovenezuela.app/guia
-- Centros de acopio: https://terremotovenezuela.app/acopio
-- Teléfonos de emergencia: https://terremotovenezuela.app/telefonos
-- Apoyo global: https://terremotovenezuela.app/apoyo-global
-- Apoyo disponible: https://terremotovenezuela.app/apoyo-disponible
-- Donaciones: https://terremotovenezuela.app/donaciones
-- Voluntariado: https://terremotovenezuela.app/voluntario
-- Riesgo sísmico: https://terremotovenezuela.app/riesgo-sismico
-- Contacto: https://terremotovenezuela.app/contacto
-- Privacidad: https://terremotovenezuela.app/privacidad
+- [Mapa interactivo](https://terremotovenezuela.app/): reportes ciudadanos en tiempo real (emergencias, suministros, centros de acopio).
+- [Directorio de hospitales](https://terremotovenezuela.app/hospitales): red hospitalaria priorizada y búsqueda de pacientes por nombre o cédula.
+- [Guía de supervivencia](https://terremotovenezuela.app/guia): qué hacer antes, durante y después de un sismo.
+- [Teléfonos de emergencia](https://terremotovenezuela.app/telefonos): líneas directas, ambulancias y bomberos.
+- [Centros de acopio](https://terremotovenezuela.app/acopio): dónde llevar y recibir donaciones físicas.
+- [Riesgo sísmico](https://terremotovenezuela.app/riesgo-sismico): priorización de inspección por sacudida estimada (USGS), población y edificaciones (OpenStreetMap).
+- [Metodología](https://terremotovenezuela.app/metodologia): cómo se unifican y verifican los reportes de personas desaparecidas.
+- [Donaciones](https://terremotovenezuela.app/donaciones): organizaciones para apoyar económicamente.
+- [Apoyo disponible](https://terremotovenezuela.app/apoyo-disponible): recursos y servicios de ayuda activos.
+- [Apoyo global](https://terremotovenezuela.app/apoyo-global): cómo ayudar desde el exterior.
+- [Voluntariado](https://terremotovenezuela.app/voluntario): cómo sumarse como voluntario.
+- [Quiénes somos](https://terremotovenezuela.app/quienes-somos): misión, independencia, fuentes y preguntas frecuentes.
+- [Contacto](https://terremotovenezuela.app/contacto): prensa, colaboración técnica o dudas.
 
-## Facts
+## Hechos clave
 
-- Esta es una plataforma ciudadana y humanitaria, no un canal oficial de emergencia.
-- En caso de emergencia, llama a los números de emergencia locales.
-- La información de hospitales se actualiza periódicamente pero puede no estar completa.
-- Los datos provienen de fuentes abiertas y reportes voluntarios.
+- Iniciativa ciudadana y humanitaria, independiente y no gubernamental. No es un canal oficial de emergencia.
+- En una emergencia, llama a los números locales: 171 (Cantv), *1 (Movilnet), 112 (Digitel), 911 (Movistar).
+- Los datos provienen de fuentes abiertas y de reportes voluntarios; pueden estar incompletos o no verificados.
+- Idioma: español (es-VE). Cobertura: Venezuela.
+
+## Optional
+
+- [Texto completo para IA (llms-full.txt)](https://terremotovenezuela.app/llms-full.txt): versión extensa con la guía y los datos de referencia citables.
+- [API pública (OpenAPI)](https://terremotovenezuela.app/openapi.json): contrato de la API pública del proyecto.
+- [Política de privacidad](https://terremotovenezuela.app/privacidad)
+- [Términos de uso](https://terremotovenezuela.app/terminos)
