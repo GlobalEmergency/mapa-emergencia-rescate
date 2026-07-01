@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: staging
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Arma .staging.env desde los secrets per-key del environment `staging`
       # (mismo modelo que prod). Los STAGING_* de conexión NO se incluyen: son

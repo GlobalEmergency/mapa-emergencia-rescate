@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: observability
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Arma .observability.env (en la raíz) desde secrets per-key. Los OBS_* de
       # conexión NO se incluyen: son para el workflow, no para los contenedores.
