@@ -1,0 +1,86 @@
+# Auditoría GEO/SEO recurrente: corre scripts/geo-audit.mjs contra el sitio
+# público y mantiene actualizado un issue fijo con el último reporte. No
+# reemplaza una auditoría manual completa (p. ej. la skill `geo-audit`); es un
+# chequeo barato y determinístico para detectar regresiones entre auditorías.
+# Ver issue #204 y la épica #205.
+name: geo-audit
+
+on:
+  schedule:
+    # Lunes 09:00 UTC. Cadencia semanal a propósito (no diaria): el sitio
+    # cambia poco día a día y evita ruido; ajustable por un maintainer.
+    - cron: "0 9 * * 1"
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "URL base a auditar"
+        required: false
+        default: "https://terremotovenezuela.app"
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  audit:
+    name: Auditoría GEO/SEO
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Run audit
+        id: run
+        env:
+          GEO_AUDIT_URL: ${{ inputs.url || 'https://terremotovenezuela.app' }}
+        run: |
+          set +e
+          node scripts/geo-audit.mjs "$GEO_AUDIT_URL" | tee geo-audit-report.md
+          echo "exit_code=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+        shell: bash
+
+      - name: Upsert tracking issue
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs = require("fs");
+            const report = fs.readFileSync("geo-audit-report.md", "utf8");
+            const label = "geo-audit-report";
+            const title = "Reporte de auditoría GEO/SEO (automático)";
+
+            const { data: existing } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+              labels: label,
+              per_page: 1,
+            });
+
+            const body = report +
+              "\n\n---\n_Generado automáticamente por `.github/workflows/geo-audit.yml`. " +
+              "Este issue se actualiza en el próximo run; no reabras uno cerrado, se creará uno nuevo si hace falta." +
+              " Ver roadmap GEO en la épica correspondiente._";
+
+            if (existing.length > 0) {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing[0].number,
+                body,
+              });
+              core.notice(`Actualizado issue #${existing[0].number}`);
+            } else {
+              const created = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: [label],
+              });
+              core.notice(`Creado issue #${created.data.number}`);
+            }
