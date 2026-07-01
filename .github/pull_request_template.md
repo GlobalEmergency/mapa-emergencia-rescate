@@ -2,6 +2,12 @@
 
 Describe el problema y la solución en 2-5 líneas.
 
+## Rama base
+
+- [ ] Este PR apunta a `staging` (a `main` solo se llega por la promoción
+      `staging` → `main` hecha por un mantenedor; ver
+      [docs/deploy/ramas-y-promocion.md](../docs/deploy/ramas-y-promocion.md)).
+
 ## Issue relacionada
 
 Closes #

@@ -21,8 +21,11 @@ separada salvo que el equipo decida cambiar esa relación; actualizar
 - Si el cambio toca UI pública, estilos, layout, componentes visuales o copy de
   experiencia, revisa `docs/design/DESIGN.md` antes de editar y conserva sus
   tokens y criterios como fuente de verdad visual.
-- Trabaja desde una rama nueva basada en `main`. Si no eres maintainer, usa el
-  flujo fork-first descrito en `CONTRIBUTING.md`.
+- Trabaja desde una rama nueva basada en `staging`, no en `main`. Los PR se
+  abren siempre contra `staging`; a `main` solo se llega por la promoción
+  `staging` → `main` que hace un maintainer (ver
+  [docs/deploy/ramas-y-promocion.md](docs/deploy/ramas-y-promocion.md)). Si no
+  eres maintainer, usa el flujo fork-first descrito en `CONTRIBUTING.md`.
 - No reescribas historial, no borres ramas ajenas y no reviertas cambios que no
   hiciste.
 - Mantener el proyecto operativo vale más que una refactorización amplia. Haz
@@ -306,6 +309,8 @@ scripts/                Importaciones y tareas manuales; revisa antes de usar
 
 Antes de abrir o actualizar un PR:
 
+- Ábrelo contra `staging`, no contra `main` (salvo que seas un maintainer
+  haciendo la promoción `staging` → `main`).
 - Enlaza la issue que rastrea el trabajo, o explica por qué el cambio es
   pequeño y no la necesita.
 - Incluye capturas o video si cambia UI pública.
